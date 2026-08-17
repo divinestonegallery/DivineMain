@@ -7,7 +7,4 @@ class ReviewAdminSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ['id', 'product', 'user', 'product_name', 'customer_name', 'rating', 'comment', 'is_approved', 'created_at']
-
-    def create(self, validated_data):
-        return super().create(validated_data)
+        fields = ['id', 'product', 'user', 'product_name', 'customer_name', 'rating', 'comment', 'status', 'is_approved', 'created_at', 'updated_at']

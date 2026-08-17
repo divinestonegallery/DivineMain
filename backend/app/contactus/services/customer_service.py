@@ -1,28 +1,35 @@
-from app.contactus.serializers.customer import ContactMessageCustomerSerializer, CustomizeRequestCustomerSerializer
-from app.accounts.repositories.customer_repository import CustomerRepository
+from app.contactus.repositories.contactus_repository import ContactUsRepository
+from app.common.repositories import UploadRepository
+from app.common.services.upload_service import UploadService
+
 
 class ContactUsCustomerService:
     @staticmethod
     def create_contact_message(data):
-        try:
-            serializer = ContactMessageCustomerSerializer(data=data)
-            if serializer.is_valid():
-                serializer.save()
-                return None, serializer.data
-            return serializer.errors, None
-        except Exception as e:
-            return str(e), None
+        if ContactUsRepository.recent_contact_duplicate(data['email'], data['message']):
+            return 'This message was already submitted recently.', None
+        return None, ContactUsRepository.create_contact(data)
 
     @staticmethod
-    def create_customize_request(data, clerk_id=None):
-        try:
-            serializer = CustomizeRequestCustomerSerializer(data=data)
-            if serializer.is_valid():
-                user = None
-                if clerk_id:
-                    user = CustomerRepository.get_customer_by_clerk_id(clerk_id)
-                serializer.save(user=user)
-                return None, serializer.data
-            return serializer.errors, None
-        except Exception as e:
-            return str(e), None
+    def create_customize_request(data, user_id=None):
+        if ContactUsRepository.recent_customize_duplicate(data):
+            return 'This customization request was already submitted recently.', None
+        object_key = data.get('reference_object_key')
+        if not object_key:
+            return None, ContactUsRepository.create_customize(data, user_id=user_id)
+
+        session = UploadRepository.claim_pending_session(object_key, user_id)
+        if not session or session['purpose'] != 'customization_reference':
+            return 'Reference upload is invalid, expired or already used.', None
+        error, _metadata = UploadService.inspect_image(object_key, session)
+        if error:
+            UploadService.delete_object(object_key)
+            UploadRepository.mark_rejected(object_key)
+            return error, None
+        payload = {
+            **data,
+            'reference_image': UploadService.public_url(object_key),
+        }
+        result = ContactUsRepository.create_customize(payload, user_id=user_id)
+        UploadRepository.mark_attached(object_key)
+        return None, result

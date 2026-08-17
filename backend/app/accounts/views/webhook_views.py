@@ -7,7 +7,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-import os
 from django.conf import settings
 from svix.webhooks import Webhook, WebhookVerificationError
 
@@ -16,10 +15,12 @@ class ClerkWebhookView(OpenAPIView):
     Public webhook endpoint for Clerk to sync users.
     Verifies Svix headers.
     """
+    throttle_scope = 'clerk_webhook'
+
     def post(self, request):
         try:
             # Get the webhook secret from env
-            webhook_secret = os.environ.get("CLERK_WEBHOOK_SECRET")
+            webhook_secret = settings.CLERK_WEBHOOK_SECRET
             if not webhook_secret:
                 logger.error("CLERK_WEBHOOK_SECRET is not set in environment.")
                 return get_response(ErrorResponse(message="Server misconfigured", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR))
@@ -48,7 +49,7 @@ class ClerkWebhookView(OpenAPIView):
 
             # Process the payload
             payload = request.data
-            error, data = AccountWebhookService.process_clerk_webhook(payload)
+            error, data = AccountWebhookService.process_clerk_webhook(payload, svix_id)
             
             if error:
                 return get_response(ErrorResponse(message=error, status_code=status.HTTP_400_BAD_REQUEST))
