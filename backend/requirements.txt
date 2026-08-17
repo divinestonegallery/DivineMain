@@ -1,0 +1,23 @@
+# Core Django & REST Framework
+Django>=4.2
+djangorestframework
+dj-database-url
+
+# Database
+psycopg2-binary
+
+# Authentication (Clerk)
+PyJWT
+cryptography
+svix
+
+# Utilities
+requests
+python-dotenv
+django-cors-headers
+boto3
+django-storages
+pillow
+
+# Production server
+gunicorn
