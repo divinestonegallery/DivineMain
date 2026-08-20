@@ -1,30 +1,45 @@
-from framework.core.base_apiviews import ServiceAuthenticatedAPIView
-from framework.core.responses import SuccessResponse, ErrorResponse
-from framework.utils import get_response
-from rest_framework import status
 from app.contactus.services.admin_service import ContactUsAdminService
-import logging
+from app.contactus.validators import ContactStatusValidator, CustomizeStatusValidator, RequestListValidator
+from framework.core.base_apiviews import AdminAPIView
+from framework.core.responses import ErrorResponse, SuccessResponse
+from framework.utils import get_response
 
-logger = logging.getLogger(__name__)
 
-class AdminContactMessageView(ServiceAuthenticatedAPIView):
+class AdminContactMessageView(AdminAPIView):
     def get(self, request):
-        try:
-            error, data = ContactUsAdminService.get_contact_messages()
-            if error:
-                return get_response(ErrorResponse(message=error, status_code=status.HTTP_400_BAD_REQUEST))
-            return get_response(SuccessResponse(data=data, message="Contact messages fetched successfully"))
-        except Exception as e:
-            logger.error(f"Error in AdminContactMessageView GET: {str(e)}", exc_info=True)
-            return get_response(ErrorResponse(message="An unexpected error occurred", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR))
+        validator = RequestListValidator(data=request.query_params)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid contact filters', err=validator.errors, status_code=400))
+        error, data = ContactUsAdminService.get_contact_messages(validator.validated_data)
+        return get_response(SuccessResponse(data=data, message='Contact messages fetched successfully'))
 
-class AdminCustomizeRequestView(ServiceAuthenticatedAPIView):
+
+class AdminContactMessageDetailView(AdminAPIView):
+    def patch(self, request, message_id):
+        validator = ContactStatusValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid contact status', err=validator.errors, status_code=400))
+        error, data = ContactUsAdminService.update_contact_status(message_id, validator.validated_data['status'])
+        if error:
+            return get_response(ErrorResponse(message=error, status_code=404 if 'not found' in error else 400))
+        return get_response(SuccessResponse(data=data, message='Contact status updated'))
+
+
+class AdminCustomizeRequestView(AdminAPIView):
     def get(self, request):
-        try:
-            error, data = ContactUsAdminService.get_customize_requests()
-            if error:
-                return get_response(ErrorResponse(message=error, status_code=status.HTTP_400_BAD_REQUEST))
-            return get_response(SuccessResponse(data=data, message="Customize requests fetched successfully"))
-        except Exception as e:
-            logger.error(f"Error in AdminCustomizeRequestView GET: {str(e)}", exc_info=True)
-            return get_response(ErrorResponse(message="An unexpected error occurred", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR))
+        validator = RequestListValidator(data=request.query_params)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid customization filters', err=validator.errors, status_code=400))
+        error, data = ContactUsAdminService.get_customize_requests(validator.validated_data)
+        return get_response(SuccessResponse(data=data, message='Customization requests fetched successfully'))
+
+
+class AdminCustomizeRequestDetailView(AdminAPIView):
+    def patch(self, request, request_id):
+        validator = CustomizeStatusValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid customization status', err=validator.errors, status_code=400))
+        error, data = ContactUsAdminService.update_customize_status(request_id, validator.validated_data['status'])
+        if error:
+            return get_response(ErrorResponse(message=error, status_code=404 if 'not found' in error else 400))
+        return get_response(SuccessResponse(data=data, message='Customization status updated'))

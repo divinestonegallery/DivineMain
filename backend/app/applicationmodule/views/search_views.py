@@ -3,6 +3,7 @@ from framework.core.responses import SuccessResponse, ErrorResponse
 from framework.utils import get_response
 from rest_framework import status
 from app.applicationmodule.services.search_service import SearchService
+from app.applicationmodule.validators import GlobalSearchValidator
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,9 +11,12 @@ logger = logging.getLogger(__name__)
 class GlobalSearchView(OpenAPIView):
     def get(self, request):
         try:
-            query = request.query_params.get('q', '').strip()
+            validator = GlobalSearchValidator(data=request.query_params)
+            if not validator.is_valid():
+                return get_response(ErrorResponse(message='Invalid search query', err=validator.errors, status_code=400))
+            query = validator.validated_data.get('q', '')
             if not query:
-                return get_response(SuccessResponse(data={"products": [], "categories": [], "dieties": []}, message="Empty search query"))
+                return get_response(SuccessResponse(data={"products": [], "categories": [], "deities": []}, message="Empty search query"))
             
             error, data = SearchService.global_search(query)
             if error:

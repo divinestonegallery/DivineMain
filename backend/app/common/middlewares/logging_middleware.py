@@ -1,39 +1,81 @@
 import logging
 import uuid
-import json
-from threading import local
-import time
-#import elasticapm
 
-_locals = local()
+from app.common.repositories import OperationsRepository
 
 logger = logging.getLogger(__name__)
 
 
-class LoggerMiddleware:
+class ObservabilityMiddleware:
+    """Attach a request ID and persist only safe operational metadata."""
+
+    MUTATING_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
+
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        self.process_request(request)
-        start_time = time.time()
-        response = self.get_response(request)
-        end_time = time.time()
-        _locals.response_time = end_time - start_time
-        _locals.response_code = response.status_code
+        request_id = uuid.uuid4()
+        request.request_id = request_id
+        exception_type = ''
+        exception_message = ''
+
+        try:
+            response = self.get_response(request)
+        except Exception as exc:
+            exception_type = exc.__class__.__name__
+            exception_message = str(exc)[:1000]
+            self._write_error(request, request_id, 500, exception_type, exception_message)
+            raise
+
+        response['X-Request-ID'] = str(request_id)
+        actor = getattr(request, 'user', None)
+        if not getattr(actor, 'is_authenticated', False):
+            actor = None
+
+        if (
+            request.path.startswith('/api/admin/')
+            and request.method in self.MUTATING_METHODS
+            and actor is not None
+            and getattr(actor, 'role', None) in {'staff', 'admin'}
+        ):
+            try:
+                OperationsRepository.write_audit({
+                    'actor': actor,
+                    'request_id': request_id,
+                    'method': request.method,
+                    'path': request.path[:500],
+                    'status_code': response.status_code,
+                    'ip_address': request.META.get('REMOTE_ADDR'),
+                })
+            except Exception:
+                logger.exception('Unable to persist staff audit log')
+
+        if response.status_code >= 500:
+            self._write_error(
+                request,
+                request_id,
+                response.status_code,
+                exception_type or 'HTTPServerError',
+                exception_message or 'Request returned a server error',
+            )
         return response
 
-    def process_request(self, request):
+    @staticmethod
+    def _write_error(request, request_id, status_code, error_type, message):
+        actor = getattr(request, 'user', None)
+        if not getattr(actor, 'is_authenticated', False):
+            actor = None
         try:
-            body = json.loads(request.body.decode('utf-8'))
-        except:
-            body = ""
-        _locals.tracker_id = str(uuid.uuid4())
-        _locals.request_path = request.path
-        _locals.request_body = body
-        _locals.get_params = request.GET
-        _locals.request_method = request.method
-        _locals.authorization_token = request.headers.get('Authorization')
-        # _locals.transaction_id = elasticapm.get_transaction_id()
-        # _locals.trace_id = elasticapm.get_trace_id()
-        # _locals.span_id = elasticapm.get_span_id()
+            OperationsRepository.write_error({
+                'actor': actor,
+                'request_id': request_id,
+                'method': request.method,
+                'path': request.path[:500],
+                'status_code': status_code,
+                'error_type': error_type[:150],
+                'message': message[:1000],
+                'ip_address': request.META.get('REMOTE_ADDR'),
+            })
+        except Exception:
+            logger.exception('Unable to persist API error log')

@@ -1,30 +1,24 @@
-from rest_framework import status
-from framework.core.base_apiviews import OpenAPIView # In production, change to AuthenticatedAPIView for create
-from framework.core.responses import SuccessResponse, ErrorResponse
-from framework.utils import get_response
 from app.reviews.services.customer_service import ReviewCustomerService
-import logging
+from app.reviews.validators import ReviewCreateValidator
+from framework.core.base_apiviews import AuthenticatedAPIView, OpenAPIView
+from framework.core.responses import ErrorResponse, SuccessResponse
+from framework.utils import get_response
 
-logger = logging.getLogger(__name__)
 
 class CustomerProductReviewListView(OpenAPIView):
     def get(self, request, product_id):
-        try:
-            error, data = ReviewCustomerService.get_product_reviews(product_id)
-            if error:
-                return get_response(ErrorResponse(message=error, status_code=status.HTTP_400_BAD_REQUEST))
-            return get_response(SuccessResponse(data=data, message="Reviews fetched successfully"))
-        except Exception as e:
-            logger.error(f"Error in CustomerProductReviewListView GET: {str(e)}", exc_info=True)
-            return get_response(ErrorResponse(message="An unexpected error occurred", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR))
+        error, data = ReviewCustomerService.get_product_reviews(product_id)
+        return get_response(SuccessResponse(data=data, message='Reviews fetched successfully'))
 
-class CustomerReviewCreateView(OpenAPIView): # Using OpenAPIView for ease of testing in Postman without auth
+
+class CustomerReviewCreateView(AuthenticatedAPIView):
+    throttle_scope = 'reviews'
+
     def post(self, request):
-        try:
-            error, data = ReviewCustomerService.create_review(request.data, request.user)
-            if error:
-                return get_response(ErrorResponse(message=error, status_code=status.HTTP_400_BAD_REQUEST))
-            return get_response(SuccessResponse(data=data, message="Review submitted successfully and is pending approval", status_code=status.HTTP_201_CREATED))
-        except Exception as e:
-            logger.error(f"Error in CustomerReviewCreateView POST: {str(e)}", exc_info=True)
-            return get_response(ErrorResponse(message="An unexpected error occurred", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR))
+        validator = ReviewCreateValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid review', err=validator.errors, status_code=400))
+        error, data = ReviewCustomerService.create_review(validator.validated_data, request.user.id)
+        if error:
+            return get_response(ErrorResponse(message=error, status_code=400))
+        return get_response(SuccessResponse(data=data, message='Review submitted for moderation', status_code=201))

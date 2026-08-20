@@ -1,23 +1,16 @@
 from app.reviews.repositories.review_repository import ReviewRepository
-from app.reviews.serializers.admin import ReviewAdminSerializer
+
 
 class ReviewAdminService:
     @staticmethod
-    def create_review(data):
-        try:
-            serializer = ReviewAdminSerializer(data=data)
-            if serializer.is_valid():
-                serializer.save()
-                return None, serializer.data
-            return serializer.errors, None
-        except Exception as e:
-            return str(e), None
+    def list_reviews(params):
+        return None, ReviewRepository.list_admin(params)
 
     @staticmethod
-    def get_all_reviews():
-        try:
-            reviews = ReviewRepository.get_all_reviews()
-            data = ReviewAdminSerializer(reviews, many=True).data
-            return None, data
-        except Exception as e:
-            return str(e), None
+    def update_status(review_id, review_status):
+        review = ReviewRepository.update_status(review_id, review_status)
+        return (None, review) if review else ('Review not found.', None)
+
+    @staticmethod
+    def delete(review_id):
+        return (None, {'id': review_id, 'deleted': True}) if ReviewRepository.delete(review_id) else ('Review not found.', None)

@@ -1,23 +1,26 @@
 # Core Django & REST Framework
-Django>=4.2
-djangorestframework
-dj-database-url
+Django>=5.2.16,<5.3
+djangorestframework>=3.16,<4
+drf-spectacular>=0.30,<1
+dj-database-url>=3,<4
 
 # Database
-psycopg2-binary
+psycopg2-binary>=2.9,<3
 
 # Authentication (Clerk)
-PyJWT
-cryptography
-svix
+PyJWT>=2.10,<3
+cryptography>=44,<51
+svix>=1.75,<2
 
 # Utilities
-requests
-python-dotenv
-django-cors-headers
-boto3
-django-storages
-pillow
+requests>=2.33,<3
+python-dotenv>=1.2.2,<2
+django-cors-headers>=4.7,<5
+boto3>=1.35,<2
+django-storages>=1.14,<2
+pillow>=12.3,<13
+urllib3>=2.7,<3
+sqlparse>=0.6,<1
 
 # Production server
-gunicorn
+gunicorn>=23,<24

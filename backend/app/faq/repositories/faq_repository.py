@@ -1,30 +1,49 @@
+from django.db import IntegrityError, transaction
+
 from app.faq.models import FAQ
+from app.faq.serializers.admin import AdminFAQSerializer
+from app.faq.serializers.customer import CustomerFAQSerializer
+
 
 class FAQRepository:
     @staticmethod
     def get_all_faqs():
-        return FAQ.objects.all().order_by('display_order', '-created_at')
+        return AdminFAQSerializer(FAQ.objects.all().order_by('display_order', '-created_at'), many=True).data
 
     @staticmethod
     def get_active_faqs():
-        return FAQ.objects.filter(is_active=True).order_by('display_order', '-created_at')
+        return CustomerFAQSerializer(
+            FAQ.objects.filter(is_active=True).order_by('display_order', '-created_at'), many=True
+        ).data
 
     @staticmethod
     def get_faq_by_id(faq_id):
-        return FAQ.objects.filter(id=faq_id).first()
+        faq = FAQ.objects.filter(id=faq_id).first()
+        return AdminFAQSerializer(faq).data if faq else None
 
     @staticmethod
     def create_faq(data):
-        return FAQ.objects.create(**data)
+        try:
+            with transaction.atomic():
+                faq = FAQ.objects.create(**data)
+        except IntegrityError:
+            return 'FAQ question must be unique.', None
+        return None, AdminFAQSerializer(faq).data
 
     @staticmethod
-    def update_faq(faq, data):
+    def update_faq(faq_id, data):
+        faq = FAQ.objects.filter(id=faq_id).first()
+        if not faq:
+            return 'FAQ not found.', None
         for key, value in data.items():
             setattr(faq, key, value)
-        faq.save()
-        return faq
+        try:
+            with transaction.atomic():
+                faq.save()
+        except IntegrityError:
+            return 'FAQ question must be unique.', None
+        return None, AdminFAQSerializer(faq).data
 
     @staticmethod
-    def delete_faq(faq):
-        faq.delete()
-        return True
+    def deactivate_faq(faq_id):
+        return bool(FAQ.objects.filter(id=faq_id).update(is_active=False))
