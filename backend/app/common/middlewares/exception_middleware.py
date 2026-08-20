@@ -55,6 +55,6 @@ class ExceptionMiddleware:
     def handle_generic_exception(self,exc):
         logger.error(f"Uncaught Exception: {exc}")
         return JsonResponse(
-            #{"detail": "An unexpected error occurred. Please try again later."},
+            {"detail": "An unexpected error occurred. Please try again later."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

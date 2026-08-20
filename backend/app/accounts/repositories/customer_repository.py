@@ -19,19 +19,31 @@ class CustomerRepository:
         created = customer is None
 
         if created:
-            customer = Customer(
-                clerk_user_id=clerk_id,
-                email=normalized_email,
-                name=name,
-                phone=phone,
-                role=(
-                    Customer.Role.ADMIN
-                    if normalized_email in settings.ADMIN_EMAILS
-                    else requested_role
-                    if requested_role in {Customer.Role.STAFF, Customer.Role.ADMIN}
-                    else Customer.Role.CUSTOMER
-                ),
-            )
+            existing_by_email = Customer.objects.filter(email=normalized_email).first()
+            if existing_by_email:
+                customer = existing_by_email
+                customer.clerk_user_id = clerk_id
+                customer.name = name or customer.name
+                customer.phone = phone or customer.phone
+                if normalized_email in settings.ADMIN_EMAILS:
+                    customer.role = Customer.Role.ADMIN
+                elif requested_role in {Customer.Role.STAFF, Customer.Role.ADMIN}:
+                    customer.role = requested_role
+                created = False
+            else:
+                customer = Customer(
+                    clerk_user_id=clerk_id,
+                    email=normalized_email,
+                    name=name,
+                    phone=phone,
+                    role=(
+                        Customer.Role.ADMIN
+                        if normalized_email in settings.ADMIN_EMAILS
+                        else requested_role
+                        if requested_role in {Customer.Role.STAFF, Customer.Role.ADMIN}
+                        else Customer.Role.CUSTOMER
+                    ),
+                )
         else:
             customer.email = normalized_email
             customer.name = name

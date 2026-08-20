@@ -342,9 +342,44 @@ class MVPTestCase(TestCase):
         self.assertNotIn('In secure packaging', error.message)
 
     def test_health_readiness_schema_and_swagger_are_public(self):
-        for path in ('/api/v1/health', '/api/v1/health/ready', '/api/schema', '/api/docs'):
+        for path in ('/api/v1/health', '/api/v1/health/ready', '/api/schema', '/api/docs', '/api/v1/application/home', '/api/v1/application/search'):
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200, path)
+
+    def test_home_page_and_global_search_workflows(self):
+        home_res = self.client.get('/api/v1/application/home')
+        self.assertEqual(home_res.status_code, 200)
+        self.assertTrue(home_res.json()['success'])
+        self.assertIn('blocks', home_res.json()['data'])
+
+        search_res = self.client.get('/api/v1/application/search?q=Ganesh')
+        self.assertEqual(search_res.status_code, 200)
+        self.assertTrue(search_res.json()['success'])
+        self.assertIn('products', search_res.json()['data'])
+        self.assertIn('categories', search_res.json()['data'])
+        self.assertIn('deities', search_res.json()['data'])
+
+    def test_customer_upsert_handles_email_conflict(self):
+        Customer.objects.create(
+            clerk_user_id='user_original',
+            email='recreated@example.com',
+            name='Original Name',
+        )
+        payload = {
+            'type': 'user.created',
+            'data': {
+                'id': 'user_new_clerk_id',
+                'primary_email_address_id': 'email_1',
+                'email_addresses': [{'id': 'email_1', 'email_address': 'recreated@example.com'}],
+                'first_name': 'Recreated',
+                'last_name': 'User',
+            },
+        }
+        error, result = AccountWebhookService.process_clerk_webhook(payload, 'evt_recreated')
+        self.assertIsNone(error)
+        customer = Customer.objects.get(email='recreated@example.com')
+        self.assertEqual(customer.clerk_user_id, 'user_new_clerk_id')
+
 
     @override_settings(
         R2_ENDPOINT='https://account.r2.cloudflarestorage.com',
