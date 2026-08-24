@@ -13,6 +13,25 @@ class CustomerRepository:
         return Customer.objects.filter(clerk_user_id=clerk_id).first()
 
     @staticmethod
+    def get_customer_by_id(customer_id):
+        return Customer.objects.filter(id=customer_id).first()
+
+    @staticmethod
+    def get_customer_dict_by_id(customer_id):
+        customer = Customer.objects.filter(id=customer_id).first()
+        return CustomerSerializer(customer).data if customer else None
+
+    @staticmethod
+    def get_customer_dict_by_email(email):
+        customer = Customer.objects.filter(email__iexact=email.strip().lower()).first()
+        return CustomerSerializer(customer).data if customer else None
+
+    @staticmethod
+    def get_customer_dict_by_clerk_id(clerk_id):
+        customer = Customer.objects.filter(clerk_user_id=clerk_id).first()
+        return CustomerSerializer(customer).data if customer else None
+
+    @staticmethod
     def create_or_update_customer(clerk_id, email, name=None, phone=None, requested_role=None):
         normalized_email = email.strip().lower()
         customer = Customer.objects.filter(clerk_user_id=clerk_id).first()
