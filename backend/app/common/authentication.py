@@ -19,14 +19,13 @@ class ClerkAuthentication(authentication.BaseAuthentication):
         if not auth_header:
             return None
 
-        parts = auth_header.split()
-        if len(parts) != 2 or parts[0].lower() != "bearer" or not parts[1]:
+        parts = auth_header.strip().split()
+        if len(parts) == 2 and parts[0].lower() == "bearer" and parts[1]:
+            token = parts[1]
+        elif len(parts) == 1 and parts[0].count(".") == 2:
+            token = parts[0]
+        else:
             raise exceptions.AuthenticationFailed("Invalid Authorization header.")
-
-        if not settings.CLERK_JWT_ISSUER:
-            raise exceptions.AuthenticationFailed("Clerk issuer not configured.")
-
-        token = parts[1]
         try:
             payload = self._decode_token(token)
             clerk_user_id = payload.get("sub")
@@ -57,6 +56,19 @@ class ClerkAuthentication(authentication.BaseAuthentication):
         return "Bearer"
 
     def _decode_token(self, token):
+        try:
+            unverified_header = jwt.get_unverified_header(token)
+            alg = unverified_header.get("alg")
+        except Exception:
+            alg = "RS256"
+
+        if alg == "HS256":
+            from app.common.token_service import TokenService
+            return TokenService.decode_hs256_token(token, expected_type="access")
+
+        if not settings.CLERK_JWT_ISSUER:
+            raise exceptions.AuthenticationFailed("Clerk issuer not configured.")
+
         public_key = self._get_verification_key(token)
         decode_options = {"verify_aud": bool(settings.CLERK_JWT_AUDIENCE)}
         decode_arguments = {

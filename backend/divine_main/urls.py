@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/docs', SpectacularSwaggerView.as_view(url_name='api-schema'), name='api-docs'),
     
     # Customer APIs (v1)
+    path('api/v1/auth', include('app.accounts.urls_auth')),
     path('api/v1/products', include('app.products.urls_customer')),
     path('api/v1/reviews', include('app.reviews.urls_customer')),
     path('api/v1/contact', include('app.contactus.urls_customer')),

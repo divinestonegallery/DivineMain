@@ -152,6 +152,7 @@ REST_FRAMEWORK = {
         'customization': os.getenv('THROTTLE_CUSTOMIZATION_RATE', '3/hour'),
         'uploads': os.getenv('THROTTLE_UPLOAD_RATE', '30/hour'),
         'clerk_webhook': os.getenv('THROTTLE_WEBHOOK_RATE', '300/min'),
+        'auth': os.getenv('THROTTLE_AUTH_RATE', '30/min'),
     },
 }
 
