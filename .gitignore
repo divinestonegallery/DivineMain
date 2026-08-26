@@ -32,3 +32,10 @@
 # ==========================================
 *.tmp
 *.temp
+
+.agents
+# docs also ignore
+docs
+
+CLAUDE.md
+ARCHITECT.md
