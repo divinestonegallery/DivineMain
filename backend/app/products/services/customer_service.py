@@ -50,9 +50,6 @@ class ProductCustomerService:
             logger.error('ProductCustomerService.list_active_products error: %s', exc, exc_info=traceback.format_exc())
             return 'Failed to list active products', None
 
-    # Backward compatibility alias for any legacy callers
-    get_product_listing = list_active_products
-
     @staticmethod
     def get_product_details(slug):
         try:
@@ -81,8 +78,6 @@ class CategoryCustomerService:
             logger.error('CategoryCustomerService.list_active_categories error: %s', exc, exc_info=traceback.format_exc())
             return 'Failed to list active categories', None
 
-    list_active = list_active_categories
-
 
 class MaterialCustomerService:
     """Business logic service for customer material listing."""
@@ -98,8 +93,6 @@ class MaterialCustomerService:
             logger.error('MaterialCustomerService.list_active_materials error: %s', exc, exc_info=traceback.format_exc())
             return 'Failed to list active materials', None
 
-    list_active = list_active_materials
-
 
 class DietyCustomerService:
     """Business logic service for customer deity listing."""
@@ -114,5 +107,3 @@ class DietyCustomerService:
         except Exception as exc:
             logger.error('DietyCustomerService.list_active_deities error: %s', exc, exc_info=traceback.format_exc())
             return 'Failed to list active deities', None
-
-    list_active = list_active_deities

@@ -231,77 +231,77 @@ class ProductImageService:
 
 class CategoryAdminService:
     @staticmethod
-    def list_items():
+    def get_all_categories():
         return CategoryRepository.get_all_categories_list()
 
     @staticmethod
-    def create(data):
+    def create_category(data):
         if not data.get('name'):
             return 'Category name is required.', None
         return CategoryRepository.create_category(data)
 
     @staticmethod
-    def get(category_id):
+    def get_category_by_id(category_id):
         return CategoryRepository.get_category_by_id(category_id)
 
     @staticmethod
-    def update(category_id, data):
+    def update_category(category_id, data):
         if 'name' in data and not data['name'].strip():
             return 'Category name cannot be empty.', None
         return CategoryRepository.update_category(category_id, data)
 
     @staticmethod
-    def delete(category_id):
+    def deactivate_category(category_id):
         return CategoryRepository.deactivate_category(category_id)
 
 
 class MaterialAdminService:
     @staticmethod
-    def list_items():
+    def get_all_materials():
         return MaterialRepository.get_all_materials_list()
 
     @staticmethod
-    def create(data):
+    def create_material(data):
         if not data.get('name'):
             return 'Material name is required.', None
         return MaterialRepository.create_material(data)
 
     @staticmethod
-    def get(material_id):
+    def get_material_by_id(material_id):
         return MaterialRepository.get_material_by_id(material_id)
 
     @staticmethod
-    def update(material_id, data):
+    def update_material(material_id, data):
         if 'name' in data and not data['name'].strip():
             return 'Material name cannot be empty.', None
         return MaterialRepository.update_material(material_id, data)
 
     @staticmethod
-    def delete(material_id):
+    def deactivate_material(material_id):
         return MaterialRepository.deactivate_material(material_id)
 
 
 class DietyAdminService:
     @staticmethod
-    def list_items():
+    def get_all_deities():
         return DietyRepository.get_all_deities_list()
 
     @staticmethod
-    def create(data):
+    def create_deity(data):
         if not data.get('name'):
             return 'Deity name is required.', None
         return DietyRepository.create_deity(data)
 
     @staticmethod
-    def get(deity_id):
+    def get_deity_by_id(deity_id):
         return DietyRepository.get_deity_by_id(deity_id)
 
     @staticmethod
-    def update(deity_id, data):
+    def update_deity(deity_id, data):
         if 'name' in data and not data['name'].strip():
             return 'Deity name cannot be empty.', None
         return DietyRepository.update_deity(deity_id, data)
 
     @staticmethod
-    def delete(deity_id):
+    def deactivate_deity(deity_id):
         return DietyRepository.deactivate_deity(deity_id)
