@@ -74,14 +74,14 @@ class AdminProductDetailView(AdminAPIView):
 
 class AdminProductVariantListCreateView(AdminAPIView):
     def get(self, request, product_id):
-        return service_response(*ProductVariantService.list(product_id), 'Variants fetched successfully')
+        return service_response(*ProductVariantService.list_variants(product_id), 'Variants fetched successfully')
 
     def post(self, request, product_id):
         validator = ProductVariantValidator(data=request.data)
         if not validator.is_valid():
             return invalid(validator, 'Invalid variant')
         return service_response(
-            *ProductVariantService.create(product_id, validator.validated_data),
+            *ProductVariantService.create_variant(product_id, validator.validated_data),
             'Variant created successfully',
             status.HTTP_201_CREATED,
         )
@@ -92,24 +92,24 @@ class AdminProductVariantDetailView(AdminAPIView):
         validator = ProductVariantValidator(data=request.data, partial=True)
         if not validator.is_valid():
             return invalid(validator, 'Invalid variant update')
-        return service_response(*ProductVariantService.update(product_id, variant_id, validator.validated_data), 'Variant updated successfully')
+        return service_response(*ProductVariantService.update_variant(product_id, variant_id, validator.validated_data), 'Variant updated successfully')
 
     put = patch
 
     def delete(self, request, product_id, variant_id):
-        return service_response(*ProductVariantService.delete(product_id, variant_id), 'Variant deleted successfully')
+        return service_response(*ProductVariantService.delete_variant(product_id, variant_id), 'Variant deleted successfully')
 
 
 class AdminProductImageListCreateView(AdminAPIView):
     def get(self, request, product_id):
-        return service_response(*ProductImageService.list(product_id), 'Images fetched successfully')
+        return service_response(*ProductImageService.list_images(product_id), 'Images fetched successfully')
 
     def post(self, request, product_id):
         validator = ProductImageFinalizeValidator(data=request.data)
         if not validator.is_valid():
             return invalid(validator, 'Invalid product image')
         return service_response(
-            *ProductImageService.attach(product_id, validator.validated_data, request.user.id),
+            *ProductImageService.attach_image(product_id, validator.validated_data, request.user.id),
             'Product image attached successfully',
             status.HTTP_201_CREATED,
         )
@@ -120,10 +120,10 @@ class AdminProductImageDetailView(AdminAPIView):
         validator = ProductImageUpdateValidator(data=request.data)
         if not validator.is_valid():
             return invalid(validator, 'Invalid image update')
-        return service_response(*ProductImageService.update(product_id, image_id, validator.validated_data), 'Image updated successfully')
+        return service_response(*ProductImageService.update_image(product_id, image_id, validator.validated_data), 'Image updated successfully')
 
     def delete(self, request, product_id, image_id):
-        return service_response(*ProductImageService.delete(product_id, image_id), 'Image deleted successfully')
+        return service_response(*ProductImageService.delete_image(product_id, image_id), 'Image deleted successfully')
 
 
 class AdminProductImageReorderView(AdminAPIView):
@@ -131,7 +131,7 @@ class AdminProductImageReorderView(AdminAPIView):
         validator = ProductImageReorderValidator(data=request.data)
         if not validator.is_valid():
             return invalid(validator, 'Invalid image order')
-        return service_response(*ProductImageService.reorder(product_id, validator.validated_data['image_ids']), 'Images reordered successfully')
+        return service_response(*ProductImageService.reorder_images(product_id, validator.validated_data['image_ids']), 'Images reordered successfully')
 
 
 class BaseTaxonomyListCreateView(AdminAPIView):
@@ -215,20 +215,3 @@ class AdminDietyDetailView(BaseTaxonomyDetailView):
     label = 'Deity'
     id_kwarg = 'diety_id'
 
-
-@extend_schema_view(
-    get=extend_schema(exclude=True),
-    post=extend_schema(exclude=True),
-)
-class LegacyAdminDietyListCreateView(AdminDietyListCreateView):
-    pass
-
-
-@extend_schema_view(
-    get=extend_schema(exclude=True),
-    patch=extend_schema(exclude=True),
-    put=extend_schema(exclude=True),
-    delete=extend_schema(exclude=True),
-)
-class LegacyAdminDietyDetailView(AdminDietyDetailView):
-    pass

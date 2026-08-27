@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db import models
@@ -19,6 +21,8 @@ from app.products.serializers.customer import (
     ProductCardSerializer,
     ProductDetailSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _pagination(queryset, page, page_size, serializer_class):
@@ -57,18 +61,43 @@ def _product_queryset(public=False):
 
 class ProductRepository:
     @staticmethod
-    def list_admin(params):
+    def get_admin_product_list(params):
+        """Return a paginated, serialized list of all products for the Admin dashboard."""
         queryset = _product_queryset()
         queryset = ProductRepository._apply_filters(queryset, params, include_status=True)
         queryset = ProductRepository._apply_sort(queryset, params['sort'])
         return _pagination(queryset, params['page'], params['page_size'], ProductAdminSerializer)
 
     @staticmethod
-    def list_public(params):
-        queryset = _product_queryset(public=True)
-        queryset = ProductRepository._apply_filters(queryset, params, include_status=False)
-        queryset = ProductRepository._apply_sort(queryset, params['sort']).distinct()
-        return _pagination(queryset, params['page'], params['page_size'], ProductCardSerializer)
+    def get_product_list(filters=None, sort='display_order', offset=0, limit=24):
+        """Return a sliced, serialized list of active public catalogue products."""
+        try:
+            filters = filters or {}
+            queryset = _product_queryset(public=True)
+            queryset = ProductRepository._apply_filters(queryset, filters, include_status=False)
+            queryset = ProductRepository._apply_sort(queryset, sort).distinct()
+
+            total_items = queryset.count()
+            rows = list(queryset[offset:offset + limit])
+            return None, {
+                'items': ProductCardSerializer(rows, many=True).data,
+                'total_items': total_items,
+            }
+        except Exception as exc:
+            logger.error('ProductRepository.get_product_list error: %s', exc)
+            return 'Failed to fetch products from database.', None
+
+    @staticmethod
+    def get_product_details_by_slug(slug):
+        """Return full serialized details for a single active public product by its slug."""
+        try:
+            product = _product_queryset(public=True).filter(slug=slug).first()
+            if not product:
+                return None, None
+            return None, ProductDetailSerializer(product).data
+        except Exception as exc:
+            logger.error('ProductRepository.get_product_details_by_slug error: %s', exc)
+            return 'Failed to fetch product from database.', None
 
     @staticmethod
     def _apply_filters(queryset, params, include_status):
@@ -124,17 +153,14 @@ class ProductRepository:
         return queryset.order_by(*orders.get(sort, orders['display_order']))
 
     @staticmethod
-    def get_admin(product_id):
+    def get_admin_product_by_id(product_id):
+        """Return serialized admin detail for a single product by its primary key."""
         product = _product_queryset().filter(id=product_id).first()
         return ProductAdminSerializer(product).data if product else None
 
     @staticmethod
-    def get_public(slug):
-        product = _product_queryset(public=True).filter(slug=slug).first()
-        return ProductDetailSerializer(product).data if product else None
-
-    @staticmethod
-    def search_public(query, limit=20):
+    def search_public_products(query, limit=20):
+        """Full-text search across active catalogue products. Returns card serialized results."""
         queryset = _product_queryset(public=True).filter(
             Q(name__icontains=query)
             | Q(keywords__icontains=query)
@@ -246,19 +272,22 @@ class ProductRepository:
 
 class ProductVariantRepository:
     @staticmethod
-    def list(product_id):
+    def get_variant_list(product_id):
+        """Return all variants for a product, serialized for the Admin."""
         if not Product.objects.filter(id=product_id).exists():
             return 'Product not found.', None
         variants = ProductVariant.objects.filter(product_id=product_id).order_by('display_order', 'id')
         return None, ProductVariantAdminSerializer(variants, many=True).data
 
     @staticmethod
-    def get(product_id, variant_id):
+    def get_variant_by_id(product_id, variant_id):
+        """Return a single variant serialized for the Admin, or None if not found."""
         variant = ProductVariant.objects.filter(id=variant_id, product_id=product_id).first()
         return ProductVariantAdminSerializer(variant).data if variant else None
 
     @staticmethod
-    def create(product_id, data):
+    def create_variant(product_id, data):
+        """Persist a new variant record and return its serialized representation."""
         if not Product.objects.filter(id=product_id).exists():
             return 'Product not found.', None
         try:
@@ -269,7 +298,8 @@ class ProductVariantRepository:
         return None, ProductVariantAdminSerializer(variant).data
 
     @staticmethod
-    def update(product_id, variant_id, data):
+    def update_variant(product_id, variant_id, data):
+        """Apply a partial update to an existing variant."""
         variant = ProductVariant.objects.filter(id=variant_id, product_id=product_id).first()
         if not variant:
             return 'Variant not found.', None
@@ -283,12 +313,14 @@ class ProductVariantRepository:
         return None, ProductVariantAdminSerializer(variant).data
 
     @staticmethod
-    def delete(product_id, variant_id):
+    def delete_variant(product_id, variant_id):
+        """Hard-delete a variant. Returns True if a row was removed."""
         deleted, _ = ProductVariant.objects.filter(id=variant_id, product_id=product_id).delete()
         return bool(deleted)
 
     @staticmethod
-    def active_purchase_candidates(product_id, exclude_id=None, replacement=None):
+    def get_active_purchase_candidates(product_id, exclude_id=None, replacement=None):
+        """Return all active variants eligible for purchase readiness checks."""
         queryset = ProductVariant.objects.filter(product_id=product_id, is_active=True)
         if exclude_id is not None:
             queryset = queryset.exclude(id=exclude_id)
@@ -306,23 +338,27 @@ class ProductVariantRepository:
 
 class ProductImageRepository:
     @staticmethod
-    def list(product_id):
+    def get_image_list(product_id):
+        """Return all images for a product ordered by display_order, serialized for the Admin."""
         if not Product.objects.filter(id=product_id).exists():
             return 'Product not found.', None
         images = ProductImage.objects.filter(product_id=product_id).order_by('display_order', 'id')
         return None, ProductImageAdminSerializer(images, many=True).data
 
     @staticmethod
-    def get(product_id, image_id):
+    def get_image_by_id(product_id, image_id):
+        """Return a single product image serialized for the Admin, or None if not found."""
         image = ProductImage.objects.filter(id=image_id, product_id=product_id).first()
         return ProductImageAdminSerializer(image).data if image else None
 
     @staticmethod
-    def count(product_id):
+    def get_image_count(product_id):
+        """Return the total number of images attached to a product."""
         return ProductImage.objects.filter(product_id=product_id).count()
 
     @staticmethod
-    def create(product_id, data):
+    def create_image(product_id, data):
+        """Attach a new image record to a product, enforcing cover-photo and count rules."""
         if not Product.objects.filter(id=product_id).exists():
             return 'Product not found.', None
         if ProductImage.objects.filter(product_id=product_id).count() >= settings.R2_MAX_PRODUCT_IMAGES:
@@ -339,7 +375,8 @@ class ProductImageRepository:
         return None, ProductImageAdminSerializer(image).data
 
     @staticmethod
-    def update(product_id, image_id, data):
+    def update_image(product_id, image_id, data):
+        """Apply a partial update to an image record, maintaining cover-photo consistency."""
         image = ProductImage.objects.filter(id=image_id, product_id=product_id).first()
         if not image:
             return 'Product image not found.', None
@@ -354,7 +391,8 @@ class ProductImageRepository:
         return None, ProductImageAdminSerializer(image).data
 
     @staticmethod
-    def reorder(product_id, image_ids):
+    def reorder_images(product_id, image_ids):
+        """Bulk-update display_order for all images of a product given an ordered list of IDs."""
         existing = list(ProductImage.objects.filter(product_id=product_id).values_list('id', flat=True))
         if set(existing) != set(image_ids):
             return 'Provide every product image exactly once.', None
@@ -363,10 +401,11 @@ class ProductImageRepository:
                 [ProductImage(id=image_id, display_order=index) for index, image_id in enumerate(image_ids)],
                 ['display_order'],
             )
-        return ProductImageRepository.list(product_id)
+        return ProductImageRepository.get_image_list(product_id)
 
     @staticmethod
-    def delete_record(product_id, image_id):
+    def delete_image(product_id, image_id):
+        """Hard-delete an image record, promoting a replacement cover photo if needed."""
         image = ProductImage.objects.filter(id=image_id, product_id=product_id).first()
         if not image:
             return False
@@ -380,38 +419,39 @@ class ProductImageRepository:
         return True
 
 
-class BaseTaxonomyRepository:
-    model = None
-    admin_serializer = None
-    customer_serializer = None
+class CategoryRepository:
+    @staticmethod
+    def get_all_categories_list():
+        """Return all categories (active + inactive) serialized for the Admin dashboard."""
+        items = Category.objects.all().order_by('name')
+        return None, CategoryAdminSerializer(items, many=True).data
 
-    @classmethod
-    def get_all(cls):
-        items = cls.model.objects.all().order_by('name')
-        return None, cls.admin_serializer(items, many=True).data
+    @staticmethod
+    def get_all_active_categories_list():
+        """Return only active categories serialized for customer-facing endpoints."""
+        items = Category.objects.filter(is_active=True).order_by('name')
+        return None, CategoryCustomerSerializer(items, many=True).data
 
-    @classmethod
-    def get_active(cls):
-        items = cls.model.objects.filter(is_active=True).order_by('name')
-        return None, cls.customer_serializer(items, many=True).data
+    @staticmethod
+    def get_category_by_id(category_id):
+        """Return a single category by its primary key."""
+        item = Category.objects.filter(id=category_id).first()
+        return (None, CategoryAdminSerializer(item).data) if item else ('Not found', None)
 
-    @classmethod
-    def get_by_id(cls, item_id):
-        item = cls.model.objects.filter(id=item_id).first()
-        return (None, cls.admin_serializer(item).data) if item else ('Not found', None)
-
-    @classmethod
-    def create(cls, data):
+    @staticmethod
+    def create_category(data):
+        """Create a new category record."""
         try:
             with transaction.atomic():
-                item = cls.model.objects.create(**data)
+                item = Category.objects.create(**data)
         except IntegrityError:
-            return f'{cls.model.__name__} name must be unique.', None
-        return None, cls.admin_serializer(item).data
+            return 'Category name must be unique.', None
+        return None, CategoryAdminSerializer(item).data
 
-    @classmethod
-    def update(cls, item_id, data):
-        item = cls.model.objects.filter(id=item_id).first()
+    @staticmethod
+    def update_category(category_id, data):
+        """Apply a partial update to a category record."""
+        item = Category.objects.filter(id=category_id).first()
         if not item:
             return 'Not found', None
         for key, value in data.items():
@@ -420,59 +460,140 @@ class BaseTaxonomyRepository:
             with transaction.atomic():
                 item.save()
         except IntegrityError:
-            return f'{cls.model.__name__} name must be unique.', None
-        return None, cls.admin_serializer(item).data
+            return 'Category name must be unique.', None
+        return None, CategoryAdminSerializer(item).data
 
-    @classmethod
-    def soft_delete(cls, item_id):
-        updated = cls.model.objects.filter(id=item_id).update(is_active=False)
-        return (None, {'id': item_id}) if updated else ('Not found', None)
+    @staticmethod
+    def deactivate_category(category_id):
+        """Soft-delete a category by marking it inactive."""
+        updated = Category.objects.filter(id=category_id).update(is_active=False)
+        return (None, {'id': category_id}) if updated else ('Not found', None)
 
-    @classmethod
-    def search_active(cls, query, limit=5):
-        items = cls.model.objects.filter(is_active=True, name__icontains=query).order_by('name')[:limit]
-        return cls.customer_serializer(items, many=True).data
-
-
-class CategoryRepository(BaseTaxonomyRepository):
-    model = Category
-    admin_serializer = CategoryAdminSerializer
-    customer_serializer = CategoryCustomerSerializer
+    @staticmethod
+    def search_active_categories(query, limit=5):
+        """Partial name search across active categories."""
+        items = Category.objects.filter(is_active=True, name__icontains=query).order_by('name')[:limit]
+        return CategoryCustomerSerializer(items, many=True).data
 
 
-class MaterialRepository(BaseTaxonomyRepository):
-    model = Material
-    admin_serializer = MaterialAdminSerializer
-    customer_serializer = MaterialCustomerSerializer
+class MaterialRepository:
+    @staticmethod
+    def get_all_materials_list():
+        """Return all materials (active + inactive) serialized for the Admin dashboard."""
+        items = Material.objects.all().order_by('name')
+        return None, MaterialAdminSerializer(items, many=True).data
+
+    @staticmethod
+    def get_all_active_materials_list():
+        """Return only active materials serialized for customer-facing endpoints."""
+        items = Material.objects.filter(is_active=True).order_by('name')
+        return None, MaterialCustomerSerializer(items, many=True).data
+
+    @staticmethod
+    def get_material_by_id(material_id):
+        """Return a single material by its primary key."""
+        item = Material.objects.filter(id=material_id).first()
+        return (None, MaterialAdminSerializer(item).data) if item else ('Not found', None)
+
+    @staticmethod
+    def create_material(data):
+        """Create a new material record."""
+        try:
+            with transaction.atomic():
+                item = Material.objects.create(**data)
+        except IntegrityError:
+            return 'Material name must be unique.', None
+        return None, MaterialAdminSerializer(item).data
+
+    @staticmethod
+    def update_material(material_id, data):
+        """Apply a partial update to a material record."""
+        item = Material.objects.filter(id=material_id).first()
+        if not item:
+            return 'Not found', None
+        for key, value in data.items():
+            setattr(item, key, value)
+        try:
+            with transaction.atomic():
+                item.save()
+        except IntegrityError:
+            return 'Material name must be unique.', None
+        return None, MaterialAdminSerializer(item).data
+
+    @staticmethod
+    def deactivate_material(material_id):
+        """Soft-delete a material by marking it inactive."""
+        updated = Material.objects.filter(id=material_id).update(is_active=False)
+        return (None, {'id': material_id}) if updated else ('Not found', None)
+
+    @staticmethod
+    def search_active_materials(query, limit=5):
+        """Partial name search across active materials."""
+        items = Material.objects.filter(is_active=True, name__icontains=query).order_by('name')[:limit]
+        return MaterialCustomerSerializer(items, many=True).data
 
 
-class DietyRepository(BaseTaxonomyRepository):
-    model = Diety
-    admin_serializer = DietyAdminSerializer
-    customer_serializer = DietyCustomerSerializer
+class DietyRepository:
+    @staticmethod
+    def get_all_deities_list():
+        """Return all deities (active + inactive) serialized for the Admin dashboard."""
+        items = Diety.objects.all().order_by('name')
+        return None, DietyAdminSerializer(items, many=True).data
 
-    @classmethod
-    def create(cls, data):
+    @staticmethod
+    def get_all_active_deities_list():
+        """Return only active deities serialized for customer-facing endpoints."""
+        items = Diety.objects.filter(is_active=True).order_by('name')
+        return None, DietyCustomerSerializer(items, many=True).data
+
+    @staticmethod
+    def get_deity_by_id(deity_id):
+        """Return a single deity by its primary key."""
+        item = Diety.objects.filter(id=deity_id).first()
+        return (None, DietyAdminSerializer(item).data) if item else ('Not found', None)
+
+    @staticmethod
+    def create_deity(data):
+        """Create a new deity record, validating and associating the given category IDs."""
         categories = data.pop('categories', [])
         if len(set(categories)) != Category.objects.filter(id__in=categories).count():
             return 'One or more categories do not exist.', None
-        error, result = super().create(data)
-        if error:
-            return error, result
-        item = cls.model.objects.get(id=result['id'])
-        item.categories.set(categories)
-        return None, cls.admin_serializer(item).data
+        try:
+            with transaction.atomic():
+                item = Diety.objects.create(**data)
+                item.categories.set(categories)
+        except IntegrityError:
+            return 'Deity name must be unique.', None
+        return None, DietyAdminSerializer(item).data
 
-    @classmethod
-    def update(cls, item_id, data):
+    @staticmethod
+    def update_deity(deity_id, data):
+        """Apply a partial update to a deity record, re-syncing category associations when supplied."""
         categories = data.pop('categories', None)
         if categories is not None and len(set(categories)) != Category.objects.filter(id__in=categories).count():
             return 'One or more categories do not exist.', None
-        error, result = super().update(item_id, data)
-        if error:
-            return error, result
-        if categories is not None:
-            item = cls.model.objects.get(id=item_id)
-            item.categories.set(categories)
-            result = cls.admin_serializer(item).data
-        return None, result
+        item = Diety.objects.filter(id=deity_id).first()
+        if not item:
+            return 'Not found', None
+        for key, value in data.items():
+            setattr(item, key, value)
+        try:
+            with transaction.atomic():
+                item.save()
+                if categories is not None:
+                    item.categories.set(categories)
+        except IntegrityError:
+            return 'Deity name must be unique.', None
+        return None, DietyAdminSerializer(item).data
+
+    @staticmethod
+    def deactivate_deity(deity_id):
+        """Soft-delete a deity by marking it inactive."""
+        updated = Diety.objects.filter(id=deity_id).update(is_active=False)
+        return (None, {'id': deity_id}) if updated else ('Not found', None)
+
+    @staticmethod
+    def search_active_deities(query, limit=5):
+        """Partial name search across active deities."""
+        items = Diety.objects.filter(is_active=True, name__icontains=query).order_by('name')[:limit]
+        return DietyCustomerSerializer(items, many=True).data
