@@ -37,7 +37,7 @@ class HomeService:
         try:
             _, popular = ProductRepository.get_popular_moorti_data()
             _, temples = ProductRepository.get_dream_temples_data()
-            _, categories = CategoryRepository.get_active()
+            _, categories = CategoryRepository.get_all_active_categories_list()
             _, decor = ProductRepository.get_home_decors_data()
             blocks = [
                 {'type': HOME_PAGE_POPULAR_MOORTI_BLOCK, 'data': {'title': HOME_PAGE_POPULAR_MOORTI_BLOCK_TITLE, 'products': popular}},

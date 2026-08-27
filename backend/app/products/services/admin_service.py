@@ -34,7 +34,7 @@ def _variant_is_purchase_ready(variant):
 
 
 def _has_purchase_ready_variant(product_id, exclude_id=None, replacement=None):
-    candidates = ProductVariantRepository.active_purchase_candidates(
+    candidates = ProductVariantRepository.get_active_purchase_candidates(
         product_id,
         exclude_id=exclude_id,
         replacement=replacement,
@@ -51,11 +51,11 @@ def _weight_range_is_valid(variant):
 class ProductAdminService:
     @staticmethod
     def list_products(params):
-        return None, ProductRepository.list_admin(params)
+        return None, ProductRepository.get_admin_product_list(params)
 
     @staticmethod
     def get_product(product_id):
-        product = ProductRepository.get_admin(product_id)
+        product = ProductRepository.get_admin_product_by_id(product_id)
         return (None, product) if product else ('Product not found.', None)
 
     @staticmethod
@@ -74,7 +74,7 @@ class ProductAdminService:
 
     @staticmethod
     def update_product(product_id, data):
-        current = ProductRepository.get_admin(product_id)
+        current = ProductRepository.get_admin_product_by_id(product_id)
         if not current:
             return 'Product not found.', None
         taxonomy_ids = {
@@ -119,29 +119,29 @@ class ProductAdminService:
 
 class ProductVariantService:
     @staticmethod
-    def list(product_id):
-        return ProductVariantRepository.list(product_id)
+    def list_variants(product_id):
+        return ProductVariantRepository.get_variant_list(product_id)
 
     @staticmethod
-    def create(product_id, data):
+    def create_variant(product_id, data):
         if not data.get('name') or not data.get('sku'):
             return 'Variant name and SKU are required.', None
-        product = ProductRepository.get_admin(product_id)
+        product = ProductRepository.get_admin_product_by_id(product_id)
         if not product:
             return 'Product not found.', None
         if product['status'] == 'active' and product['sales_mode'] != 'quote_only' and not _variant_is_purchase_ready(data):
             return 'Active purchasable products require complete price, GST, valid stock, dimensions, weight and packed dimensions.', None
-        return ProductVariantRepository.create(product_id, data)
+        return ProductVariantRepository.create_variant(product_id, data)
 
     @staticmethod
-    def update(product_id, variant_id, data):
-        current = ProductVariantRepository.get(product_id, variant_id)
+    def update_variant(product_id, variant_id, data):
+        current = ProductVariantRepository.get_variant_by_id(product_id, variant_id)
         if not current:
             return 'Variant not found.', None
         merged = {**current, **data}
         if not _weight_range_is_valid(merged):
             return 'Maximum weight must be greater than or equal to minimum weight.', None
-        product = ProductRepository.get_admin(product_id)
+        product = ProductRepository.get_admin_product_by_id(product_id)
         if product['status'] == 'active' and product['sales_mode'] != 'quote_only':
             if not _has_purchase_ready_variant(
                 product_id,
@@ -149,12 +149,12 @@ class ProductVariantService:
                 replacement=merged,
             ):
                 return 'A published purchasable product must retain one active variant with complete selling and shipping details.', None
-        return ProductVariantRepository.update(product_id, variant_id, data)
+        return ProductVariantRepository.update_variant(product_id, variant_id, data)
 
     @staticmethod
-    def delete(product_id, variant_id):
-        product = ProductRepository.get_admin(product_id)
-        variant = ProductVariantRepository.get(product_id, variant_id)
+    def delete_variant(product_id, variant_id):
+        product = ProductRepository.get_admin_product_by_id(product_id)
+        variant = ProductVariantRepository.get_variant_by_id(product_id, variant_id)
         if not product or not variant:
             return 'Variant not found.', None
         if (
@@ -163,22 +163,22 @@ class ProductVariantService:
             and not _has_purchase_ready_variant(product_id, exclude_id=variant_id)
         ):
             return 'A published purchasable product must keep at least one active variant.', None
-        if not ProductVariantRepository.delete(product_id, variant_id):
+        if not ProductVariantRepository.delete_variant(product_id, variant_id):
             return 'Variant not found.', None
         return None, {'id': variant_id, 'deleted': True}
 
 
 class ProductImageService:
     @staticmethod
-    def list(product_id):
-        return ProductImageRepository.list(product_id)
+    def list_images(product_id):
+        return ProductImageRepository.get_image_list(product_id)
 
     @staticmethod
-    def attach(product_id, data, actor_id):
+    def attach_image(product_id, data, actor_id):
         from app.common.repositories import UploadRepository
         from app.common.services.upload_service import UploadService
 
-        if not ProductRepository.get_admin(product_id):
+        if not ProductRepository.get_admin_product_by_id(product_id):
             return 'Product not found.', None
         session = UploadRepository.claim_pending_session(data['object_key'], actor_id)
         if not session or session['purpose'] != 'product_image':
@@ -193,7 +193,7 @@ class ProductImageService:
             **metadata,
             'image_url': UploadService.public_url(data['object_key']),
         }
-        error, image = ProductImageRepository.create(product_id, payload)
+        error, image = ProductImageRepository.create_image(product_id, payload)
         if error:
             UploadService.delete_object(data['object_key'])
             UploadRepository.mark_rejected(data['object_key'])
@@ -202,87 +202,106 @@ class ProductImageService:
         return None, image
 
     @staticmethod
-    def update(product_id, image_id, data):
-        return ProductImageRepository.update(product_id, image_id, data)
+    def update_image(product_id, image_id, data):
+        return ProductImageRepository.update_image(product_id, image_id, data)
 
     @staticmethod
-    def reorder(product_id, image_ids):
-        return ProductImageRepository.reorder(product_id, image_ids)
+    def reorder_images(product_id, image_ids):
+        return ProductImageRepository.reorder_images(product_id, image_ids)
 
     @staticmethod
-    def delete(product_id, image_id):
+    def delete_image(product_id, image_id):
         from app.common.repositories import UploadRepository
         from app.common.services.upload_service import UploadService
 
-        image = ProductImageRepository.get(product_id, image_id)
+        image = ProductImageRepository.get_image_by_id(product_id, image_id)
         if not image:
             return 'Product image not found.', None
-        product = ProductRepository.get_admin(product_id)
-        if product and product['status'] == 'active' and ProductImageRepository.count(product_id) <= 1:
+        product = ProductRepository.get_admin_product_by_id(product_id)
+        if product and product['status'] == 'active' and ProductImageRepository.get_image_count(product_id) <= 1:
             return 'A published product must keep at least one image.', None
         error = UploadService.delete_object(image['object_key'])
         if error:
             return error, None
-        if not ProductImageRepository.delete_record(product_id, image_id):
+        if not ProductImageRepository.delete_image(product_id, image_id):
             return 'Product image not found.', None
         UploadRepository.mark_deleted(image['object_key'])
         return None, {'id': image_id, 'deleted': True}
 
 
-class BaseTaxonomyService:
-    repository = None
-    label = 'Item'
+class CategoryAdminService:
+    @staticmethod
+    def get_all_categories():
+        return CategoryRepository.get_all_categories_list()
 
-    @classmethod
-    def list_items(cls):
-        return cls.repository.get_all()
-
-    @classmethod
-    def create(cls, data):
+    @staticmethod
+    def create_category(data):
         if not data.get('name'):
-            return f'{cls.label} name is required.', None
-        return cls.repository.create(data)
+            return 'Category name is required.', None
+        return CategoryRepository.create_category(data)
 
-    @classmethod
-    def get(cls, item_id):
-        return cls.repository.get_by_id(item_id)
+    @staticmethod
+    def get_category_by_id(category_id):
+        return CategoryRepository.get_category_by_id(category_id)
 
-    @classmethod
-    def update(cls, item_id, data):
+    @staticmethod
+    def update_category(category_id, data):
         if 'name' in data and not data['name'].strip():
-            return f'{cls.label} name cannot be empty.', None
-        return cls.repository.update(item_id, data)
+            return 'Category name cannot be empty.', None
+        return CategoryRepository.update_category(category_id, data)
 
-    @classmethod
-    def delete(cls, item_id):
-        return cls.repository.soft_delete(item_id)
-
-
-class CategoryAdminService(BaseTaxonomyService):
-    repository = CategoryRepository
-    label = 'Category'
-    list_categories = BaseTaxonomyService.list_items.__func__
-    create_category = BaseTaxonomyService.create.__func__
-    get_category = BaseTaxonomyService.get.__func__
-    update_category = BaseTaxonomyService.update.__func__
-    soft_delete_category = BaseTaxonomyService.delete.__func__
+    @staticmethod
+    def deactivate_category(category_id):
+        return CategoryRepository.deactivate_category(category_id)
 
 
-class MaterialAdminService(BaseTaxonomyService):
-    repository = MaterialRepository
-    label = 'Material'
-    list_materials = BaseTaxonomyService.list_items.__func__
-    create_material = BaseTaxonomyService.create.__func__
-    get_material = BaseTaxonomyService.get.__func__
-    update_material = BaseTaxonomyService.update.__func__
-    soft_delete_material = BaseTaxonomyService.delete.__func__
+class MaterialAdminService:
+    @staticmethod
+    def get_all_materials():
+        return MaterialRepository.get_all_materials_list()
+
+    @staticmethod
+    def create_material(data):
+        if not data.get('name'):
+            return 'Material name is required.', None
+        return MaterialRepository.create_material(data)
+
+    @staticmethod
+    def get_material_by_id(material_id):
+        return MaterialRepository.get_material_by_id(material_id)
+
+    @staticmethod
+    def update_material(material_id, data):
+        if 'name' in data and not data['name'].strip():
+            return 'Material name cannot be empty.', None
+        return MaterialRepository.update_material(material_id, data)
+
+    @staticmethod
+    def deactivate_material(material_id):
+        return MaterialRepository.deactivate_material(material_id)
 
 
-class DietyAdminService(BaseTaxonomyService):
-    repository = DietyRepository
-    label = 'Deity'
-    list_dieties = BaseTaxonomyService.list_items.__func__
-    create_diety = BaseTaxonomyService.create.__func__
-    get_diety = BaseTaxonomyService.get.__func__
-    update_diety = BaseTaxonomyService.update.__func__
-    soft_delete_diety = BaseTaxonomyService.delete.__func__
+class DietyAdminService:
+    @staticmethod
+    def get_all_deities():
+        return DietyRepository.get_all_deities_list()
+
+    @staticmethod
+    def create_deity(data):
+        if not data.get('name'):
+            return 'Deity name is required.', None
+        return DietyRepository.create_deity(data)
+
+    @staticmethod
+    def get_deity_by_id(deity_id):
+        return DietyRepository.get_deity_by_id(deity_id)
+
+    @staticmethod
+    def update_deity(deity_id, data):
+        if 'name' in data and not data['name'].strip():
+            return 'Deity name cannot be empty.', None
+        return DietyRepository.update_deity(deity_id, data)
+
+    @staticmethod
+    def deactivate_deity(deity_id):
+        return DietyRepository.deactivate_deity(deity_id)

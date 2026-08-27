@@ -37,7 +37,6 @@ class ProductListValidator(serializers.Serializer):
     category = serializers.CharField(max_length=255, required=False, allow_blank=True)
     material = serializers.CharField(max_length=255, required=False, allow_blank=True)
     deity = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    diety = serializers.CharField(max_length=255, required=False, allow_blank=True)
     availability = serializers.ChoiceField(choices=AVAILABILITY, required=False)
     status = serializers.ChoiceField(choices=('draft', 'active', 'archived'), required=False)
     min_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0, required=False)
@@ -51,9 +50,6 @@ class ProductListValidator(serializers.Serializer):
         if attrs.get('min_price') is not None and attrs.get('max_price') is not None:
             if attrs['max_price'] < attrs['min_price']:
                 raise serializers.ValidationError('max_price must be greater than or equal to min_price.')
-        if not attrs.get('deity') and attrs.get('diety'):
-            attrs['deity'] = attrs['diety']
-        attrs.pop('diety', None)
         return attrs
 
 
