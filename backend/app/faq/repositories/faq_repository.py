@@ -7,7 +7,7 @@ from app.faq.serializers.customer import CustomerFAQSerializer
 
 class FAQRepository:
     @staticmethod
-    def get_all_faqs():
+    def get_all_faqs_list():
         return AdminFAQSerializer(FAQ.objects.all().order_by('display_order', '-created_at'), many=True).data
 
     @staticmethod
