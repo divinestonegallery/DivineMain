@@ -4,7 +4,6 @@ from .views.admin_views import (
     AdminCategoryListCreateView, AdminCategoryDetailView,
     AdminMaterialListCreateView, AdminMaterialDetailView,
     AdminDietyListCreateView, AdminDietyDetailView,
-    AdminProductVariantListCreateView, AdminProductVariantDetailView,
     AdminProductImageListCreateView, AdminProductImageDetailView,
     AdminProductImageReorderView,
 )
@@ -13,8 +12,6 @@ urlpatterns = [
     # Products
     path('', AdminProductCreateView.as_view(), name='admin-product-create'),
     path('/<int:product_id>', AdminProductDetailView.as_view(), name='admin-product-detail'),
-    path('/<int:product_id>/variants', AdminProductVariantListCreateView.as_view(), name='admin-product-variants'),
-    path('/<int:product_id>/variants/<int:variant_id>', AdminProductVariantDetailView.as_view(), name='admin-product-variant-detail'),
     path('/<int:product_id>/images', AdminProductImageListCreateView.as_view(), name='admin-product-images'),
     path('/<int:product_id>/images/reorder', AdminProductImageReorderView.as_view(), name='admin-product-images-reorder'),
     path('/<int:product_id>/images/<int:image_id>', AdminProductImageDetailView.as_view(), name='admin-product-image-detail'),

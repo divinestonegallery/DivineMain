@@ -53,35 +53,6 @@ class ProductListValidator(serializers.Serializer):
         return attrs
 
 
-class ProductVariantValidator(serializers.Serializer):
-    name = serializers.CharField(max_length=255, required=False)
-    sku = serializers.RegexField(regex=r'^[A-Z0-9][A-Z0-9_-]{2,99}$', required=False)
-    price_before_gst = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0, required=False, allow_null=True)
-    gst_rate = serializers.DecimalField(max_digits=5, decimal_places=2, min_value=0, max_value=100, required=False, allow_null=True)
-    stock_quantity = serializers.IntegerField(min_value=0, required=False)
-    availability = serializers.ChoiceField(choices=AVAILABILITY, required=False)
-    sculpture_height_inches = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0.01'), required=False, allow_null=True)
-    sculpture_width_inches = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0.01'), required=False, allow_null=True)
-    sculpture_depth_inches = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0.01'), required=False, allow_null=True)
-    min_weight_kg = serializers.DecimalField(max_digits=9, decimal_places=2, min_value=Decimal('0.01'), required=False, allow_null=True)
-    max_weight_kg = serializers.DecimalField(max_digits=9, decimal_places=2, min_value=Decimal('0.01'), required=False, allow_null=True)
-    packed_length_inches = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0.01'), required=False, allow_null=True)
-    packed_width_inches = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0.01'), required=False, allow_null=True)
-    packed_height_inches = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=Decimal('0.01'), required=False, allow_null=True)
-    is_active = serializers.BooleanField(required=False)
-    display_order = serializers.IntegerField(min_value=0, required=False)
-
-    def validate_sku(self, value):
-        return value.upper()
-
-    def validate(self, attrs):
-        minimum = attrs.get('min_weight_kg')
-        maximum = attrs.get('max_weight_kg')
-        if minimum is not None and maximum is not None and maximum < minimum:
-            raise serializers.ValidationError('max_weight_kg must be greater than or equal to min_weight_kg.')
-        return attrs
-
-
 class ProductImageFinalizeValidator(serializers.Serializer):
     object_key = serializers.RegexField(regex=r'^product-images/[a-f0-9]{32}\.(jpg|jpeg|png|webp)$', max_length=500)
     alt_text = serializers.CharField(max_length=255, required=False, allow_blank=True)

@@ -3,16 +3,15 @@ import logging
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db import models
-from django.db.models import Min, Prefetch, Q
+from django.db.models import Prefetch, Q
 
-from app.products.models import Category, Diety, Material, Product, ProductImage, ProductVariant
+from app.products.models import Category, Diety, Material, Product, ProductImage
 from app.products.serializers.admin import (
     CategoryAdminSerializer,
     DietyAdminSerializer,
     MaterialAdminSerializer,
     ProductAdminSerializer,
     ProductImageAdminSerializer,
-    ProductVariantAdminSerializer,
 )
 from app.products.serializers.customer import (
     CategoryCustomerSerializer,
@@ -41,12 +40,8 @@ def _pagination(queryset, page, page_size, serializer_class):
 
 def _product_queryset(public=False):
     images = ProductImage.objects.order_by('display_order', 'id')
-    variants = ProductVariant.objects.order_by('display_order', 'id')
-    if public:
-        variants = variants.filter(is_active=True)
     queryset = Product.objects.select_related('category', 'material', 'diety').prefetch_related(
         Prefetch('images', queryset=images),
-        Prefetch('variants', queryset=variants),
     )
     if public:
         queryset = queryset.filter(
@@ -108,7 +103,6 @@ class ProductRepository:
                 | Q(keywords__icontains=search)
                 | Q(short_description__icontains=search)
                 | Q(uid__icontains=search)
-                | Q(variants__sku__icontains=search)
             )
         if params.get('category'):
             queryset = queryset.filter(category__slug=params['category'])
@@ -117,33 +111,13 @@ class ProductRepository:
         if params.get('deity'):
             queryset = queryset.filter(diety__slug=params['deity'])
         if params.get('availability'):
-            if include_status:
-                queryset = queryset.filter(availability=params['availability'])
-            else:
-                queryset = queryset.filter(
-                    variants__availability=params['availability'],
-                    variants__is_active=True,
-                )
+            queryset = queryset.filter(availability=params['availability'])
         if include_status and params.get('status'):
             queryset = queryset.filter(status=params['status'])
-        if params.get('min_price') is not None:
-            queryset = queryset.filter(variants__price_before_gst__gte=params['min_price'], variants__is_active=True)
-        if params.get('max_price') is not None:
-            queryset = queryset.filter(variants__price_before_gst__lte=params['max_price'], variants__is_active=True)
         return queryset.distinct()
 
     @staticmethod
     def _apply_sort(queryset, sort):
-        if sort in {'price_asc', 'price_desc'}:
-            queryset = queryset.annotate(
-                minimum_price=Min('variants__price_before_gst', filter=Q(variants__is_active=True))
-            )
-            price_order = (
-                models.F('minimum_price').asc(nulls_last=True)
-                if sort == 'price_asc'
-                else models.F('minimum_price').desc(nulls_last=True)
-            )
-            return queryset.order_by(price_order, 'id')
         orders = {
             'newest': ('-created_at',),
             'oldest': ('created_at',),
@@ -165,7 +139,6 @@ class ProductRepository:
             Q(name__icontains=query)
             | Q(keywords__icontains=query)
             | Q(short_description__icontains=query)
-            | Q(variants__sku__icontains=query)
         ).order_by('-is_featured', 'display_order').distinct()[:limit]
         return ProductCardSerializer(queryset, many=True).data
 
@@ -221,21 +194,12 @@ class ProductRepository:
         product = Product.objects.select_related('category', 'material', 'diety').filter(id=product_id).first()
         if not product:
             return None
-        variants = list(
-            ProductVariant.objects.filter(product_id=product_id, is_active=True).values(
-                'id', 'name', 'sku', 'price_before_gst', 'gst_rate', 'stock_quantity',
-                'availability', 'sculpture_height_inches', 'sculpture_width_inches',
-                'sculpture_depth_inches', 'min_weight_kg', 'max_weight_kg',
-                'packed_length_inches', 'packed_width_inches', 'packed_height_inches',
-            )
-        )
         return {
             'status': product.status,
             'sales_mode': product.sales_mode,
             'taxonomy_active': product.category.is_active and product.material.is_active and product.diety.is_active,
             'has_cover': ProductImage.objects.filter(product_id=product_id, cover_photo=True).exists(),
             'image_count': ProductImage.objects.filter(product_id=product_id).count(),
-            'variants': variants,
         }
 
     @staticmethod
@@ -270,70 +234,6 @@ class ProductRepository:
         return None, ProductCardSerializer(products, many=True).data
 
 
-class ProductVariantRepository:
-    @staticmethod
-    def get_variant_list(product_id):
-        """Return all variants for a product, serialized for the Admin."""
-        if not Product.objects.filter(id=product_id).exists():
-            return 'Product not found.', None
-        variants = ProductVariant.objects.filter(product_id=product_id).order_by('display_order', 'id')
-        return None, ProductVariantAdminSerializer(variants, many=True).data
-
-    @staticmethod
-    def get_variant_by_id(product_id, variant_id):
-        """Return a single variant serialized for the Admin, or None if not found."""
-        variant = ProductVariant.objects.filter(id=variant_id, product_id=product_id).first()
-        return ProductVariantAdminSerializer(variant).data if variant else None
-
-    @staticmethod
-    def create_variant(product_id, data):
-        """Persist a new variant record and return its serialized representation."""
-        if not Product.objects.filter(id=product_id).exists():
-            return 'Product not found.', None
-        try:
-            with transaction.atomic():
-                variant = ProductVariant.objects.create(product_id=product_id, **data)
-        except IntegrityError:
-            return 'Variant name and SKU must be unique.', None
-        return None, ProductVariantAdminSerializer(variant).data
-
-    @staticmethod
-    def update_variant(product_id, variant_id, data):
-        """Apply a partial update to an existing variant."""
-        variant = ProductVariant.objects.filter(id=variant_id, product_id=product_id).first()
-        if not variant:
-            return 'Variant not found.', None
-        for key, value in data.items():
-            setattr(variant, key, value)
-        try:
-            with transaction.atomic():
-                variant.save()
-        except IntegrityError:
-            return 'Variant name and SKU must be unique.', None
-        return None, ProductVariantAdminSerializer(variant).data
-
-    @staticmethod
-    def delete_variant(product_id, variant_id):
-        """Hard-delete a variant. Returns True if a row was removed."""
-        deleted, _ = ProductVariant.objects.filter(id=variant_id, product_id=product_id).delete()
-        return bool(deleted)
-
-    @staticmethod
-    def get_active_purchase_candidates(product_id, exclude_id=None, replacement=None):
-        """Return all active variants eligible for purchase readiness checks."""
-        queryset = ProductVariant.objects.filter(product_id=product_id, is_active=True)
-        if exclude_id is not None:
-            queryset = queryset.exclude(id=exclude_id)
-        candidates = list(queryset.values(
-            'id', 'price_before_gst', 'gst_rate', 'stock_quantity', 'availability',
-            'sculpture_height_inches', 'sculpture_width_inches',
-            'sculpture_depth_inches', 'min_weight_kg', 'max_weight_kg',
-            'packed_length_inches', 'packed_width_inches', 'packed_height_inches',
-            'is_active',
-        ))
-        if replacement and replacement.get('is_active', True):
-            candidates.append(replacement)
-        return candidates
 
 
 class ProductImageRepository:
