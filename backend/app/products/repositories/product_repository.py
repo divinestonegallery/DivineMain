@@ -229,9 +229,20 @@ class ProductRepository:
         return None, ProductCardSerializer(products, many=True).data
 
     @staticmethod
-    def get_home_decors_data():
-        products = _product_queryset(public=True).filter(category__slug='home-decor').order_by('-is_featured', 'display_order')[:10]
-        return None, ProductCardSerializer(products, many=True).data
+    def get_home_decors_by_diety(limit_per_diety=5):
+        result = []
+        for deity in Diety.objects.filter(is_active=True).order_by('name'):
+            products = _product_queryset(public=True).filter(
+                category__slug='home-decor', diety=deity
+            ).order_by('-is_featured', 'display_order', '-created_at')[:limit_per_diety]
+            if products:
+                result.append({
+                    'deity_id': deity.id,
+                    'deity_name': deity.name,
+                    'deity_slug': deity.slug,
+                    'products': ProductCardSerializer(products, many=True).data,
+                })
+        return result
 
 
 

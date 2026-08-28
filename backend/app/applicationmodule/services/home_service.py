@@ -38,13 +38,12 @@ class HomeService:
             _, popular = ProductRepository.get_popular_moorti_data()
             _, temples = ProductRepository.get_dream_temples_data()
             _, categories = CategoryRepository.get_all_active_categories_list()
-            _, decor = ProductRepository.get_home_decors_data()
             blocks = [
                 {'type': HOME_PAGE_POPULAR_MOORTI_BLOCK, 'data': {'title': HOME_PAGE_POPULAR_MOORTI_BLOCK_TITLE, 'products': popular}},
                 {'type': HOME_PAGE_DREAM_MOORTI_BLOCK, 'data': {'title': HOME_PAGE_DREAM_MOORTI_BLOCK_TITLE, 'deities': ProductRepository.get_top_products_by_diety(5)}},
                 {'type': HOME_PAGE_DREAM_TEMPLES_BLOCK, 'data': {'title': HOME_PAGE_DREAM_TEMPLES_BLOCK_TITLE, 'products': temples}},
                 {'type': HOME_PAGE_CATEGORIES_BLOCK, 'data': {'title': HOME_PAGE_CATEGORIES_BLOCK_TITLE, 'categories': categories}},
-                {'type': HOME_PAGE_HOME_DECORS_BLOCK, 'data': {'title': HOME_PAGE_HOME_DECORS_BLOCK_TITLE, 'products': decor}},
+                {'type': HOME_PAGE_HOME_DECORS_BLOCK, 'data': {'title': HOME_PAGE_HOME_DECORS_BLOCK_TITLE, 'deities': ProductRepository.get_home_decors_by_diety(5)}},
                 {'type': HOME_PAGE_REVIEWS_BLOCK, 'data': {'title': HOME_PAGE_REVIEWS_BLOCK_TITLE, 'reviews': ReviewRepository.get_approved_reviews(10)}},
             ]
             return None, {'blocks': blocks}
