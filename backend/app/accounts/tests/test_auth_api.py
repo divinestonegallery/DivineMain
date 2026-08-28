@@ -225,7 +225,7 @@ class AuthAPITests(TestCase):
         access_token = TokenService.generate_access_token(customer_dict)
 
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
-        response = self.client.get('/api/v1/auth/me')
+        response = self.client.get('/api/v1/auth/profile')
 
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -234,7 +234,7 @@ class AuthAPITests(TestCase):
         self.assertEqual(data['data']['name'], 'Authenticated User')
 
     def test_me_endpoint_unauthorized(self):
-        response = self.client.get('/api/v1/auth/me')
+        response = self.client.get('/api/v1/auth/profile')
         self.assertEqual(response.status_code, 401)
 
     def test_logout_endpoint(self):

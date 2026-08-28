@@ -5,7 +5,7 @@ from app.accounts.views.auth_views import (
     ForgotPasswordView,
     ResetPasswordView,
     RefreshTokenView,
-    CurrentUserView,
+    CurrentProfileView,
     LogoutView,
 )
 
@@ -15,6 +15,6 @@ urlpatterns = [
     path('/forgot-password', ForgotPasswordView.as_view(), name='auth-forgot-password'),
     path('/reset-password', ResetPasswordView.as_view(), name='auth-reset-password'),
     path('/refresh', RefreshTokenView.as_view(), name='auth-refresh'),
-    path('/me', CurrentUserView.as_view(), name='auth-me'),
+    path('/profile', CurrentProfileView.as_view(), name='auth-profile'),
     path('/logout', LogoutView.as_view(), name='auth-logout'),
 ]
