@@ -22,28 +22,9 @@ from app.common.repositories import UploadRepository
 from app.common.services.upload_service import UploadService
 from app.contactus.models import ContactMessage, CustomizeRequest
 from app.faq.models import FAQ
-from app.products.models import Category, Diety, Material, Product, ProductImage, ProductVariant
+from app.products.models import Category, Diety, Material, Product, ProductImage
 from app.reviews.models import Review
 
-
-def complete_variant(sku='DSG-GAN-9-WM', name='9 inch'):
-    return {
-        'name': name,
-        'sku': sku,
-        'price_before_gst': '10000.00',
-        'gst_rate': '5.00',
-        'stock_quantity': 1,
-        'availability': 'in_stock',
-        'sculpture_height_inches': '9.00',
-        'sculpture_width_inches': '7.50',
-        'sculpture_depth_inches': '5.00',
-        'min_weight_kg': '7.00',
-        'max_weight_kg': '8.00',
-        'packed_length_inches': '10.00',
-        'packed_width_inches': '9.50',
-        'packed_height_inches': '11.00',
-        'is_active': True,
-    }
 
 
 class MVPTestCase(TestCase):
@@ -126,22 +107,15 @@ class MVPTestCase(TestCase):
         self.assertIn('cover image', rejected.json()['message'])
 
         image, _ = self.attach_image(product['id'])
-        variant = self.client.post(
-            f"/api/admin/products/{product['id']}/variants",
-            complete_variant(),
-            format='json',
-        )
-        self.assertEqual(variant.status_code, 201, variant.content)
         published = self.client.patch(
             f"/api/admin/products/{product['id']}", {'status': 'active'}, format='json'
         )
         self.assertEqual(published.status_code, 200, published.content)
 
         self.client.force_authenticate(user=None)
-        visible = self.client.get('/api/v1/products?search=Ganesh&sort=price_asc')
+        visible = self.client.get('/api/v1/products?search=Ganesh&sort=newest')
         self.assertEqual(visible.status_code, 200)
         self.assertEqual(visible.json()['data']['pagination']['total_items'], 1)
-        self.assertEqual(visible.json()['data']['items'][0]['starting_price'], '10000.00')
         detail = self.client.get(f"/api/v1/products/{product['slug']}")
         self.assertEqual(detail.status_code, 200)
         self.assertEqual(detail.json()['data']['images'][0]['image_url'], image['image_url'])
@@ -151,25 +125,6 @@ class MVPTestCase(TestCase):
             response = self.client.get(f'/api/v1/products/{path}')
             self.assertEqual(response.status_code, 200, path)
             self.assertIsInstance(response.json()['data'], list)
-
-    def test_active_product_cannot_lose_its_only_complete_variant(self):
-        product = self.create_product()
-        self.attach_image(product['id'])
-        ready = self.client.post(
-            f"/api/admin/products/{product['id']}/variants",
-            complete_variant(), format='json',
-        ).json()['data']
-        incomplete = self.client.post(
-            f"/api/admin/products/{product['id']}/variants",
-            {'name': 'Custom', 'sku': 'DSG-GAN-CUSTOM'}, format='json',
-        )
-        self.assertEqual(incomplete.status_code, 201)
-        self.client.patch(f"/api/admin/products/{product['id']}", {'status': 'active'}, format='json')
-        response = self.client.delete(
-            f"/api/admin/products/{product['id']}/variants/{ready['id']}"
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertTrue(ProductVariant.objects.filter(id=ready['id']).exists())
 
     def test_image_claim_is_owner_bound_single_use_and_delete_removes_r2(self):
         product = self.create_product()

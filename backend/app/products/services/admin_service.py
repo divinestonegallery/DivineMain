@@ -1,51 +1,10 @@
-from decimal import Decimal
-
 from app.products.repositories.product_repository import (
     CategoryRepository,
     DietyRepository,
     MaterialRepository,
     ProductImageRepository,
     ProductRepository,
-    ProductVariantRepository,
 )
-
-
-PURCHASE_VARIANT_FIELDS = (
-    'price_before_gst', 'gst_rate', 'sculpture_height_inches',
-    'sculpture_width_inches', 'sculpture_depth_inches', 'min_weight_kg',
-    'packed_length_inches', 'packed_width_inches', 'packed_height_inches',
-)
-
-
-def _missing_variant_fields(variant):
-    return [field for field in PURCHASE_VARIANT_FIELDS if variant.get(field) is None]
-
-
-def _variant_is_purchase_ready(variant):
-    if _missing_variant_fields(variant):
-        return False
-    stock = variant.get('stock_quantity', 0)
-    availability = variant.get('availability', 'in_stock')
-    if availability == 'in_stock' and stock < 1:
-        return False
-    if availability == 'out_of_stock' and stock != 0:
-        return False
-    return True
-
-
-def _has_purchase_ready_variant(product_id, exclude_id=None, replacement=None):
-    candidates = ProductVariantRepository.get_active_purchase_candidates(
-        product_id,
-        exclude_id=exclude_id,
-        replacement=replacement,
-    )
-    return any(_variant_is_purchase_ready(candidate) for candidate in candidates)
-
-
-def _weight_range_is_valid(variant):
-    minimum = variant.get('min_weight_kg')
-    maximum = variant.get('max_weight_kg')
-    return minimum is None or maximum is None or Decimal(str(maximum)) >= Decimal(str(minimum))
 
 
 class ProductAdminService:
@@ -88,11 +47,9 @@ class ProductAdminService:
         invalid = [name for name, valid in taxonomy.items() if not valid]
         if invalid:
             return f"Invalid or inactive taxonomy: {', '.join(invalid)}.", None
-
         target_status = data.get('status', current['status'])
-        target_sales_mode = data.get('sales_mode', current['sales_mode'])
         if target_status == 'active':
-            error = ProductAdminService._publish_error(product_id, target_sales_mode)
+            error = ProductAdminService._publish_error(product_id)
             if error:
                 return error, None
         return ProductRepository.update(product_id, data)
@@ -102,7 +59,7 @@ class ProductAdminService:
         return (None, {'id': product_id, 'status': 'archived'}) if ProductRepository.archive(product_id) else ('Product not found.', None)
 
     @staticmethod
-    def _publish_error(product_id, sales_mode):
+    def _publish_error(product_id):
         readiness = ProductRepository.publish_readiness(product_id)
         if not readiness:
             return 'Product not found.'
@@ -110,62 +67,7 @@ class ProductAdminService:
             return 'Category, material and deity must all be active before publishing.'
         if not readiness['has_cover']:
             return 'Add and select a cover image before publishing.'
-        if sales_mode != 'quote_only':
-            complete = [variant for variant in readiness['variants'] if _variant_is_purchase_ready(variant)]
-            if not complete:
-                return 'Add an active variant with price, GST, valid stock, dimensions, weight and packed dimensions before enabling purchase.'
         return None
-
-
-class ProductVariantService:
-    @staticmethod
-    def list_variants(product_id):
-        return ProductVariantRepository.get_variant_list(product_id)
-
-    @staticmethod
-    def create_variant(product_id, data):
-        if not data.get('name') or not data.get('sku'):
-            return 'Variant name and SKU are required.', None
-        product = ProductRepository.get_admin_product_by_id(product_id)
-        if not product:
-            return 'Product not found.', None
-        if product['status'] == 'active' and product['sales_mode'] != 'quote_only' and not _variant_is_purchase_ready(data):
-            return 'Active purchasable products require complete price, GST, valid stock, dimensions, weight and packed dimensions.', None
-        return ProductVariantRepository.create_variant(product_id, data)
-
-    @staticmethod
-    def update_variant(product_id, variant_id, data):
-        current = ProductVariantRepository.get_variant_by_id(product_id, variant_id)
-        if not current:
-            return 'Variant not found.', None
-        merged = {**current, **data}
-        if not _weight_range_is_valid(merged):
-            return 'Maximum weight must be greater than or equal to minimum weight.', None
-        product = ProductRepository.get_admin_product_by_id(product_id)
-        if product['status'] == 'active' and product['sales_mode'] != 'quote_only':
-            if not _has_purchase_ready_variant(
-                product_id,
-                exclude_id=variant_id,
-                replacement=merged,
-            ):
-                return 'A published purchasable product must retain one active variant with complete selling and shipping details.', None
-        return ProductVariantRepository.update_variant(product_id, variant_id, data)
-
-    @staticmethod
-    def delete_variant(product_id, variant_id):
-        product = ProductRepository.get_admin_product_by_id(product_id)
-        variant = ProductVariantRepository.get_variant_by_id(product_id, variant_id)
-        if not product or not variant:
-            return 'Variant not found.', None
-        if (
-            product['status'] == 'active'
-            and product['sales_mode'] != 'quote_only'
-            and not _has_purchase_ready_variant(product_id, exclude_id=variant_id)
-        ):
-            return 'A published purchasable product must keep at least one active variant.', None
-        if not ProductVariantRepository.delete_variant(product_id, variant_id):
-            return 'Variant not found.', None
-        return None, {'id': variant_id, 'deleted': True}
 
 
 class ProductImageService:

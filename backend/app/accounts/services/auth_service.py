@@ -193,7 +193,7 @@ class AuthService:
         return None, tokens
 
     @classmethod
-    def get_me(cls, customer_id):
+    def get_current_user_profile(cls, customer_id):
         customer_dict = CustomerRepository.get_customer_dict_by_id(customer_id)
         if not customer_dict:
             return 'User not found.', None

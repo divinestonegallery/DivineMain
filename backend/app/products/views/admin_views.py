@@ -6,7 +6,6 @@ from app.products.services.admin_service import (
     MaterialAdminService,
     ProductAdminService,
     ProductImageService,
-    ProductVariantService,
 )
 from app.products.validators import (
     CategoryRequestValidator,
@@ -17,7 +16,6 @@ from app.products.validators import (
     ProductImageUpdateValidator,
     ProductListValidator,
     ProductRequestValidator,
-    ProductVariantValidator,
 )
 from framework.core.base_apiviews import AdminAPIView
 from framework.core.responses import ErrorResponse, SuccessResponse
@@ -69,40 +67,6 @@ class AdminProductDetailView(AdminAPIView):
         return get_response(SuccessResponse(message='Product archived successfully', data=data))
 
 
-class AdminProductVariantListCreateView(AdminAPIView):
-    def get(self, request, product_id):
-        error, data = ProductVariantService.list_variants(product_id)
-        if error:
-            return get_response(ErrorResponse(message=error, status_code=404))
-        return get_response(SuccessResponse(message='Variants fetched successfully', data=data))
-
-    def post(self, request, product_id):
-        validator = ProductVariantValidator(data=request.data)
-        if not validator.is_valid():
-            return get_response(ErrorResponse(message='Invalid variant', err=validator.errors, status_code=400))
-        error, data = ProductVariantService.create_variant(product_id, validator.validated_data)
-        if error:
-            return get_response(ErrorResponse(message=error, status_code=400))
-        return get_response(SuccessResponse(message='Variant created successfully', data=data, status_code=status.HTTP_201_CREATED))
-
-
-class AdminProductVariantDetailView(AdminAPIView):
-    def patch(self, request, product_id, variant_id):
-        validator = ProductVariantValidator(data=request.data, partial=True)
-        if not validator.is_valid():
-            return get_response(ErrorResponse(message='Invalid variant update', err=validator.errors, status_code=400))
-        error, data = ProductVariantService.update_variant(product_id, variant_id, validator.validated_data)
-        if error:
-            return get_response(ErrorResponse(message=error, status_code=400))
-        return get_response(SuccessResponse(message='Variant updated successfully', data=data))
-
-    put = patch
-
-    def delete(self, request, product_id, variant_id):
-        error, data = ProductVariantService.delete_variant(product_id, variant_id)
-        if error:
-            return get_response(ErrorResponse(message=error, status_code=400))
-        return get_response(SuccessResponse(message='Variant deleted successfully', data=data))
 
 
 class AdminProductImageListCreateView(AdminAPIView):
