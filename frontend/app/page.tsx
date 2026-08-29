@@ -463,7 +463,7 @@ function HeroSection({ quickLinks }: { quickLinks: Array<{ label: string; href: 
       <span className={styles.heroVeil} aria-hidden="true" />
       <div className={`${styles.heroInner} site-container`}>
         <div className={styles.heroCopy}>
-          <form className={styles.heroSearch} action="/shop">
+          <form className={styles.heroSearch} action="/shop" data-hero-search>
             <Search aria-hidden="true" size={24} strokeWidth={1.6} />
             <input name="q" type="search" placeholder="Search for Ganesh, marble temple or home decor" aria-label="Search the Divine Stone catalogue" />
             <button type="submit" aria-label="Search catalogue">

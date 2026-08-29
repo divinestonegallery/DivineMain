@@ -87,6 +87,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const [megaMenuClosing, setMegaMenuClosing] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [dockedSearchVisible, setDockedSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<null | {
     products: SearchProductResult[];
@@ -105,6 +106,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const mobilePanelRef = useRef<HTMLDivElement>(null);
   const searchTitleId = useId();
   const shopMenuId = useId();
+  const showDockedSearch = pathname === "/" ? dockedSearchVisible : true;
 
   function updateSearchQuery(value: string) {
     setSearchQuery(value);
@@ -144,6 +146,43 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       .catch(() => undefined);
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (pathname !== "/") {
+      setDockedSearchVisible(true);
+      return;
+    }
+
+    const heroSearch = document.querySelector<HTMLElement>("[data-hero-search]");
+    if (!heroSearch) {
+      setDockedSearchVisible(true);
+      return;
+    }
+
+    const headerOffset = 84;
+    const updateDockedSearch = () => {
+      const rect = heroSearch.getBoundingClientRect();
+      setDockedSearchVisible(rect.bottom <= headerOffset || rect.top >= window.innerHeight);
+    };
+
+    if (!("IntersectionObserver" in window)) {
+      updateDockedSearch();
+      window.addEventListener("scroll", updateDockedSearch, { passive: true });
+      window.addEventListener("resize", updateDockedSearch);
+      return () => {
+        window.removeEventListener("scroll", updateDockedSearch);
+        window.removeEventListener("resize", updateDockedSearch);
+      };
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setDockedSearchVisible(!entry.isIntersecting),
+      { rootMargin: `-${headerOffset}px 0px 0px 0px`, threshold: 0.1 },
+    );
+
+    observer.observe(heroSearch);
+    return () => observer.disconnect();
+  }, [pathname]);
 
   useEffect(() => {
     const query = searchQuery.trim();
@@ -252,16 +291,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
 
       <header className={styles.siteHeader}>
         <div className={`${styles.headerMain} site-container`}>
-          <button
-            className={`${styles.headerAction} ${styles.mobileMenuButton}`}
-            type="button"
-            aria-label="Open menu"
-            aria-expanded={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen(true)}
-          >
-            <Menu aria-hidden="true" size={22} strokeWidth={1.6} />
-          </button>
-
           <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home">
             {animateLogo && !logoAnimationFinished ? (
               <>
@@ -286,53 +315,71 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
             )}
           </Link>
 
-          <nav className={styles.desktopNav} aria-label="Main navigation">
-            <button
-              ref={shopTriggerRef}
-              className={styles.navLink}
-              type="button"
-              aria-controls={shopMenuId}
-              aria-expanded={megaMenuOpen}
-              onClick={() => megaMenuOpen ? closeMegaMenu() : openMegaMenu()}
-            >
-              Shop
-              <span aria-hidden="true" className={`${styles.chevron} ${megaMenuOpen && !megaMenuClosing ? styles.chevronOpen : ""}`}>⌄</span>
-            </button>
-            {mainLinks.map(([label, href]) => (
-              <Link className={styles.navLink} href={href} key={href}>
-                {label}
-              </Link>
-            ))}
-          </nav>
+          <div className={styles.headerCenter}>
+            <nav className={styles.desktopNav} aria-label="Main navigation">
+              <button
+                ref={shopTriggerRef}
+                className={styles.navLink}
+                type="button"
+                aria-controls={shopMenuId}
+                aria-expanded={megaMenuOpen}
+                onClick={() => megaMenuOpen ? closeMegaMenu() : openMegaMenu()}
+              >
+                <Sparkles aria-hidden="true" size={18} strokeWidth={1.6} />
+                <span>Shop Moorti</span>
+                <small>New</small>
+                <span aria-hidden="true" className={`${styles.chevron} ${megaMenuOpen && !megaMenuClosing ? styles.chevronOpen : ""}`}>⌄</span>
+              </button>
+            </nav>
 
-          <div className={styles.headerActions}>
             <button
-              className={styles.headerAction}
+              className={`${styles.headerSearchPill} ${showDockedSearch ? styles.headerSearchPillVisible : ""}`.trim()}
               type="button"
-              aria-label="Search"
+              aria-label="Search Divine Stone Gallery"
               aria-expanded={searchOpen}
+              aria-hidden={!showDockedSearch}
+              tabIndex={showDockedSearch ? 0 : -1}
               onClick={() => setSearchOpen(true)}
             >
-              <Search aria-hidden="true" size={21} strokeWidth={1.6} />
+              <Search aria-hidden="true" size={19} strokeWidth={1.6} />
+              <span>Search for Moorti</span>
+              <span className={styles.headerSearchSubmit} aria-hidden="true">
+                <Search size={20} strokeWidth={1.8} />
+              </span>
             </button>
+          </div>
+
+          <div className={styles.headerActions}>
             <a
-              className={`${styles.headerAction} ${styles.desktopOnlyAction}`}
+              className={styles.planButton}
               href="https://wa.me/919166138566?text=Namaste%2C%20I%20would%20like%20assistance%20from%20Divine%20Stone%20Gallery."
               target="_blank"
               rel="noreferrer"
-              aria-label="Chat with Divine Stone Gallery on WhatsApp"
+              aria-label="Plan with Divine Stone Gallery on WhatsApp"
             >
-              <MessageCircle aria-hidden="true" size={21} strokeWidth={1.6} />
+              <MessageCircle aria-hidden="true" size={18} strokeWidth={1.7} />
+              <span className={styles.planTextDesktop}>Plan with Gallery</span>
+              <span className={styles.planTextMobile}>Plan</span>
             </a>
+            <Link className={`${styles.bookingButton} ${styles.desktopOnlyAction}`} href="/cart" aria-label={`Enquiry bag with ${enquiryBag.count} ${enquiryBag.count === 1 ? "work" : "works"}`}>
+              <ShoppingBag aria-hidden="true" size={18} strokeWidth={1.6} />
+              <span>Enquiry Bag</span>
+              {enquiryBag.count ? <strong>{enquiryBag.count}</strong> : null}
+            </Link>
             <AccountControl className={`${styles.headerAction} ${styles.desktopOnlyAction}`} />
             <Link className={`${styles.headerAction} ${styles.desktopOnlyAction}`} href="/wishlist" aria-label={`Wishlist with ${savedWorks.count} saved ${savedWorks.count === 1 ? "work" : "works"}`}>
               <Heart aria-hidden="true" size={21} strokeWidth={1.6} />
               {savedWorks.count ? <span className={styles.actionBadge}>{savedWorks.count}</span> : null}
             </Link>
-            <Link className={styles.headerAction} href="/cart" aria-label={`Enquiry bag with ${enquiryBag.count} ${enquiryBag.count === 1 ? "work" : "works"}`}>
-              <ShoppingBag aria-hidden="true" size={21} strokeWidth={1.6} />
-              {enquiryBag.count ? <span className={styles.actionBadge}>{enquiryBag.count}</span> : null}
-            </Link>
+            <button
+              className={styles.headerAction}
+              type="button"
+              aria-label="Open menu"
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu aria-hidden="true" size={23} strokeWidth={1.7} />
+            </button>
           </div>
         </div>
 
@@ -543,6 +590,8 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
             </div>
             <nav className={styles.mobileNav} aria-label="Mobile navigation">
               <Link href="/shop" onClick={() => setMobileMenuOpen(false)}>Shop all moorties</Link>
+              <Link href="/cart" onClick={() => setMobileMenuOpen(false)}>Enquiry bag</Link>
+              <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)}>Wishlist</Link>
               {mainLinks.map(([label, href]) => (
                 <Link href={href} key={href} onClick={() => setMobileMenuOpen(false)}>
                   {label}
@@ -570,7 +619,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
         <Link className={pathname === "/" ? styles.mobileNavActive : undefined} href="/" aria-current={pathname === "/" ? "page" : undefined}><Home aria-hidden="true" size={20} /><span>Home</span></Link>
         <Link className={pathname.startsWith("/shop") || pathname.startsWith("/products/") ? styles.mobileNavActive : undefined} href="/shop" aria-current={pathname.startsWith("/shop") || pathname.startsWith("/products/") ? "page" : undefined}><ShoppingBag aria-hidden="true" size={20} /><span>Shop</span></Link>
         <Link className={pathname.startsWith("/custom-murti") ? styles.mobileNavActive : undefined} href="/custom-murti" aria-current={pathname.startsWith("/custom-murti") ? "page" : undefined}><Sparkles aria-hidden="true" size={20} /><span>Custom</span></Link>
-        <Link className={pathname.startsWith("/wishlist") ? styles.mobileNavActive : undefined} href="/wishlist" aria-current={pathname.startsWith("/wishlist") ? "page" : undefined}><Heart aria-hidden="true" size={20} /><span>Wishlist{savedWorks.count ? ` (${savedWorks.count})` : ""}</span></Link>
+        <Link className={pathname.startsWith("/cart") ? styles.mobileNavActive : undefined} href="/cart" aria-current={pathname.startsWith("/cart") ? "page" : undefined}><ShoppingBag aria-hidden="true" size={20} /><span>Bag{enquiryBag.count ? ` (${enquiryBag.count})` : ""}</span></Link>
         <Link className={pathname.startsWith("/account") ? styles.mobileNavActive : undefined} href="/account" aria-current={pathname.startsWith("/account") ? "page" : undefined}><CircleUserRound aria-hidden="true" size={20} /><span>Account</span></Link>
       </nav>
     </>
