@@ -1,8 +1,24 @@
-// @ts-nocheck
 import { apiRequest } from "./client";
-import type { ProductCard, ProductDetail } from "@/src/types/product";
+import type { Product } from "@/src/types/product";
 
-export type { ProductCard, ProductDetail } from "@/src/types/product";
+export type ProductDetail = Product;
+
+export interface ProductCard {
+  slug: string;
+  uid?: string | null;
+  title: string;
+  short_description?: string | null;
+  category?: string | null;
+  material?: string | null;
+  deity?: string | null;
+  size?: string | null;
+  cover_photo?: string | null;
+  selling_price?: string | number | null;
+  original_price?: string | number | null;
+  sales_mode?: "quote_only" | "buy_and_quote" | "direct_purchase" | string | null;
+  availability?: "in_stock" | "made_to_order" | "out_of_stock" | string | null;
+  is_featured?: boolean;
+}
 
 export interface ProductFilters {
   page?: number;
@@ -25,6 +41,24 @@ export interface TaxonomyItem {
   image_url?: string | null;
 }
 
+export interface HomeDeityGroup {
+  deity_id?: number;
+  diety_id?: number;
+  deity_name?: string;
+  diety_name?: string;
+  deity_slug?: string;
+  diety_slug?: string;
+  products: ProductCard[];
+}
+
+export interface ReviewCard {
+  id: number;
+  product?: number | string | null;
+  rating?: number | null;
+  comment?: string | null;
+  created_at?: string | null;
+}
+
 export interface ProductListResult {
   items: ProductCard[];
   pagination: {
@@ -41,13 +75,9 @@ export interface HomeBlock {
     title?: string;
     products?: ProductCard[];
     categories?: TaxonomyItem[];
-    deities?: Array<{
-      deity_id: number;
-      deity_name: string;
-      deity_slug: string;
-      products: ProductCard[];
-    }>;
-    reviews?: Array<Record<string, unknown>>;
+    deities?: HomeDeityGroup[];
+    dieties?: HomeDeityGroup[];
+    reviews?: ReviewCard[];
   };
 }
 
@@ -59,6 +89,7 @@ export interface SearchData {
   products: ProductCard[];
   categories: TaxonomyItem[];
   deities: TaxonomyItem[];
+  dieties?: TaxonomyItem[];
 }
 
 function toQuery(filters: ProductFilters = {}) {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import Image from "next/image";
@@ -18,6 +17,7 @@ import {
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { AccountControl } from "@/components/Auth/account-control";
 import { useEnquiryBag, useSavedWorks } from "@/components/Customer/device-collections";
+import { getDeities, searchApplication } from "@/api/products";
 import styles from "./site-shell.module.css";
 
 const defaultDeityLinks = [
@@ -51,6 +51,34 @@ const mainLinks = [
   ["Guides", "/guides"],
 ] as const;
 
+type SearchProductResult = {
+  slug?: string;
+  uid?: string | null;
+  title?: string;
+  name?: string;
+  cover_photo?: string | null;
+  image_url?: string | null;
+  deity?: string | null;
+  category?: string | null;
+  material?: string | null;
+};
+
+function taxonomyHref(name: string) {
+  return `/shop?q=${encodeURIComponent(name)}`;
+}
+
+function searchProductTitle(product: SearchProductResult) {
+  return product.title?.trim() || product.name?.trim() || "Untitled work";
+}
+
+function searchProductImage(product: SearchProductResult) {
+  return product.cover_photo?.trim() || product.image_url?.trim() || "";
+}
+
+function searchDeities(results: { deities?: Array<{ id?: number; name: string; slug: string }>; dieties?: Array<{ id?: number; name: string; slug: string }> } | null) {
+  return results?.deities ?? results?.dieties ?? [];
+}
+
 export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const pathname = usePathname();
   const savedWorks = useSavedWorks();
@@ -59,6 +87,15 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const [megaMenuClosing, setMegaMenuClosing] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<null | {
+    products: SearchProductResult[];
+    categories: Array<{ id?: number; name: string; slug: string }>;
+    deities?: Array<{ id?: number; name: string; slug: string }>;
+    dieties?: Array<{ id?: number; name: string; slug: string }>;
+  }>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [logoAnimationFinished, setLogoAnimationFinished] = useState(false);
   const [deityLinks, setDeityLinks] = useState<ReadonlyArray<readonly [string, string]>>(defaultDeityLinks);
   const logoVideoRef = useRef<HTMLVideoElement>(null);
@@ -68,6 +105,15 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const mobilePanelRef = useRef<HTMLDivElement>(null);
   const searchTitleId = useId();
   const shopMenuId = useId();
+
+  function updateSearchQuery(value: string) {
+    setSearchQuery(value);
+    if (value.trim().length < 2) {
+      setSearchResults(null);
+      setSearchError(null);
+      setSearchLoading(false);
+    }
+  }
 
   const closeMegaMenu = useCallback(() => {
     if (megaMenuOpen && !megaMenuClosing) setMegaMenuClosing(true);
@@ -84,14 +130,10 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
 
   useEffect(() => {
     let cancelled = false;
-    void fetch("/api/v1/products?limit=100", { cache: "no-store" })
-      .then((response) => response.ok ? response.json() : Promise.reject())
-      .then((payload: { data?: Array<{ deity?: string }>; meta?: { deities?: string[] } }) => {
+    getDeities()
+      .then((items) => {
         if (cancelled) return;
-        const names = [...new Set([
-          ...(payload.meta?.deities ?? []),
-          ...(payload.data ?? []).map((item) => item.deity?.trim()).filter((name): name is string => Boolean(name)),
-        ])];
+        const names = items.map((item) => item.name?.trim()).filter((name): name is string => Boolean(name));
         if (names.length) {
           setDeityLinks([
             ...names.slice(0, 8).map((name) => [name, `/shop?q=${encodeURIComponent(name)}`] as const),
@@ -102,6 +144,39 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       .catch(() => undefined);
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!searchOpen || query.length < 2) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setSearchLoading(true);
+      searchApplication(query)
+        .then((results) => {
+          if (cancelled) return;
+          setSearchResults({
+            products: results.products ?? [],
+            categories: results.categories ?? [],
+            deities: results.deities ?? results.dieties ?? [],
+          });
+          setSearchError(null);
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          setSearchResults(null);
+          setSearchError(error instanceof Error ? error.message : "Search is unavailable right now.");
+        })
+        .finally(() => {
+          if (!cancelled) setSearchLoading(false);
+        });
+    }, 240);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [searchOpen, searchQuery]);
 
   useEffect(() => {
     const overlayOpen = mobileMenuOpen || searchOpen;
@@ -346,6 +421,8 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                 <input
                   name="q"
                   type="search"
+                  value={searchQuery}
+                  onChange={(event) => updateSearchQuery(event.target.value)}
                   placeholder="Search by deity, material, size or style"
                   aria-label="Search products"
                 />
@@ -356,6 +433,88 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                 <Link href="/shop?q=Ganesha">Ganesha</Link>
                 <Link href="/shop?q=Radha%20Krishna">Radha Krishna</Link>
                 <Link href="/shop?q=Lakshmi">Lakshmi</Link>
+              </div>
+              <div className={styles.searchResults} aria-live="polite">
+                {searchQuery.trim().length < 2 ? (
+                  <p className={styles.searchHint}>Type at least 2 characters to search the live catalogue.</p>
+                ) : searchLoading ? (
+                  <p className={styles.searchHint}>Searching the gallery...</p>
+                ) : searchError ? (
+                  <p className={styles.searchError}>{searchError}</p>
+                ) : searchResults ? (
+                  <>
+                    <div className={styles.searchResultGroup}>
+                      <div className={styles.searchResultHeading}>
+                        <strong>Products</strong>
+                        <span>{searchResults.products.length}</span>
+                      </div>
+                      {searchResults.products.length ? (
+                        <div className={styles.searchProductGrid}>
+                          {searchResults.products.map((product) => {
+                            const title = searchProductTitle(product);
+                            const image = searchProductImage(product);
+                            return (
+                              <Link
+                                className={styles.searchProduct}
+                                href={product.slug ? `/products/${product.slug}` : taxonomyHref(title)}
+                                key={product.uid ?? product.slug ?? title}
+                                onClick={() => setSearchOpen(false)}
+                              >
+                                <span className={styles.searchProductImage}>
+                                  {image ? <Image src={image} alt={title} fill sizes="56px" unoptimized={/^https?:\/\//i.test(image)} /> : <Search aria-hidden="true" size={17} />}
+                                </span>
+                                <span>
+                                  <strong>{title}</strong>
+                                  <small>{[product.deity, product.category, product.material].filter(Boolean).join(" · ")}</small>
+                                </span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className={styles.searchHint}>No matching products returned.</p>
+                      )}
+                    </div>
+
+                    <div className={styles.searchResultColumns}>
+                      <div className={styles.searchResultGroup}>
+                        <div className={styles.searchResultHeading}>
+                          <strong>Categories</strong>
+                          <span>{searchResults.categories.length}</span>
+                        </div>
+                        {searchResults.categories.length ? (
+                          <div className={styles.searchPills}>
+                            {searchResults.categories.map((category) => (
+                              <Link href={taxonomyHref(category.name)} key={category.id ?? category.slug} onClick={() => setSearchOpen(false)}>
+                                {category.name}
+                              </Link>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className={styles.searchHint}>No matching categories returned.</p>
+                        )}
+                      </div>
+
+                      <div className={styles.searchResultGroup}>
+                        <div className={styles.searchResultHeading}>
+                          <strong>Deities</strong>
+                          <span>{searchDeities(searchResults).length}</span>
+                        </div>
+                        {searchDeities(searchResults).length ? (
+                          <div className={styles.searchPills}>
+                            {searchDeities(searchResults).map((deity) => (
+                              <Link href={taxonomyHref(deity.name)} key={deity.id ?? deity.slug} onClick={() => setSearchOpen(false)}>
+                                {deity.name}
+                              </Link>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className={styles.searchHint}>No matching deities returned.</p>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : null}
               </div>
             </div>
           </section>
