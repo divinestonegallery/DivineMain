@@ -1,20 +1,26 @@
-/**
- * API service for Authentication
- */
+// @ts-nocheck
+import { fetchApi } from "@/api/services/api";
 
-export const login = async (credentials: any) => {
-  // TODO: Implement login logic
-  console.log("Login with", credentials);
-};
+export async function login(credentials: any) {
+  try {
+    const data = await fetchApi<any>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to login");
+  }
+}
 
-export const register = async (userData: any) => {
-  // TODO: Implement register logic
-  console.log("Register with", userData);
-};
-
-export const refreshToken = async () => {
-  // TODO: Implement refresh token logic
-  console.log("Refreshing token...");
-};
-
-// hello 
+export async function register(userData: any) {
+  try {
+    const data = await fetchApi<any>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(userData),
+    });
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to register");
+  }
+}

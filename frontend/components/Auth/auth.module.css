@@ -1,0 +1,161 @@
+.authSection {
+  min-height: 600px;
+  padding-block: clamp(3rem, 7vw, 6rem) clamp(7rem, 10vw, 9rem);
+  background:
+    radial-gradient(circle at 82% 15%, rgb(179 134 63 / 0.13), transparent 30%),
+    var(--surface);
+}
+
+.authLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(340px, 1fr);
+  gap: clamp(2rem, 7vw, 7rem);
+  align-items: start;
+}
+
+.authPromise {
+  padding-top: 1rem;
+}
+
+.authPromise span {
+  color: var(--gold-deep);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.authPromise h2 {
+  max-width: 520px;
+  margin: 0.8rem 0 0;
+  font-size: clamp(2.4rem, 5vw, 4.8rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+.authPromise > p {
+  max-width: 520px;
+  margin: 1rem 0 0;
+  color: var(--ink-muted);
+  line-height: 1.7;
+}
+
+.promiseList {
+  display: grid;
+  gap: 0.8rem;
+  margin: 1.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.promiseList li {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+
+.promiseList svg {
+  flex: 0 0 auto;
+  color: var(--gold-deep);
+}
+
+.authPanel {
+  display: grid;
+  min-height: 520px;
+  place-items: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgb(255 253 249 / 0.82);
+  box-shadow: 0 28px 70px rgb(61 45 21 / 0.08);
+}
+
+.unconfigured {
+  max-width: 500px;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  text-align: center;
+}
+
+.unconfigured > svg {
+  color: var(--gold-deep);
+}
+
+.unconfigured h2 {
+  margin: 1rem 0 0;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.unconfigured p {
+  margin: 1rem 0 0;
+  color: var(--ink-muted);
+  line-height: 1.65;
+}
+
+.securityNote {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin-top: 1.4rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.securityNote svg {
+  flex: 0 0 auto;
+  color: var(--gold-deep);
+}
+
+.clerkRoot,
+.clerkCardBox {
+  width: 100%;
+}
+
+.clerkCard {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.clerkTitle {
+  font-family: var(--font-brand-display), serif;
+  font-size: 2rem;
+  font-weight: 400;
+}
+
+.clerkSubtitle {
+  color: var(--ink-muted);
+}
+
+.clerkPrimaryButton {
+  min-height: 44px;
+  box-shadow: none;
+}
+
+.clerkLink {
+  color: var(--gold-deep);
+}
+
+.clerkSocialButton {
+  min-height: 44px;
+}
+
+@media (max-width: 800px) {
+  .authLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .authPromise {
+    padding-top: 0;
+  }
+}

@@ -1,0 +1,37 @@
+.eyebrow { margin: 0 0 .75rem; color: var(--gold-deep); font-size: .67rem; font-weight: 680; letter-spacing: .14em; text-transform: uppercase; }
+.hero { padding-bottom: clamp(4rem,8vw,7rem); background: radial-gradient(circle at 15% 25%,rgb(216 189 138/.28),transparent 25rem),linear-gradient(180deg,#fbf8f2,var(--background)); }
+.heroGrid { display:grid; grid-template-columns:minmax(0,.9fr) minmax(420px,.72fr); gap:clamp(3rem,8vw,8rem); align-items:center; padding-top:clamp(2.5rem,6vw,5rem); }
+.heroGrid h1 { margin:0; font-size:clamp(3.8rem,7vw,7rem); font-weight:400; letter-spacing:-.06em; line-height:.88; }
+.heroGrid > div:first-child > p:not(.eyebrow) { max-width:630px; margin:1.4rem 0 0; color:var(--ink-muted); font-size:.95rem; line-height:1.75; }
+.heroActions { display:flex; flex-wrap:wrap; gap:.75rem; margin-top:1.6rem; }
+.heroImage { position:relative; overflow:hidden; aspect-ratio:4/5; border-radius:45% 45% var(--radius-lg) var(--radius-lg); background:#e7ded2; box-shadow:var(--shadow-soft); }
+.heroImage img { object-fit:contain; }
+.contactSection { padding-block:clamp(5rem,9vw,8rem); background:var(--surface); }
+.contactLayout { display:grid; grid-template-columns:minmax(300px,.62fr) minmax(0,1fr); gap:clamp(3rem,8vw,8rem); align-items:start; }
+.contactIntro h2,.helpHeading h2 { margin:0; font-size:clamp(2.9rem,5vw,5.2rem); font-weight:400; letter-spacing:-.05em; line-height:.98; }
+.contactMethods { display:grid; gap:.7rem; margin-top:2rem; }
+.contactMethods > a,.contactMethods > div { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:.8rem; min-height:76px; padding:.85rem 1rem; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--background); }
+.contactMethods > * > svg:first-child { color:var(--gold-deep); }
+.contactMethods span { display:flex; flex-direction:column; }
+.contactMethods strong { font-size:.76rem; }
+.contactMethods small { margin-top:.2rem; color:var(--ink-muted); font-size:.63rem; line-height:1.4; }
+.responseNote { margin:1rem 0 0; color:var(--ink-muted); font-size:.66rem; line-height:1.6; }
+.contactForm { padding:clamp(1.2rem,3vw,2.2rem); border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--background); box-shadow:var(--shadow-soft); }
+.formTitle { display:flex; align-items:center; gap:.8rem; padding-bottom:1.3rem; border-bottom:1px solid var(--border); }
+.formTitle > svg { color:var(--gold-deep); }
+.formTitle p { margin:0; color:var(--gold-deep); font-size:.6rem; font-weight:680; letter-spacing:.1em; text-transform:uppercase; }
+.formTitle h2 { margin:.2rem 0 0; font-size:2rem; font-weight:400; }
+.formGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin-top:1.3rem; }
+.fullField { grid-column:1/-1; }
+.submitButton { width:100%; margin-top:1rem; }
+.formPrivacy { display:flex; align-items:center; justify-content:center; gap:.4rem; margin:.7rem 0 0; color:var(--ink-muted); font-size:.59rem; text-align:center; }
+.helpSection { padding-block:clamp(5rem,9vw,8rem); background:var(--background); }
+.helpHeading { max-width:850px; }
+.helpGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.8rem; margin-top:2.5rem; }
+.helpGrid > a { min-height:250px; padding:1.3rem; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface); }
+.helpGrid > a > svg { color:var(--gold-deep); stroke-width:1.35; }
+.helpGrid h3 { margin:3.7rem 0 0; font-size:1.45rem; font-weight:400; }
+.helpGrid p { margin:.6rem 0 0; color:var(--ink-muted); font-size:.72rem; line-height:1.6; }
+.helpGrid span { display:inline-flex; align-items:center; gap:.35rem; margin-top:1rem; color:var(--gold-deep); font-size:.68rem; font-weight:650; }
+@media(max-width:900px){.heroGrid,.contactLayout{grid-template-columns:1fr}.heroImage{max-width:700px}.contactIntro{max-width:700px}}
+@media(max-width:680px){.heroGrid h1{font-size:clamp(3.7rem,17vw,5.5rem)}.heroActions{align-items:stretch;flex-direction:column}.formGrid,.helpGrid{grid-template-columns:1fr}.fullField{grid-column:1}.formPrivacy{align-items:flex-start}.helpGrid>a{min-height:220px}.helpGrid h3{margin-top:3rem}}
