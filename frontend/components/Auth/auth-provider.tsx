@@ -4,10 +4,7 @@
 import { ClerkProvider } from "@/components/Auth/auth-facade";
 import { useRouter } from "next/navigation";
 import { createContext, ReactNode, useContext } from "react";
-import {
-  ClerkCustomerCollectionsProvider,
-  DeviceCollectionsProvider,
-} from "@/components/Customer/device-collections";
+import { DeviceCollectionsProvider } from "@/components/Customer/device-collections";
 
 const AuthConfigurationContext = createContext(false);
 
@@ -17,25 +14,16 @@ export function useAuthConfigured() {
 
 export function GalleryAuthProvider({
   children,
-  publishableKey,
+  publishableKey: _publishableKey,
 }: {
   children: ReactNode;
   publishableKey: string | null;
 }) {
   const router = useRouter();
 
-  if (!publishableKey) {
-    return (
-      <AuthConfigurationContext.Provider value={false}>
-        <DeviceCollectionsProvider>{children}</DeviceCollectionsProvider>
-      </AuthConfigurationContext.Provider>
-    );
-  }
-
   return (
     <AuthConfigurationContext.Provider value>
       <ClerkProvider
-        publishableKey={publishableKey}
         signInUrl="/sign-in"
         signUpUrl="/sign-up"
         signInFallbackRedirectUrl="/account"
@@ -54,9 +42,9 @@ export function GalleryAuthProvider({
           },
         }}
       >
-        <ClerkCustomerCollectionsProvider>
+        <DeviceCollectionsProvider>
           {children}
-        </ClerkCustomerCollectionsProvider>
+        </DeviceCollectionsProvider>
       </ClerkProvider>
     </AuthConfigurationContext.Provider>
   );

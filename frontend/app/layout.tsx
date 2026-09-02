@@ -36,7 +36,7 @@ export function generateMetadata(): Metadata {
   };
 }
 
-import { ClerkCustomerCollectionsProvider } from "@/components/Customer/device-collections";
+import { GalleryAuthProvider } from "@/components/Auth/auth-provider";
 
 export default function RootLayout({
   children,
@@ -74,9 +74,9 @@ export default function RootLayout({
       <body className="antialiased">
         <a className="skip-link" href="#main-content">Skip to main content</a>
         <JsonLd data={organizationSchema} />
-        <ClerkCustomerCollectionsProvider>
+        <GalleryAuthProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? null}>
           {children}
-        </ClerkCustomerCollectionsProvider>
+        </GalleryAuthProvider>
       </body>
     </html>
   );

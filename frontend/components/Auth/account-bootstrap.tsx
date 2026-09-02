@@ -3,6 +3,7 @@
 
 import { useAuth } from "@/components/Auth/auth-facade";
 import { useEffect, useRef } from "react";
+import { getCurrentUser } from "@/api/auth";
 
 export function AccountBootstrap() {
   const { getToken, isLoaded, isSignedIn } = useAuth();
@@ -13,15 +14,7 @@ export function AccountBootstrap() {
     synchronized.current = true;
 
     void getToken()
-      .then((token) =>
-        fetch("/api/v1/auth/sync", {
-          method: "POST",
-          headers: token ? { authorization: `Bearer ${token}` } : undefined,
-        }),
-      )
-      .then((response) => {
-        if (!response.ok) synchronized.current = false;
-      })
+      .then(() => getCurrentUser())
       .catch(() => {
         synchronized.current = false;
       });

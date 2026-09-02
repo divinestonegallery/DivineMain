@@ -6,6 +6,7 @@ import Link from "next/link";
 import { CircleUserRound, LayoutDashboard } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuthConfigured } from "./auth-provider";
+import { apiUrl } from "@/api/client";
 
 export function AccountControl({ className }: { className?: string }) {
   const configured = useAuthConfigured();
@@ -32,14 +33,13 @@ function ConfiguredAccountControl({ className }: { className?: string }) {
 
     let active = true;
     void getToken()
-      .then((token) => fetch("/api/v1/admin/access", {
+      .then((token) => fetch(apiUrl("/api/admin/staff?page_size=1"), {
         headers: token ? { authorization: `Bearer ${token}` } : undefined,
         cache: "no-store",
       }))
       .then(async (response) => {
         if (!response.ok) return false;
-        const payload = await response.json() as { data?: { authorized?: boolean } };
-        return payload.data?.authorized === true;
+        return true;
       })
       .then((authorized) => { if (active) setIsAdmin(authorized); })
       .catch(() => { if (active) setIsAdmin(false); });

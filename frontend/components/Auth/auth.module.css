@@ -150,6 +150,93 @@
   min-height: 44px;
 }
 
+.backendAuthForm {
+  display: grid;
+  width: min(100%, 420px);
+  gap: 1rem;
+}
+
+.backendAuthForm h3 {
+  margin: 0 0 0.35rem;
+  color: var(--ink);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 400;
+}
+
+.backendAuthForm label {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.backendAuthForm input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.85rem;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-transform: none;
+}
+
+.backendAuthForm button {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--surface);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.backendAuthForm button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.authError {
+  margin: 0;
+  border: 1px solid rgb(154 56 47 / 0.24);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.85rem;
+  background: rgb(154 56 47 / 0.08);
+  color: #8f2f28;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.authSwitch {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.84rem;
+}
+
+.authSwitch a {
+  color: var(--gold-deep);
+  font-weight: 800;
+}
+
+.userButton {
+  width: 25px;
+  height: 25px;
+  border: 1px solid rgb(138 100 40 / 0.26);
+  border-radius: 50%;
+  background: rgb(138 100 40 / 0.12);
+  color: var(--gold-deep);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 @media (max-width: 800px) {
   .authLayout {
     grid-template-columns: 1fr;

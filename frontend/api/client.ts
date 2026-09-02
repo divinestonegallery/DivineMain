@@ -1,5 +1,10 @@
 // @ts-nocheck
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
+const rawBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+export const API_BASE_URL = rawBaseUrl
+  .trim()
+  .replace(/\/+$/, "")
+  .replace(/\/api\/v1$/i, "");
 
 export interface ApiEnvelope<T> {
   success: boolean;
@@ -19,21 +24,36 @@ export class ApiError extends Error {
   }
 }
 
+export function apiUrl(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+}
+
+export function getStoredAccessToken() {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem("dsg_access_token");
+}
+
+export function apiHeaders(headers?: HeadersInit, hasBody = false) {
+  const nextHeaders = new Headers(headers);
+  nextHeaders.set("Accept", "application/json");
+
+  if (hasBody && !nextHeaders.has("Content-Type")) {
+    nextHeaders.set("Content-Type", "application/json");
+  }
+
+  const accessToken = getStoredAccessToken();
+  if (accessToken && !nextHeaders.has("Authorization")) {
+    nextHeaders.set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  return nextHeaders;
+}
+
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const headers = new Headers(options.headers);
-  headers.set("Accept", "application/json");
-  if (options.body && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
-
-  if (typeof window !== "undefined") {
-    const accessToken = window.localStorage.getItem("dsg_access_token");
-    if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
-  }
-
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...options,
-    headers,
+    headers: apiHeaders(options.headers, Boolean(options.body)),
     cache: "no-store",
   });
   const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;

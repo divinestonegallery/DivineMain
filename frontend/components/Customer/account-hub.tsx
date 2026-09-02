@@ -1,9 +1,8 @@
 // @ts-nocheck
 "use client";
 
-import { useAuth, useUser } from "@/components/Auth/auth-facade";
+import { useUser } from "@/components/Auth/auth-facade";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import {
   ArrowRight,
   CircleUserRound,
@@ -66,76 +65,30 @@ function AccountCards({ status, preferences }: { status: React.ReactNode; prefer
   );
 }
 
-function CommunicationPreferences() {
-  const { getToken } = useAuth();
-  const [profile, setProfile] = useState<{ phoneVerified: boolean; whatsappTransactionalUpdates: boolean } | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("Loading your communication preference…");
-
-  useEffect(() => {
-    let active = true;
-    void getToken().then((token) => fetch("/api/v1/me", { headers: token ? { authorization: `Bearer ${token}` } : undefined, cache: "no-store" }))
-      .then(async (response) => {
-        if (!response.ok) throw new Error();
-        const payload = await response.json() as { data: { phoneVerified: boolean; whatsappTransactionalUpdates: boolean } };
-        if (active) { setProfile(payload.data); setMessage(""); }
-      })
-      .catch(() => { if (active) setMessage("Your communication preference could not be loaded."); });
-    return () => { active = false; };
-  }, [getToken]);
-
-  async function updatePreference() {
-    if (!profile || !profile.phoneVerified) return;
-    setSaving(true);
-    setMessage("");
-    try {
-      const token = await getToken();
-      const response = await fetch("/api/v1/me", {
-        method: "PATCH",
-        headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ whatsappTransactionalUpdates: !profile.whatsappTransactionalUpdates }),
-      });
-      if (!response.ok) throw new Error();
-      const payload = await response.json() as { data: { whatsappTransactionalUpdates: boolean } };
-      setProfile((current) => current ? { ...current, whatsappTransactionalUpdates: payload.data.whatsappTransactionalUpdates } : current);
-      setMessage(payload.data.whatsappTransactionalUpdates ? "WhatsApp order and commission updates are enabled." : "WhatsApp updates are disabled.");
-    } catch {
-      setMessage("Your preference could not be saved. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
+function CommunicationPreferences({ user }: { user: any }) {
+  const hasPhone = Boolean(user?.phone);
   return (
     <article className={`${styles.accountCard} ${styles.preferenceCard}`}>
       <MessageCircle aria-hidden="true" size={22} />
-      <h2 className="font-display">WhatsApp updates</h2>
-      <p>Optionally receive order and custom-commission progress messages. These service updates are not marketing, and you can withdraw permission at any time.</p>
-      <button
-        type="button"
-        aria-pressed={profile?.whatsappTransactionalUpdates ?? false}
-        disabled={!profile?.phoneVerified || saving}
-        onClick={() => void updatePreference()}
-      >
-        {saving ? "Saving…" : profile?.whatsappTransactionalUpdates ? "Disable WhatsApp updates" : "Enable WhatsApp updates"}
-      </button>
-      {!profile?.phoneVerified && profile ? <small>Verify your account phone number before enabling WhatsApp.</small> : null}
-      {message ? <small role="status">{message}</small> : null}
+      <h2 className="font-display">Communication</h2>
+      <p>Your account contact details are loaded from the Django customer profile.</p>
+      <small>{user?.email ? `Email: ${user.email}` : "No email is saved on this profile."}</small>
+      <small>{hasPhone ? `Phone: ${user.phone}` : "Add a phone number during signup to help staff reach you faster."}</small>
     </article>
   );
 }
 
 function ConnectedAccountHub() {
   const { isLoaded, user } = useUser();
-  const name = user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || "Gallery customer";
-  const emailVerified = user?.primaryEmailAddress?.verification?.status === "verified";
-  const phoneVerified = user?.primaryPhoneNumber?.verification?.status === "verified";
+  const name = user?.name || user?.email || "Gallery customer";
+  const emailVerified = Boolean(user?.email);
+  const phoneVerified = Boolean(user?.phone);
 
   return (
     <>
       <AccountBootstrap />
       <AccountCards
-        preferences={<CommunicationPreferences />}
+        preferences={<CommunicationPreferences user={user} />}
         status={
           <article className={styles.accountStatus}>
             <span className={styles.statusBadge}>
@@ -143,7 +96,7 @@ function ConnectedAccountHub() {
             </span>
             <h2 className="font-display">{isLoaded ? `Namaste, ${name}.` : "Opening your gallery…"}</h2>
             <p>
-              Your Clerk identity is connected to a private Divine Stone Gallery customer record.
+              Your account is connected to a private Divine Stone Gallery customer record.
               {emailVerified || phoneVerified
                 ? ` Verified: ${[emailVerified ? "email" : null, phoneVerified ? "phone" : null].filter(Boolean).join(" and ")}.`
                 : " Add a verified email or phone number before placing an order."}

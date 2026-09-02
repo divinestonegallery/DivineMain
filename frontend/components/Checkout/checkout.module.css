@@ -45,7 +45,8 @@
 .summaryPanel .total { margin-top: 0.35rem; padding-top: 0.8rem; border-top: 1px solid var(--border); font-size: 0.82rem; }
 .readinessForm { display: grid; gap: 1rem; }
 .readinessForm > label { display: grid; gap: 0.4rem; color: var(--ink-muted); font-size: 0.7rem; font-weight: 650; }
-.readinessForm input[type="text"], .readinessForm > label input { min-height: 48px; padding: 0.75rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.readinessForm input[type="text"], .readinessForm > label input, .readinessForm > label textarea { min-height: 48px; padding: 0.75rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.readinessForm > label textarea { min-height: 110px; resize: vertical; }
 .readinessForm fieldset { display: grid; gap: 0.5rem; padding: 0; border: 0; }
 .readinessForm legend { margin-bottom: 0.5rem; color: var(--ink-muted); font-size: 0.7rem; font-weight: 650; }
 .readinessForm fieldset label { display: grid; grid-template-columns: auto auto 1fr; gap: 0.65rem; align-items: center; min-height: 54px; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; }
@@ -83,6 +84,7 @@
 .placeOrderBar small { color: var(--ink-muted); font-size: 0.62rem; }
 .placeOrderBar strong { margin-top: 0.2rem; font-family: var(--font-brand-display); font-size: 1.8rem; font-weight: 400; }
 .placedTotal { margin: 0.3rem 0 1rem; font-family: var(--font-brand-display); font-size: 2rem; font-weight: 400; }
+.inlineActions { display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; }
 .orderHistory { display: grid; gap: 0.8rem; }
 .orderHistory article { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr) auto; gap: 1.5rem; align-items: center; padding: 1.2rem 1.4rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); }
 .orderHistory span { color: var(--gold-deep); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }

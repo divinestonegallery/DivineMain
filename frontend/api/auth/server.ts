@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { cookies } from "next/headers";
+import { apiUrl } from "@/api/client";
 
 export type GallerySession = {
   userId: string;
@@ -17,6 +18,7 @@ function cookieToken(cookieHeader: string | null) {
 
   for (const part of cookieHeader.split(";")) {
     const [name, ...value] = part.trim().split("=");
+    if (name === "dsg_access_token") return decodeURIComponent(value.join("="));
     if (name === "sessionid") return decodeURIComponent(value.join("="));
   }
 
@@ -24,13 +26,19 @@ function cookieToken(cookieHeader: string | null) {
 }
 
 async function verifySessionToken(token: string): Promise<GallerySession | null> {
-  // In full implementation, call Django API to verify token
-  // const res = await fetch("http://localhost:8000/api/v1/auth/verify", { headers: { Authorization: `Bearer ${token}` } });
-  // if (res.ok) {
-  //   const data = await res.json();
-  //   return { userId: data.user.id, sessionId: token };
-  // }
-  return null;
+  try {
+    const response = await fetch(apiUrl("/api/v1/auth/profile"), {
+      headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const user = payload?.data ?? payload;
+    const userId = user?.id ?? user?.uid ?? user?.email;
+    return userId ? { userId: String(userId), sessionId: token } : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getGallerySessionFromRequest(request: Request) {
@@ -40,7 +48,7 @@ export async function getGallerySessionFromRequest(request: Request) {
 
 export async function getGallerySession() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("sessionid")?.value;
+  const token = cookieStore.get("dsg_access_token")?.value ?? cookieStore.get("sessionid")?.value;
   return token ? verifySessionToken(token) : null;
 }
 
