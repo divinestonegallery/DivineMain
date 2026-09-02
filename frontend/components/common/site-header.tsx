@@ -99,6 +99,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [logoAnimationFinished, setLogoAnimationFinished] = useState(false);
   const [deityLinks, setDeityLinks] = useState<ReadonlyArray<readonly [string, string]>>(defaultDeityLinks);
+  const [isScrolled, setIsScrolled] = useState(false);
   const logoVideoRef = useRef<HTMLVideoElement>(null);
   const shopTriggerRef = useRef<HTMLButtonElement>(null);
   const megaMenuRef = useRef<HTMLDivElement>(null);
@@ -129,6 +130,15 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   useEffect(() => {
     if (animateLogo && logoVideoRef.current) logoVideoRef.current.playbackRate = 2.5;
   }, [animateLogo]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -289,10 +299,14 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
         </div>
       </div>
 
-      <header className={styles.siteHeader}>
+      <header
+        className={`${styles.siteHeader} ${
+          pathname === "/" ? styles.siteHeaderHome : ""
+        } ${pathname === "/" && !isScrolled ? styles.siteHeaderTransparent : ""}`}
+      >
         <div className={`${styles.headerMain} site-container`}>
           <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home">
-            {animateLogo && !logoAnimationFinished ? (
+            {/* {animateLogo && !logoAnimationFinished ? (
               <>
                 <video
                   ref={logoVideoRef}
@@ -301,23 +315,25 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                   muted
                   playsInline
                   preload="metadata"
-                  poster="/brand/logo-horizontal.jpg"
+                  poster="/brand/logo.png"
                   aria-hidden="true"
                   onEnded={() => setLogoAnimationFinished(true)}
                   onError={() => setLogoAnimationFinished(true)}
                 >
                   <source src="/brand/logo-animation-horizontal-web.m4v" type="video/mp4" />
                 </video>
-                <Image className={`${styles.brandLogo} ${styles.brandLogoMotionFallback}`} src="/brand/logo-square-warm.jpg" alt="Divine Stone Gallery" width={1600} height={1600} priority />
+                <Image className={`${styles.brandLogo} ${styles.brandLogoMotionFallback}`} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
               </>
             ) : (
-              <Image className={styles.brandLogo} src="/brand/logo-square-warm.jpg" alt="Divine Stone Gallery" width={1600} height={1600} priority />
-            )}
+              <Image className={styles.brandLogo} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
+            )} */}
+            <Image className={styles.brandLogo} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
+
           </Link>
 
           <div className={styles.headerCenter}>
             <nav className={styles.desktopNav} aria-label="Main navigation">
-              <button
+              {/* <button
                 ref={shopTriggerRef}
                 className={styles.navLink}
                 type="button"
@@ -329,7 +345,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                 <span>Shop Moorti</span>
                 <small>New</small>
                 <span aria-hidden="true" className={`${styles.chevron} ${megaMenuOpen && !megaMenuClosing ? styles.chevronOpen : ""}`}>⌄</span>
-              </button>
+              </button> */}
             </nav>
 
             <button
@@ -350,7 +366,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           </div>
 
           <div className={styles.headerActions}>
-            <a
+            {/* <a
               className={styles.planButton}
               href="https://wa.me/919166138566?text=Namaste%2C%20I%20would%20like%20assistance%20from%20Divine%20Stone%20Gallery."
               target="_blank"
@@ -360,12 +376,12 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               <MessageCircle aria-hidden="true" size={18} strokeWidth={1.7} />
               <span className={styles.planTextDesktop}>Plan with Gallery</span>
               <span className={styles.planTextMobile}>Plan</span>
-            </a>
-            <Link className={`${styles.bookingButton} ${styles.desktopOnlyAction}`} href="/cart" aria-label={`Enquiry bag with ${enquiryBag.count} ${enquiryBag.count === 1 ? "work" : "works"}`}>
+            </a> */}
+            {/* <Link className={`${styles.bookingButton} ${styles.desktopOnlyAction}`} href="/cart" aria-label={`Enquiry bag with ${enquiryBag.count} ${enquiryBag.count === 1 ? "work" : "works"}`}>
               <ShoppingBag aria-hidden="true" size={18} strokeWidth={1.6} />
               <span>Enquiry Bag</span>
               {enquiryBag.count ? <strong>{enquiryBag.count}</strong> : null}
-            </Link>
+            </Link> */}
             <AccountControl className={`${styles.headerAction} ${styles.desktopOnlyAction}`} />
             <Link className={`${styles.headerAction} ${styles.desktopOnlyAction}`} href="/wishlist" aria-label={`Wishlist with ${savedWorks.count} saved ${savedWorks.count === 1 ? "work" : "works"}`}>
               <Heart aria-hidden="true" size={21} strokeWidth={1.6} />

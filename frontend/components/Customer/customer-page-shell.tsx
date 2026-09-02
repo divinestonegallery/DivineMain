@@ -27,7 +27,7 @@ export function CustomerPageShell({ title, eyebrow, intro, note, children }: { t
         {children}
       </main>
       <SiteFooter />
-      <WhatsAppAssistance />
+      
       <CookieConsent />
     </ToastProvider>
   );

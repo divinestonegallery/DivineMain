@@ -55,7 +55,7 @@ export default function GuidesPage() {
         </section>
       </main>
       <SiteFooter />
-      <WhatsAppAssistance />
+      
       <CookieConsent />
     </ToastProvider>
   );

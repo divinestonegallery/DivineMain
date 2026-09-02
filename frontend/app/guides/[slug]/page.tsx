@@ -78,7 +78,7 @@ export default async function GuidePage({ params }: GuidePageProps) {
         </section>
       </main>
       <SiteFooter />
-      <WhatsAppAssistance />
+      
       <CookieConsent />
     </ToastProvider>
   );

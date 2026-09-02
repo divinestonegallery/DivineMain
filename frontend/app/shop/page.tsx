@@ -31,7 +31,7 @@ export default async function ShopPage() {
         </Suspense>
       </main>
       <SiteFooter />
-      <WhatsAppAssistance />
+      
       <CookieConsent />
     </ToastProvider>
   );

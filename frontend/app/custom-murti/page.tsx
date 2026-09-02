@@ -124,7 +124,7 @@ function StaticCustomMurtiPage() {
         </section>
       </main>
       <SiteFooter />
-      <WhatsAppAssistance />
+      
       <CookieConsent />
     </ToastProvider>
   );

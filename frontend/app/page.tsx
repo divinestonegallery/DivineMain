@@ -458,7 +458,7 @@ function HeroSection({ quickLinks }: { quickLinks: Array<{ label: string; href: 
         aria-hidden="true"
         tabIndex={-1}
       >
-        <source src="/brand/home-hero.mp4" type="video/mp4" />
+        <source src="/brand/background_video.mp4" type="video/mp4" />
       </video>
       <span className={styles.heroVeil} aria-hidden="true" />
       <div className={`${styles.heroInner} site-container`}>
@@ -482,10 +482,8 @@ function HeroSection({ quickLinks }: { quickLinks: Array<{ label: string; href: 
               </div>
             </div>
           ) : null}
-          <p className={styles.eyebrow}>From Alwar, Rajasthan - Since 1960</p>
           <p className={styles.heroLead}>
-            Authentic hand-carved marble moorties shaped by fourth-generation master moortikars and guided by the principles of Shilp Shastra.
-          </p>
+            Authentic hand-carved marble moorties shaped by fourth-generation master.</p>
           <div className={styles.heroActions}>
             <Link className={buttonClassName({ size: "lg" })} href="/shop">
               Explore moorties <ArrowRight aria-hidden="true" size={18} />
@@ -494,10 +492,10 @@ function HeroSection({ quickLinks }: { quickLinks: Array<{ label: string; href: 
               Customize Your Moorti
             </Link>
           </div>
-          <div className={styles.heroProof}>
+          {/* <div className={styles.heroProof}>
             <span><BadgeCheck aria-hidden="true" size={18} /> Fourth-generation atelier</span>
             <span><ShieldCheck aria-hidden="true" size={18} /> Secure delivery</span>
-          </div>
+          </div> */}
           <Link className={styles.heroScrollCue} href="#popular-mooti" aria-label="Scroll to Popular Mooti">
             <ChevronDown aria-hidden="true" size={21} />
           </Link>
@@ -570,7 +568,7 @@ export default async function Home() {
               id="popular-mooti"
               eyebrow="Gallery favorites"
               title="Popular Mooti"
-              copy="Featured moorties selected by the backend HomeService."
+              // copy="Featured moorties selected by the backend HomeService."
               products={getProducts(popular)}
               actionHref="/shop"
               actionLabel="View popular works"
@@ -578,14 +576,14 @@ export default async function Home() {
             <DiscoverySection
               eyebrow="Shop by devotion"
               title="Shop by Dream Mooti"
-              copy="Discover active deity collections and their published works from the Home API."
+              // copy="Discover active deity collections and their published works from the Home API."
               groups={dreamMootiGroups}
               surface
             />
             <ProductRailSection
               eyebrow="Temple forms"
               title="Shop Dream Temple"
-              copy="Temple products are loaded from the backend dream temples block."
+              // copy="Temple products are loaded from the backend dream temples block."
               products={getProducts(dreamTemples)}
               actionHref="/shop?q=temple"
               actionLabel="Explore temples"
@@ -598,7 +596,7 @@ export default async function Home() {
         <FinalCta />
       </main>
       <SiteFooter />
-      <WhatsAppAssistance elevated />
+      {/* <WhatsAppAssistance elevated /> */}
       <CookieConsent />
     </ToastProvider>
   );

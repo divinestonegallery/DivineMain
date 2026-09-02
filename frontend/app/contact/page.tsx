@@ -29,7 +29,7 @@ export default function ContactPage() {
 
         <section className={styles.helpSection}><div className="site-container"><div className={styles.helpHeading}><div><p className={styles.eyebrow}>Helpful before you message</p><h2 className="font-display">Find an answer or prepare your brief.</h2></div></div><div className={styles.helpGrid}><Link href="/faq"><BookOpen aria-hidden="true" /><h3 className="font-display">Frequently asked questions</h3><p>Quick answers about products, commissions, packing and care.</p><span>Read FAQs <ArrowRight aria-hidden="true" size={15} /></span></Link><Link href="/guides/sizing"><Ruler aria-hidden="true" /><h3 className="font-display">Measure your space</h3><p>Prepare the dimensions needed for more useful size guidance.</p><span>Read sizing guide <ArrowRight aria-hidden="true" size={15} /></span></Link><Link href="/custom-murti"><Sparkles aria-hidden="true" /><h3 className="font-display">Custom murti consultation</h3><p>Build a detailed WhatsApp brief for a personal commission.</p><span>Begin a brief <ArrowRight aria-hidden="true" size={15} /></span></Link></div></div></section>
       </main>
-      <SiteFooter /><WhatsAppAssistance /><CookieConsent />
+      <SiteFooter /><CookieConsent />
     </ToastProvider>
   );
 }

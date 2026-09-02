@@ -1,5 +1,6 @@
-import { apiRequest } from "./client";
+import { apiRequest, type ApiEnvelope } from "./client";
 import type { Product } from "@/src/types/product";
+import homeDummyEnvelope from "./home-dummy.json";
 
 export type ProductDetail = Product;
 
@@ -125,8 +126,18 @@ export function getDeities() {
   return apiRequest<TaxonomyItem[]>("/api/v1/products/deities");
 }
 
-export function getHome() {
-  return apiRequest<HomeData>("/api/v1/application/home");
+function dummyHomeData(): HomeData {
+  const envelope = homeDummyEnvelope as ApiEnvelope<HomeData>;
+  return envelope.data;
+}
+
+export async function getHome() {
+  try {
+    return await apiRequest<HomeData>("/api/v1/application/home");
+  } catch {
+    // Django is often down during UI checks; keep the home page renderable.
+    return dummyHomeData();
+  }
 }
 
 export function searchApplication(query: string) {

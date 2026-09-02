@@ -29,7 +29,7 @@ export function LegalPage({ title, eyebrow, intro, children }: { title: string; 
         </div>
       </main>
       <SiteFooter />
-      <WhatsAppAssistance />
+      
       <CookieConsent />
     </ToastProvider>
   );

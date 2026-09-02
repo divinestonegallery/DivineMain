@@ -174,7 +174,7 @@ function StaticOurStoryPage() {
         </section>
       </main>
       <SiteFooter />
-      <WhatsAppAssistance />
+      
       <CookieConsent />
     </ToastProvider>
   );

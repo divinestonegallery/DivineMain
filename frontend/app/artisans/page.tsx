@@ -154,7 +154,7 @@ function StaticArtisansPage() {
         </section>
       </main>
       <SiteFooter />
-      <WhatsAppAssistance />
+      
       <CookieConsent />
     </ToastProvider>
   );

@@ -75,5 +75,5 @@ function Block({ section, first, homeHero }: { section: PublishedSection; first:
 }
 
 export function PublishedPageView({ page, animateLogo = false, protectedContent }: { page: PublishedPage; animateLogo?: boolean; protectedContent?: ReactNode }) {
-  return <ToastProvider><SiteHeader animateLogo={animateLogo} /><main id="main-content" tabIndex={-1}>{page.sections.map((section, index) => <Block section={section} first={index === 0} homeHero={page.slug === "home" && index === 0} key={section.id} />)}{protectedContent}</main><SiteFooter /><WhatsAppAssistance elevated={page.slug === "home"} /><CookieConsent /></ToastProvider>;
+  return <ToastProvider><SiteHeader animateLogo={animateLogo} /><main id="main-content" tabIndex={-1}>{page.sections.map((section, index) => <Block section={section} first={index === 0} homeHero={page.slug === "home" && index === 0} key={section.id} />)}{protectedContent}</main><SiteFooter /><CookieConsent /></ToastProvider>;
 }
