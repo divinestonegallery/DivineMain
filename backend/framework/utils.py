@@ -12,3 +12,7 @@ def get_response(response, error_message=None):
 
     # Return the dictionary format with the corresponding status code
     return JsonResponse(response.dict, status=response.status_code)
+
+
+def enum_choices(enum_class):
+    return [(e.value, e.name) for e in enum_class]

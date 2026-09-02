@@ -3,6 +3,8 @@ from app.reviews.serializers.admin import ReviewAdminSerializer
 from app.reviews.serializers.customer import CustomerReviewSerializer
 from django.db import IntegrityError, transaction
 from app.products.models import Product
+from app.products.enums import ProductStatus
+
 
 class ReviewRepository:
     @staticmethod
@@ -42,7 +44,7 @@ class ReviewRepository:
 
     @staticmethod
     def create(data, user_id):
-        if not Product.objects.filter(id=data.get('product'), status=Product.Status.ACTIVE, is_active=True).exists():
+        if not Product.objects.filter(id=data.get('product'), status=ProductStatus.ACTIVE.value, is_active=True).exists():
             return 'Product not found or is not available for review.', None
         payload = {**data, 'product_id': data['product']}
         payload.pop('product')
