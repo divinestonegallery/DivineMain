@@ -17,6 +17,7 @@ urlpatterns = [
     path('api/v1/reviews', include('app.reviews.urls_customer')),
     path('api/v1/contact', include('app.contactus.urls_customer')),
     path('api/v1/faqs', include('app.faq.urls_customer')),
+    path('api/v1/orders', include('app.orders.urls_customer')),
     path('api/v1/application', include('app.applicationmodule.urls')),
     path('api/v1/common', include('app.common.urls')),
 
@@ -25,6 +26,7 @@ urlpatterns = [
     path('api/admin/reviews', include('app.reviews.urls_admin')),
     path('api/admin/contact', include('app.contactus.urls_admin')),
     path('api/admin/faqs', include('app.faq.urls_admin')),
+    path('api/admin/orders', include('app.orders.urls_admin')),
     path('api/admin/staff', include('app.accounts.urls_admin')),
 
     # Webhooks
