@@ -1,3 +1,4 @@
+from app.products.enums import ProductStatus
 import gzip
 import io
 import tempfile
@@ -96,7 +97,7 @@ class MVPTestCase(TestCase):
     def test_draft_publish_gate_and_public_visibility(self):
         product = self.create_product()
         self.client.force_authenticate(user=None)
-        hidden = self.client.get('/api/v1/products')
+        hidden = self.client.post('/api/v1/products', {}, format='json')
         self.assertEqual(hidden.json()['data']['pagination']['total_items'], 0)
 
         self.authenticate()
@@ -113,7 +114,7 @@ class MVPTestCase(TestCase):
         self.assertEqual(published.status_code, 200, published.content)
 
         self.client.force_authenticate(user=None)
-        visible = self.client.get('/api/v1/products?search=Ganesh&sort=newest')
+        visible = self.client.post('/api/v1/products', {'search': 'Ganesh', 'sort': 'newest'}, format='json')
         self.assertEqual(visible.status_code, 200)
         self.assertEqual(visible.json()['data']['pagination']['total_items'], 1)
         detail = self.client.get(f"/api/v1/products/{product['slug']}")
@@ -224,7 +225,7 @@ class MVPTestCase(TestCase):
     def test_review_moderation_duplicate_protection_and_public_visibility(self):
         product = Product.objects.create(
             category=self.category, material=self.material, diety=self.deity,
-            name='Reviewable', status=Product.Status.ACTIVE,
+            name='Reviewable', status=ProductStatus.ACTIVE.value,
         )
         self.authenticate(self.customer)
         created = self.client.post(
@@ -268,7 +269,7 @@ class MVPTestCase(TestCase):
         cache.clear()
         product = Product.objects.create(
             category=self.category, material=self.material, diety=self.deity,
-            name='Throttle Product', status=Product.Status.ACTIVE,
+            name='Throttle Product', status=ProductStatus.ACTIVE.value,
         )
         self.authenticate(self.customer)
         responses = [

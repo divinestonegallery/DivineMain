@@ -1,3 +1,4 @@
+from app.products.enums import ProductStatus, SalesMode
 from decimal import Decimal
 import hashlib
 import hmac
@@ -58,10 +59,10 @@ class OrderWorkflowTests(TestCase):
             diety=self.deity,
             name='White Marble Ganesha',
             slug='white-marble-ganesha',
-            sales_mode=Product.SalesMode.DIRECT_PURCHASE,
+            sales_mode=SalesMode.DIRECT_PURCHASE.value,
             selling_price=Decimal('10000.00'),
             gst=Decimal('18.00'),
-            status=Product.Status.ACTIVE,
+            status=ProductStatus.ACTIVE.value,
             is_active=True,
         )
 

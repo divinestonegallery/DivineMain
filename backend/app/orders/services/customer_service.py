@@ -6,6 +6,7 @@ import os
 from app.orders.repositories.order_repository import OrderRepository
 from app.orders.serializers.customer import OrderCustomerSerializer
 from app.products.models import Product
+from app.products.enums import ProductStatus, SalesMode
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +33,14 @@ class OrderCustomerService:
         """
         product = (
             Product.objects
-            .filter(slug=data['product_slug'], status=Product.Status.ACTIVE, is_active=True)
+            .filter(slug=data['product_slug'], status=ProductStatus.ACTIVE.value, is_active=True)
             .first()
         )
         if not product:
             return 'Product not found or unavailable.', None
 
         # Only direct_purchase allowed for now
-        if product.sales_mode != Product.SalesMode.DIRECT_PURCHASE:
+        if product.sales_mode != SalesMode.DIRECT_PURCHASE.value:
             return 'This product is not available for direct purchase.', None
 
         if not product.selling_price:

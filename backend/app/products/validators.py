@@ -1,9 +1,7 @@
 from rest_framework import serializers
-from decimal import Decimal
 
-
-AVAILABILITY = ('in_stock', 'made_to_order', 'out_of_stock')
-
+from app.products.enums import Availability, ProductSort, ProductStatus, SalesMode
+from framework.utils import enum_choices
 
 class ProductRequestValidator(serializers.Serializer):
     category = serializers.IntegerField(min_value=1, required=False)
@@ -15,10 +13,14 @@ class ProductRequestValidator(serializers.Serializer):
     description = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     keywords = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     is_featured = serializers.BooleanField(required=False)
-    availability = serializers.ChoiceField(choices=AVAILABILITY, required=False)
-    status = serializers.ChoiceField(choices=('draft', 'active', 'archived'), required=False)
+    availability = serializers.ChoiceField(
+        choices=enum_choices(Availability), required=False,
+    )
+    status = serializers.ChoiceField(
+        choices=enum_choices(ProductStatus), required=False,
+    )
     sales_mode = serializers.ChoiceField(
-        choices=('quote_only', 'buy_and_quote', 'direct_purchase'), required=False
+        choices=enum_choices(SalesMode), required=False,
     )
     display_order = serializers.IntegerField(min_value=0, required=False)
 
@@ -37,20 +39,19 @@ class ProductListValidator(serializers.Serializer):
     category = serializers.CharField(max_length=255, required=False, allow_blank=True)
     material = serializers.CharField(max_length=255, required=False, allow_blank=True)
     deity = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    availability = serializers.ChoiceField(choices=AVAILABILITY, required=False)
-    status = serializers.ChoiceField(choices=('draft', 'active', 'archived'), required=False)
+    availability = serializers.ChoiceField(
+        choices=enum_choices(Availability), required=False,
+    )
     min_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0, required=False)
     max_price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0, required=False)
-    sort = serializers.ChoiceField(
-        choices=('newest', 'oldest', 'featured', 'price_asc', 'price_desc', 'display_order'),
-        default='display_order',
-    )
+    sort = serializers.ChoiceField(choices=enum_choices(ProductSort), default=ProductSort.DISPLAY_ORDER.value)
 
     def validate(self, attrs):
         if attrs.get('min_price') is not None and attrs.get('max_price') is not None:
             if attrs['max_price'] < attrs['min_price']:
                 raise serializers.ValidationError('max_price must be greater than or equal to min_price.')
         return attrs
+
 
 
 class ProductImageFinalizeValidator(serializers.Serializer):
