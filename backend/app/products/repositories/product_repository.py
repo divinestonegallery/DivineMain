@@ -226,7 +226,7 @@ class ProductRepository:
 
     @staticmethod
     def get_dream_temples_data():
-        products = _product_queryset(public=True).filter(category__slug='temples').order_by('-is_featured', 'display_order')[:10]
+        products = _product_queryset(public=True).filter(category__slug='temple').order_by('-is_featured', 'display_order')[:10]
         return None, ProductCardSerializer(products, many=True).data
 
     @staticmethod
