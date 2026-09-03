@@ -45,7 +45,7 @@ const featuredLinks = [
 ] as const;
 
 const mainLinks = [
-  ["Custom Murti", "/custom-murti"],
+  ["Customize Your Moorti", "/custom-murti"],
   ["Artisans", "/artisans"],
   ["Our Story", "/our-story"],
   ["Guides", "/guides"],
@@ -330,6 +330,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
 
           <div className={styles.headerCenter}>
             <nav className={styles.desktopNav} aria-label="Main navigation">
+
               {/* <button
                 ref={shopTriggerRef}
                 className={styles.navLink}
@@ -363,6 +364,10 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           </div>
 
           <div className={styles.headerActions}>
+            <Link href="/custom-murti" className={`${styles.navLink} ${styles.desktopOnlyAction}`}>
+              <Sparkles aria-hidden="true" size={18} strokeWidth={1.6} />
+              <span>Customize Your Moorti</span>
+            </Link>
             <a
               className={styles.planButton}
               href="https://wa.me/919166138566?text=Namaste%2C%20I%20would%20like%20assistance%20from%20Divine%20Stone%20Gallery."
