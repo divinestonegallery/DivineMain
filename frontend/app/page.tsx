@@ -165,15 +165,11 @@ function MediaImage({
 function SectionHeading({
   eyebrow,
   title,
-  copy,
   href,
-  actionLabel = "View all",
 }: {
   eyebrow: string;
   title: string;
-  copy: string;
   href?: string;
-  actionLabel?: string;
 }) {
   return (
     <div className={styles.sectionHeadingRow}>
@@ -182,19 +178,11 @@ function SectionHeading({
         <div className={styles.sectionTitleLine}>
           <h2 className="font-display">{title}</h2>
           {href ? (
-            <Link href={href} aria-label={actionLabel}>
+            <Link href={href} aria-label={`View all ${title}`}>
               <ArrowRight aria-hidden="true" size={19} />
             </Link>
           ) : null}
         </div>
-      </div>
-      <div className={styles.sectionHeadingAside}>
-        <p>{copy}</p>
-        {href ? (
-          <Link href={href}>
-            {actionLabel} <ArrowRight aria-hidden="true" size={17} />
-          </Link>
-        ) : null}
       </div>
     </div>
   );
@@ -228,30 +216,26 @@ function DynamicTabsSection({
   id,
   eyebrow,
   title,
-  copy,
   products,
   groups,
   groupBy,
   actionHref,
-  actionLabel,
   surface = false,
 }: {
   id?: string;
   eyebrow: string;
   title: string;
-  copy: string;
   products?: ProductCard[];
   groups?: HomeDeityGroup[];
   groupBy?: "deity" | "category";
   actionHref: string;
-  actionLabel: string;
   surface?: boolean;
 }) {
   const hasContent = (products && products.length > 0) || (groups && groups.length > 0);
   return (
     <section className={`${styles.dataSection} ${surface ? styles.surfaceSection : ""}`} id={id}>
       <div className="site-container">
-        <SectionHeading eyebrow={eyebrow} title={title} copy={copy} href={actionHref} actionLabel={actionLabel} />
+        <SectionHeading eyebrow={eyebrow} title={title} href={actionHref} />
         {hasContent ? (
           <DynamicCategoryTabs products={products} groups={groups} groupBy={groupBy} idPrefix={id || "tabs"} />
         ) : (
@@ -266,25 +250,21 @@ function ProductRailSection({
   id,
   eyebrow,
   title,
-  copy,
   products,
   actionHref,
-  actionLabel,
   surface = false,
 }: {
   id?: string;
   eyebrow: string;
   title: string;
-  copy: string;
   products: ProductCard[];
-  actionHref: string;
-  actionLabel: string;
+  actionHref?: string;
   surface?: boolean;
 }) {
   return (
     <section className={`${styles.dataSection} ${surface ? styles.surfaceSection : ""}`} id={id}>
       <div className="site-container">
-        <SectionHeading eyebrow={eyebrow} title={title} copy={copy} href={actionHref} actionLabel={actionLabel} />
+        <SectionHeading eyebrow={eyebrow} title={title} href={actionHref} />
         {products.length ? (
           <div className={styles.productRail}>
             {products.map((product, index) => (
@@ -327,20 +307,18 @@ function DeityGroupCard({ group, priority = false }: { group: HomeDeityGroup; pr
 function DiscoverySection({
   eyebrow,
   title,
-  copy,
   groups,
   surface = false,
 }: {
   eyebrow: string;
   title: string;
-  copy: string;
   groups: HomeDeityGroup[];
   surface?: boolean;
 }) {
   return (
     <section className={`${styles.collectionSection} ${surface ? styles.surfaceSection : ""}`}>
       <div className="site-container">
-        <SectionHeading eyebrow={eyebrow} title={title} copy={copy} href="/shop" actionLabel="Explore shop" />
+        <SectionHeading eyebrow={eyebrow} title={title} href="/shop" />
         {groups.length ? (
           <div className={styles.deityGrid}>
             {groups.map((group, index) => (
@@ -362,9 +340,7 @@ function CategoriesSection({ categories }: { categories: TaxonomyItem[] }) {
         <SectionHeading
           eyebrow="Catalogue paths"
           title="Categories"
-          copy="Browse the active storefront categories returned by the Home API."
           href="/shop"
-          actionLabel="Shop all categories"
         />
         {categories.length ? (
           <div className={styles.categoryGrid}>
@@ -400,12 +376,10 @@ function HomeDecorSection({ products, groups }: { products: ProductCard[]; group
       id="home-decor"
       eyebrow="Sacred accents"
       title="Shop by Home Decor"
-      copy="Lamps, pots, bowls and devotional accents are rendered from the home decor block."
       products={products}
       groups={groups}
       groupBy="category"
       actionHref="/shop?q=home%20decor"
-      actionLabel="Explore home decor"
       surface
     />
   );
@@ -422,7 +396,6 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
         <SectionHeading
           eyebrow="Customer voices"
           title="Customer Reviews"
-          copy="Approved customer reviews come directly from the Home API."
         />
         {reviews.length ? (
           <div className={styles.reviewShowcase}>
@@ -599,30 +572,24 @@ export default async function Home() {
               id="popular-mooti"
               eyebrow="Gallery favorites"
               title="Popular Mooti"
-              copy="Featured moorties selected by the backend HomeService."
               products={getProducts(popular)}
               actionHref="/shop"
-              actionLabel="View popular works"
             />
             <DynamicTabsSection
               id="dream-mooti"
               eyebrow="Shop by devotion"
               title="Shop by Dream Mooti"
-              copy="Discover active deity collections and their published works from the Home API."
               groups={dreamMootiGroups}
               products={getProducts(dreamMooti)}
               groupBy="deity"
               actionHref="/shop"
-              actionLabel="Explore shop"
               surface
             />
             <ProductRailSection
               eyebrow="Temple forms"
               title="Shop Dream Temple"
-              copy="Temple products are loaded from the backend dream temples block."
               products={getProducts(dreamTemples)}
               actionHref="/shop?q=temple"
-              actionLabel="Explore temples"
             />
             <CategoriesSection categories={categoryItems} />
             <HomeDecorSection products={getProducts(homeDecor)} groups={getGroups(homeDecor)} />
