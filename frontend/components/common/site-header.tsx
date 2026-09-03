@@ -96,10 +96,8 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   }>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [logoAnimationFinished, setLogoAnimationFinished] = useState(false);
   const [deityLinks, setDeityLinks] = useState<ReadonlyArray<readonly [string, string]>>(defaultDeityLinks);
   const [isScrolled, setIsScrolled] = useState(false);
-  const logoVideoRef = useRef<HTMLVideoElement>(null);
   const shopTriggerRef = useRef<HTMLButtonElement>(null);
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const searchPanelRef = useRef<HTMLElement>(null);
@@ -125,10 +123,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
     setMegaMenuClosing(false);
     setMegaMenuOpen(true);
   }, []);
-
-  useEffect(() => {
-    if (animateLogo && logoVideoRef.current) logoVideoRef.current.playbackRate = 2.5;
-  }, [animateLogo]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -305,27 +299,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       >
         <div className={`${styles.headerMain} site-container`}>
           <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home">
-            {animateLogo && !logoAnimationFinished ? (
-              <>
-                <video
-                  ref={logoVideoRef}
-                  className={styles.brandVideo}
-                  autoPlay
-                  muted
-                  playsInline
-                  preload="metadata"
-                  poster="/brand/logo-horizontal.jpg"
-                  aria-hidden="true"
-                  onEnded={() => setLogoAnimationFinished(true)}
-                  onError={() => setLogoAnimationFinished(true)}
-                >
-                  <source src="/brand/logo-animation-horizontal-web.m4v" type="video/mp4" />
-                </video>
-                <Image className={`${styles.brandLogo} ${styles.brandLogoMotionFallback}`} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
-              </>
-            ) : (
-              <Image className={styles.brandLogo} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
-            )}
+            <Image className={styles.brandLogo} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
           </Link>
 
           <div className={styles.headerCenter}>
