@@ -53,6 +53,7 @@
 .structureEditor input,
 .structureEditor textarea,
 .inventoryRow input,
+.inventoryRow select,
 .inventoryToolbar select { width: 100%; min-height: 41px; padding: .65rem .7rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--background); font: inherit; }
 .createStructure textarea,
 .structureEditor textarea { resize: vertical; }

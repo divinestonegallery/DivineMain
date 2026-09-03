@@ -4,378 +4,294 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Check, ChevronDown, ExternalLink, PackagePlus, RefreshCw, Save, Search, Upload } from "lucide-react";
+import { ChevronDown, ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search } from "lucide-react";
+import { apiRequest } from "@/api/client";
 import { useToast } from "@/components/ui/toast";
-import { prepareImageForUpload } from "@/components/Uploads/prepare-image";
 import styles from "./catalog-admin.module.css";
 
-type Variant = {
-  id: string;
-  sku: string;
+type Taxonomy = {
+  id: number;
   name: string;
-  material: string;
-  finish: string | null;
-  heightMm: number;
-  widthMm: number | null;
-  depthMm: number | null;
-  weightMinGrams: number | null;
-  weightGrams: number | null;
-  packageLengthMm: number | null;
-  packageWidthMm: number | null;
-  packageHeightMm: number | null;
-  pricePaise: number | null;
-  gstRateBps: number | null;
-  inventoryKind: "unique" | "repeatable";
-  stockQuantity: number;
-  lowStockThreshold: number;
-  codEligible: boolean;
-  isActive: boolean;
+  slug?: string;
+  is_active?: boolean;
+};
+
+type ProductImage = {
+  id: number;
+  image_url?: string;
+  alt_text?: string;
+  cover_photo?: boolean;
 };
 
 type AdminProduct = {
-  id: string;
-  slug: string;
+  id: number;
+  category: number;
+  material: number;
+  deity: number;
   name: string;
-  categoryId: string | null;
-  category: string | null;
-  deityId: string | null;
-  deity: string | null;
-  productType: "ready_made" | "made_to_order";
-  salesMode: "direct" | "quote" | "both";
+  slug: string;
+  uid?: string;
+  short_description?: string;
+  description?: string;
+  keywords?: string;
+  is_featured?: boolean;
+  availability: "in_stock" | "made_to_order" | "out_of_stock";
   status: "draft" | "active" | "archived";
-  isFeatured: boolean;
-  sortOrder: number;
-  variants: Variant[];
-  media: Array<{ id: string; publicPath: string | null; altText: string | null; isPrimary: boolean }>;
-  collections: Array<{ id: string; name: string; slug: string }>;
+  sales_mode: "quote_only" | "buy_and_quote" | "direct_purchase";
+  display_order?: number;
+  images?: ProductImage[];
 };
 
-type Lookup = { id: string; name: string };
-type CatalogResponse = {
-  data: AdminProduct[];
-  lookups: { categories: Lookup[]; deities: Lookup[]; collections: Lookup[] };
+type ProductList = {
+  items: AdminProduct[];
+  pagination?: { total_items?: number };
 };
+
+type Lookups = {
+  categories: Taxonomy[];
+  materials: Taxonomy[];
+  deities: Taxonomy[];
+};
+
+const emptyLookups: Lookups = { categories: [], materials: [], deities: [] };
+const availabilityOptions = ["in_stock", "made_to_order", "out_of_stock"];
+const statusOptions = ["draft", "active", "archived"];
+const salesModeOptions = ["quote_only", "buy_and_quote", "direct_purchase"];
+
+function label(value?: string) {
+  return (value || "not set").replaceAll("_", " ");
+}
+
+function lookupName(items: Taxonomy[], id?: number) {
+  return items.find((item) => item.id === id)?.name ?? "Not selected";
+}
+
+function coverImage(product: AdminProduct) {
+  return product.images?.find((item) => item.cover_photo)?.image_url ?? product.images?.[0]?.image_url ?? "";
+}
 
 function completion(product: AdminProduct) {
-  const variant = product.variants[0];
-  const checks = [
-    Boolean(product.media.some((media) => media.publicPath)),
-    Boolean(variant?.pricePaise),
-    variant?.gstRateBps !== null && variant?.gstRateBps !== undefined,
-    Boolean(variant?.weightGrams),
-    Boolean(variant?.packageLengthMm && variant?.packageWidthMm && variant?.packageHeightMm),
-    Boolean(variant && variant.stockQuantity > 0),
-  ];
-  return { complete: checks.filter(Boolean).length, total: checks.length };
+  const hasImage = Boolean(product.images?.length);
+  const hasTaxonomy = Boolean(product.category && product.material && product.deity);
+  if (product.status === "active" && hasImage && hasTaxonomy) return "complete";
+  return "incomplete";
 }
 
-function inchesFromMm(value: number | null | undefined) {
-  return value ? String(Number((value / 25.4).toFixed(2))) : "";
-}
-
-function mmFromInches(value: string | FormDataEntryValue | null) {
-  const inches = Number(value);
-  return Number.isFinite(inches) && inches > 0 ? Math.round(inches * 25.4) : null;
-}
-
-function ProductEditor({ product, lookups, refresh }: { product: AdminProduct; lookups: CatalogResponse["lookups"]; refresh: () => Promise<void> }) {
+function ProductEditor({ product, lookups, refresh }: { product: AdminProduct; lookups: Lookups; refresh: () => Promise<void> }) {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState(product.status);
-  const [salesMode, setSalesMode] = useState(product.salesMode);
-  const [featured, setFeatured] = useState(product.isFeatured);
-  const [sortOrder, setSortOrder] = useState(String(product.sortOrder));
-  const [categoryId, setCategoryId] = useState(product.categoryId ?? "");
-  const [deityId, setDeityId] = useState(product.deityId ?? "");
-  const [collectionIds, setCollectionIds] = useState(product.collections.map((collection) => collection.id));
-  const variant = product.variants[0];
-  const [heightInches, setHeightInches] = useState(inchesFromMm(variant?.heightMm));
-  const [priceRupees, setPriceRupees] = useState(variant?.pricePaise ? String(variant.pricePaise / 100) : "");
-  const [gstPercent, setGstPercent] = useState(variant?.gstRateBps !== null && variant?.gstRateBps !== undefined ? String(variant.gstRateBps / 100) : "");
-  const [weightMode, setWeightMode] = useState<"exact" | "range">(variant?.weightMinGrams ? "range" : "exact");
-  const [weightMinKg, setWeightMinKg] = useState(variant?.weightMinGrams ? String(variant.weightMinGrams / 1000) : "");
-  const [weightKg, setWeightKg] = useState(variant?.weightGrams ? String(variant.weightGrams / 1000) : "");
-  const [widthInches, setWidthInches] = useState(inchesFromMm(variant?.widthMm));
-  const [depthInches, setDepthInches] = useState(inchesFromMm(variant?.depthMm));
-  const [packageLengthInches, setPackageLengthInches] = useState(inchesFromMm(variant?.packageLengthMm));
-  const [packageWidthInches, setPackageWidthInches] = useState(inchesFromMm(variant?.packageWidthMm));
-  const [packageHeightInches, setPackageHeightInches] = useState(inchesFromMm(variant?.packageHeightMm));
-  const [stock, setStock] = useState(variant ? String(variant.stockQuantity) : "0");
-  const readiness = completion(product);
-  const primaryMedia = product.media.find((media) => media.isPrimary) ?? product.media[0];
+  const imageUrl = coverImage(product);
 
-  async function createFirstVariant(event: FormEvent<HTMLFormElement>) {
+  async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-    const heightMm = mmFromInches(form.get("heightInches"));
+    const form = new FormData(event.currentTarget);
     setSaving(true);
+
     try {
-      const response = await fetch(`/api/v1/admin/products/${encodeURIComponent(product.id)}/variants`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
+      await apiRequest<AdminProduct>(`/api/admin/products/${product.id}`, {
+        method: "PATCH",
         body: JSON.stringify({
-          sku: form.get("sku"),
-          name: form.get("variantName"),
-          material: form.get("material"),
-          finish: form.get("finish"),
-          heightMm,
-          inventoryKind: "unique",
-          stockQuantity: 0,
-          lowStockThreshold: 1,
-          codEligible: true,
+          name: form.get("name"),
+          category: Number(form.get("category")),
+          material: Number(form.get("material")),
+          deity: Number(form.get("deity")),
+          short_description: form.get("short_description"),
+          description: form.get("description"),
+          keywords: form.get("keywords"),
+          is_featured: form.get("is_featured") === "on",
+          availability: form.get("availability"),
+          status: form.get("status"),
+          sales_mode: form.get("sales_mode"),
+          display_order: Number(form.get("display_order") || 999),
         }),
       });
-      if (!response.ok) throw new Error();
-      showToast(`Selling details added to ${product.name}.`);
+      showToast("Product saved.");
       await refresh();
-    } catch {
-      showToast("Could not add selling details. Check that the SKU is unique and all required values are complete.");
+    } catch (reason) {
+      showToast(reason instanceof Error ? reason.message : "Product could not be saved.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function saveProduct() {
+  async function attachImage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const objectKey = form.get("object_key")?.toString().trim();
+    if (!objectKey) return;
     setSaving(true);
+
     try {
-      const response = await fetch(`/api/v1/admin/products/${encodeURIComponent(product.id)}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ status, salesMode, isFeatured: featured, sortOrder: Number(sortOrder), categoryId: categoryId || null, deityId: deityId || null, collectionIds }),
+      await apiRequest<ProductImage>(`/api/admin/products/${product.id}/images`, {
+        method: "POST",
+        body: JSON.stringify({
+          object_key: objectKey,
+          alt_text: form.get("alt_text")?.toString().trim() || product.name,
+          cover_photo: form.get("cover_photo") === "on",
+          display_order: Number(form.get("display_order") || 0),
+        }),
       });
-      if (!response.ok) throw new Error();
-
-      if (variant) {
-        const variantResponse = await fetch(`/api/v1/admin/variants/${encodeURIComponent(variant.id)}`, {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            pricePaise: priceRupees ? Math.round(Number(priceRupees) * 100) : null,
-            gstRateBps: gstPercent ? Math.round(Number(gstPercent) * 100) : null,
-            heightMm: mmFromInches(heightInches),
-            weightMinGrams: weightMode === "range" && weightMinKg ? Math.round(Number(weightMinKg) * 1000) : null,
-            weightGrams: weightKg ? Math.round(Number(weightKg) * 1000) : null,
-            widthMm: mmFromInches(widthInches),
-            depthMm: mmFromInches(depthInches),
-            packageLengthMm: mmFromInches(packageLengthInches),
-            packageWidthMm: mmFromInches(packageWidthInches),
-            packageHeightMm: mmFromInches(packageHeightInches),
-            stockQuantity: Number(stock),
-          }),
-        });
-        if (!variantResponse.ok) throw new Error();
-      }
-
-      showToast(`${product.name} updated.`);
+      showToast("Image attached.");
+      event.currentTarget.reset();
       await refresh();
-    } catch {
-      showToast(`Could not update ${product.name}. Check the values and try again.`);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function uploadImages(files: File[]) {
-    if (!files.length) return;
-    setSaving(true);
-    let uploaded = 0;
-    try {
-      for (const file of files) {
-        const form = new FormData();
-        form.set("altText", `${product.name} hand-carved marble work`);
-        form.set("file", await prepareImageForUpload(file));
-        const response = await fetch(`/api/v1/admin/products/${encodeURIComponent(product.id)}/media`, { method: "POST", body: form });
-        if (!response.ok) throw new Error();
-        uploaded += 1;
-      }
-      showToast(`${uploaded} ${uploaded === 1 ? "image" : "images"} added to ${product.name}.`);
-      await refresh();
-    } catch {
-      showToast(uploaded
-        ? `${uploaded} ${uploaded === 1 ? "image was" : "images were"} added, but a later upload failed. Use JPEG, PNG or WebP files up to 12 MB each.`
-        : "The images could not be uploaded. Use JPEG, PNG or WebP files up to 12 MB each.");
-      if (uploaded) await refresh();
+    } catch (reason) {
+      showToast(reason instanceof Error ? reason.message : "Image could not be attached.");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <details className={styles.productRow}>
-      <summary>
-        <span className={styles.productThumb}>
-          {primaryMedia?.publicPath ? <Image src={primaryMedia.publicPath} alt="" fill sizes="64px" /> : <PackagePlus aria-hidden="true" size={20} />}
-        </span>
-        <span className={styles.productIdentity}>
-          <strong>{product.name}</strong>
-          <small>{product.category ?? "Uncategorised"} · {product.deity ?? "No deity"}</small>
-        </span>
-        <span className={`${styles.statusPill} ${styles[product.status]}`}>{product.status}</span>
-        <span className={readiness.complete === readiness.total ? styles.complete : styles.incomplete}>
-          {readiness.complete === readiness.total ? <Check aria-hidden="true" size={14} /> : <AlertTriangle aria-hidden="true" size={14} />}
-          {readiness.complete}/{readiness.total} selling details
-        </span>
-        <ChevronDown className={styles.chevron} aria-hidden="true" size={18} />
-      </summary>
-
-      <div className={styles.editorGrid}>
-        <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="draft">Draft</option><option value="active">Active</option><option value="archived">Archived</option></select></label>
-        <label><span>Sales mode</span><select value={salesMode} onChange={(event) => setSalesMode(event.target.value as typeof salesMode)}><option value="both">Buy + quote</option><option value="direct">Direct purchase</option><option value="quote">Quote only</option></select></label>
-        <label><span>Category</span><select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}><option value="">Uncategorised</option>{lookups.categories.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-        <label><span>Deity</span><select value={deityId} onChange={(event) => setDeityId(event.target.value)}><option value="">No deity</option>{lookups.deities.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-        <label><span>Price before GST (₹)</span><input inputMode="decimal" value={priceRupees} onChange={(event) => setPriceRupees(event.target.value)} placeholder="Not entered" /></label>
-        <label><span>GST rate (%)</span><input inputMode="decimal" value={gstPercent} onChange={(event) => setGstPercent(event.target.value)} placeholder="Add after GST registration" /></label>
-        <label><span>Sculpture height (inches)</span><input inputMode="decimal" min="0.1" step="0.1" required value={heightInches} onChange={(event) => setHeightInches(event.target.value)} /></label>
-        <label><span>Weight entry</span><select value={weightMode} onChange={(event) => setWeightMode(event.target.value as "exact" | "range")}><option value="exact">Exact weight</option><option value="range">Weight range</option></select></label>
-        {weightMode === "range" ? <label><span>Minimum weight (kg)</span><input inputMode="decimal" min="0.1" step="0.1" value={weightMinKg} onChange={(event) => setWeightMinKg(event.target.value)} placeholder="For example, 40" /></label> : null}
-        <label><span>{weightMode === "range" ? "Maximum weight (kg)" : "Exact weight (kg)"}</span><input inputMode="decimal" min="0.1" step="0.1" value={weightKg} onChange={(event) => setWeightKg(event.target.value)} placeholder="Needed for shipping" /></label>
-        <label><span>Sculpture width (inches)</span><input inputMode="decimal" value={widthInches} onChange={(event) => setWidthInches(event.target.value)} placeholder="Optional" /></label>
-        <label><span>Sculpture depth (inches)</span><input inputMode="decimal" value={depthInches} onChange={(event) => setDepthInches(event.target.value)} placeholder="Optional" /></label>
-        <label><span>Packed length (inches)</span><input inputMode="decimal" value={packageLengthInches} onChange={(event) => setPackageLengthInches(event.target.value)} placeholder="Required for rates" /></label>
-        <label><span>Packed width (inches)</span><input inputMode="decimal" value={packageWidthInches} onChange={(event) => setPackageWidthInches(event.target.value)} placeholder="Required for rates" /></label>
-        <label><span>Packed height (inches)</span><input inputMode="decimal" value={packageHeightInches} onChange={(event) => setPackageHeightInches(event.target.value)} placeholder="Required for rates" /></label>
-        <label><span>Stock quantity</span><input inputMode="numeric" value={stock} onChange={(event) => setStock(event.target.value)} /></label>
-        <label><span>Display order</span><input inputMode="numeric" value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} /></label>
-        <label className={styles.checkbox}><input type="checkbox" checked={featured} onChange={(event) => setFeatured(event.target.checked)} /><span>Featured product</span></label>
-        <fieldset className={styles.collectionChooser}><legend>Curated collections</legend>{lookups.collections.length ? lookups.collections.map((item) => <label key={item.id}><input type="checkbox" checked={collectionIds.includes(item.id)} onChange={(event) => setCollectionIds((current) => event.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id))} /><span>{item.name}</span></label>) : <small>Create a collection from Catalogue first.</small>}</fieldset>
-      </div>
-      <div className={styles.editorActions}>
-        <Link href={`/products/${product.slug}`} target="_blank">View product <ExternalLink aria-hidden="true" size={14} /></Link>
-        <span>{variant ? `${variant.sku} · ${inchesFromMm(variant.heightMm)} inches` : "Add the first selling details before publishing."}</span>
-        <label className={styles.uploadButton}><Upload aria-hidden="true" size={15} /> Add photos<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={saving} onChange={(event) => { const files = Array.from(event.target.files ?? []); if (files.length) void uploadImages(files); event.currentTarget.value = ""; }} /></label>
-        <button type="button" disabled={saving} onClick={saveProduct}><Save aria-hidden="true" size={16} /> {saving ? "Saving…" : "Save changes"}</button>
-      </div>
-      {!variant ? (
-        <form className={styles.createForm} onSubmit={createFirstVariant}>
-          <h3 className="font-display">Add selling details</h3>
-          <label><span>SKU</span><input name="sku" required maxLength={100} placeholder="DSG-GANESHA-24" /></label>
-          <label><span>Variant name</span><input name="variantName" required maxLength={160} placeholder="Standard" /></label>
-          <label><span>Material</span><input name="material" required maxLength={160} placeholder="Makrana white marble" /></label>
-          <label><span>Finish</span><input name="finish" maxLength={160} placeholder="Natural white or hand-painted" /></label>
-          <label><span>Height (inches)</span><input name="heightInches" required inputMode="decimal" min="0.1" step="0.1" placeholder="24" /></label>
-          <button type="submit" disabled={saving}>{saving ? "Adding…" : "Add selling details"}</button>
-        </form>
+    <>
+      <form className={styles.editorGrid} onSubmit={save}>
+        <label><span>Name</span><input name="name" defaultValue={product.name} required /></label>
+        <label><span>Category</span><select name="category" defaultValue={product.category} required>{lookups.categories.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+        <label><span>Material</span><select name="material" defaultValue={product.material} required>{lookups.materials.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+        <label><span>Deity</span><select name="deity" defaultValue={product.deity} required>{lookups.deities.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+        <label><span>Status</span><select name="status" defaultValue={product.status}>{statusOptions.map((item) => <option value={item} key={item}>{label(item)}</option>)}</select></label>
+        <label><span>Availability</span><select name="availability" defaultValue={product.availability}>{availabilityOptions.map((item) => <option value={item} key={item}>{label(item)}</option>)}</select></label>
+        <label><span>Sales mode</span><select name="sales_mode" defaultValue={product.sales_mode}>{salesModeOptions.map((item) => <option value={item} key={item}>{label(item)}</option>)}</select></label>
+        <label><span>Display order</span><input name="display_order" type="number" min="0" defaultValue={product.display_order ?? 999} /></label>
+        <label className={styles.checkbox}><input name="is_featured" type="checkbox" defaultChecked={Boolean(product.is_featured)} /><span>Featured on home</span></label>
+        <label><span>Short description</span><textarea name="short_description" defaultValue={product.short_description || ""} maxLength={500} /></label>
+        <label><span>Keywords</span><textarea name="keywords" defaultValue={product.keywords || ""} /></label>
+        <label><span>Description</span><textarea name="description" defaultValue={product.description || ""} /></label>
+        <div className={styles.editorActions}>
+          <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save product"}</button>
+          {product.slug ? <Link href={`/products/${product.slug}`} target="_blank">Open product <ExternalLink size={14} /></Link> : null}
+        </div>
+      </form>
+      <form className={styles.editorGrid} onSubmit={attachImage}>
+        <label><span>Presigned object key</span><input name="object_key" placeholder="product-images/..." /></label>
+        <label><span>Alt text</span><input name="alt_text" defaultValue={product.name} /></label>
+        <label><span>Image order</span><input name="display_order" type="number" min="0" defaultValue={product.images?.length ?? 0} /></label>
+        <label className={styles.checkbox}><input name="cover_photo" type="checkbox" defaultChecked={!product.images?.length} /><span>Use as cover</span></label>
+        <div className={styles.editorActions}>
+          <button type="submit" disabled={saving}>Attach uploaded image</button>
+          <small>Upload files through the backend presigned upload flow, then paste the returned object key here.</small>
+        </div>
+      </form>
+      {product.images?.length ? (
+        <div className={styles.editorActions}>
+          <small>{product.images.length} image{product.images.length === 1 ? "" : "s"} attached. Cover: {imageUrl ? "ready" : "not selected"}.</small>
+        </div>
       ) : null}
-    </details>
+    </>
   );
 }
 
 export function CatalogAdmin() {
   const { showToast } = useToast();
-  const [payload, setPayload] = useState<CatalogResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [lookups, setLookups] = useState<Lookups>(emptyLookups);
   const [query, setQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/v1/admin/products", { cache: "no-store" });
-      if (!response.ok) throw new Error();
-      setPayload(await response.json() as CatalogResponse);
+      const [productList, categories, materials, deities] = await Promise.all([
+        apiRequest<ProductList>("/api/admin/products?page_size=100"),
+        apiRequest<Taxonomy[]>("/api/admin/products/categories"),
+        apiRequest<Taxonomy[]>("/api/admin/products/materials"),
+        apiRequest<Taxonomy[]>("/api/admin/products/deities"),
+      ]);
+      setProducts(productList.items ?? []);
+      setLookups({ categories, materials, deities });
     } catch {
-      showToast("The staff catalogue could not be loaded.");
+      showToast("Catalogue could not be loaded.");
     } finally {
       setLoading(false);
     }
   }, [showToast]);
 
   useEffect(() => {
-    let cancelled = false;
-    void fetch("/api/v1/admin/products", { cache: "no-store" })
-      .then((response) => {
-        if (!response.ok) throw new Error();
-        return response.json() as Promise<CatalogResponse>;
-      })
-      .then((data) => {
-        if (!cancelled) setPayload(data);
-      })
-      .catch(() => {
-        if (!cancelled) showToast("The staff catalogue could not be loaded.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [showToast]);
+    void load();
+  }, [load]);
 
-  const items = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return (payload?.data ?? []).filter((product) => !normalized || [product.name, product.slug, product.category, product.deity].join(" ").toLowerCase().includes(normalized));
-  }, [payload, query]);
+  const filteredProducts = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return products;
+    return products.filter((product) => `${product.name} ${product.slug} ${product.uid}`.toLowerCase().includes(needle));
+  }, [products, query]);
 
   async function createProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-    const heightMm = mmFromInches(form.get("heightInches"));
+    const form = new FormData(event.currentTarget);
     try {
-      const response = await fetch("/api/v1/admin/products", {
+      await apiRequest<AdminProduct>("/api/admin/products", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(form)),
-      });
-      if (!response.ok) throw new Error("product");
-      const created = await response.json() as { data: AdminProduct | null };
-      if (!created.data?.id) throw new Error("product");
-
-      const variantResponse = await fetch(`/api/v1/admin/products/${encodeURIComponent(created.data.id)}/variants`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          sku: form.get("sku"),
-          name: form.get("variantName"),
-          material: form.get("material"),
-          finish: form.get("finish"),
-          heightMm,
-          inventoryKind: "unique",
-          stockQuantity: 0,
-          lowStockThreshold: 1,
-          codEligible: true,
+          name: form.get("name"),
+          category: Number(form.get("category")),
+          material: Number(form.get("material")),
+          deity: Number(form.get("deity")),
+          short_description: form.get("short_description"),
+          availability: "made_to_order",
+          status: "draft",
+          sales_mode: "quote_only",
+          display_order: Number(form.get("display_order") || 999),
         }),
       });
-      if (!variantResponse.ok) {
-        showToast("The draft was created, but selling details failed. Open it below and add a unique SKU, material and height.");
-        await load();
-        return;
-      }
-      formElement.reset();
+      event.currentTarget.reset();
       setShowCreate(false);
-      showToast("Draft product and sculpture details created.");
+      showToast("Draft product created.");
       await load();
-    } catch {
-      showToast("The draft product could not be created. Check the product details and try again.");
+    } catch (reason) {
+      showToast(reason instanceof Error ? reason.message : "Draft product could not be created.");
     }
   }
 
   return (
     <section className={styles.adminSection}>
-      <div className="site-container">
-        <div className={styles.toolbar}>
-          <label><Search aria-hidden="true" size={17} /><span className="sr-only">Search products</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products" /></label>
-          <button type="button" onClick={() => void load()}><RefreshCw aria-hidden="true" size={16} /> Refresh</button>
-          <button className={styles.primaryAction} type="button" onClick={() => setShowCreate((value) => !value)}><PackagePlus aria-hidden="true" size={16} /> Add product</button>
-        </div>
+      <div className={styles.toolbar}>
+        <label><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products" /></label>
+        <button type="button" onClick={() => void load()} disabled={loading}><RefreshCw size={15} /> Refresh</button>
+        <button className={styles.primaryAction} type="button" onClick={() => setShowCreate((value) => !value)}><Plus size={15} /> New draft</button>
+      </div>
 
-        {showCreate ? (
-          <form className={styles.createForm} onSubmit={createProduct}>
-            <h2 className="font-display">Create a draft product</h2>
-            <label><span>Name</span><input name="name" required maxLength={180} /></label>
-            <label><span>Category</span><select name="categoryId" required><option value="">Choose category</option>{payload?.lookups.categories.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-            <label><span>Deity</span><select name="deityId" required><option value="">Choose deity</option>{payload?.lookups.deities.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-            <label><span>SKU</span><input name="sku" required maxLength={100} placeholder="DSG-HANUMAN-24" /></label>
-            <label><span>Variant name</span><input name="variantName" required maxLength={160} placeholder="Standard" /></label>
-            <label><span>Material</span><input name="material" required maxLength={160} placeholder="Makrana white marble" /></label>
-            <label><span>Finish</span><input name="finish" maxLength={160} placeholder="Natural white or hand-painted" /></label>
-            <label><span>Sculpture height (inches)</span><input name="heightInches" type="number" required min="0.1" step="0.1" placeholder="24" /></label>
-            <input type="hidden" name="productType" value="ready_made" /><input type="hidden" name="salesMode" value="both" />
-            <button type="submit">Create draft</button>
-          </form>
-        ) : null}
+      {showCreate ? (
+        <form className={styles.createForm} onSubmit={createProduct}>
+          <h2 className="font-display">Create draft product</h2>
+          <label><span>Name</span><input name="name" required /></label>
+          <label><span>Category</span><select name="category" required><option value="">Choose</option>{lookups.categories.filter((item) => item.is_active !== false).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+          <label><span>Material</span><select name="material" required><option value="">Choose</option>{lookups.materials.filter((item) => item.is_active !== false).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+          <label><span>Deity</span><select name="deity" required><option value="">Choose</option>{lookups.deities.filter((item) => item.is_active !== false).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+          <label><span>Order</span><input name="display_order" type="number" min="0" defaultValue="999" /></label>
+          <label><span>Short description</span><input name="short_description" maxLength={500} /></label>
+          <button type="submit">Create</button>
+        </form>
+      ) : null}
 
-        <div className={styles.summary}><strong>{items.length}</strong><span>{loading ? "Loading catalogue…" : "catalogue products"}</span><small>Products stay quote-only until price, GST, stock, dimensions and weight are complete.</small></div>
-        <div className={styles.productList}>{items.map((product) => <ProductEditor key={product.id} product={product} lookups={payload?.lookups ?? { categories: [], deities: [], collections: [] }} refresh={load} />)}</div>
+      <div className={styles.summary}>
+        <strong>{filteredProducts.length}</strong>
+        <span>{loading ? "Loading catalogue..." : "products connected to Django"}</span>
+        <small>{products.filter((product) => product.status === "active").length} active</small>
+      </div>
+
+      <div className={styles.productList}>
+        {filteredProducts.map((product) => {
+          const imageUrl = coverImage(product);
+          return (
+            <details className={styles.productRow} key={product.id}>
+              <summary>
+                <span className={styles.productThumb}>
+                  {imageUrl ? <Image unoptimized src={imageUrl} alt={product.name} fill sizes="64px" /> : <ImageIcon size={20} />}
+                </span>
+                <span className={styles.productIdentity}>
+                  <strong>{product.name}</strong>
+                  <small>{lookupName(lookups.categories, product.category)} - {lookupName(lookups.materials, product.material)} - {lookupName(lookups.deities, product.deity)}</small>
+                </span>
+                <span className={`${styles.statusPill} ${styles[product.status]}`}>{label(product.status)}</span>
+                <span className={styles[completion(product)]}>{label(completion(product))}</span>
+                <ChevronDown className={styles.chevron} size={18} />
+              </summary>
+              <ProductEditor product={product} lookups={lookups} refresh={load} />
+            </details>
+          );
+        })}
+        {!loading && !filteredProducts.length ? <div className={styles.stateCard}><h2 className="font-display">No products found.</h2><p>Create a draft product after adding active category, material and deity records.</p></div> : null}
       </div>
     </section>
   );

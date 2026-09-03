@@ -1,6 +1,5 @@
-import { apiRequest, type ApiEnvelope } from "./client";
+import { apiRequest } from "./client";
 import type { Product } from "@/src/types/product";
-import homeDummyEnvelope from "./home-dummy.json";
 
 export type ProductDetail = Product;
 
@@ -31,7 +30,7 @@ export interface ProductFilters {
   availability?: "in_stock" | "made_to_order" | "out_of_stock";
   min_price?: number | string;
   max_price?: number | string;
-  sort?: "price_asc" | "price_desc" | "newest" | "featured";
+  sort?: "price_asc" | "price_desc" | "newest" | "oldest" | "featured" | "display_order";
 }
 
 export interface TaxonomyItem {
@@ -96,7 +95,7 @@ export interface SearchData {
 function toQuery(filters: ProductFilters = {}) {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
-    if (value) params.set(key, value);
+    if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
   });
   const query = params.toString();
   return query ? `?${query}` : "";
@@ -126,18 +125,8 @@ export function getDeities() {
   return apiRequest<TaxonomyItem[]>("/api/v1/products/deities");
 }
 
-function dummyHomeData(): HomeData {
-  const envelope = homeDummyEnvelope as ApiEnvelope<HomeData>;
-  return envelope.data;
-}
-
 export async function getHome() {
-  try {
-    return await apiRequest<HomeData>("/api/v1/application/home");
-  } catch {
-    // Django is often down during UI checks; keep the home page renderable.
-    return dummyHomeData();
-  }
+  return apiRequest<HomeData>("/api/v1/application/home");
 }
 
 export function searchApplication(query: string) {

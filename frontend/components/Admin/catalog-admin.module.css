@@ -108,14 +108,23 @@
 
 .createForm input,
 .createForm select,
+.createForm textarea,
 .editorGrid input,
-.editorGrid select {
+.editorGrid select,
+.editorGrid textarea {
   width: 100%;
   min-height: 44px;
   padding-inline: 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--background);
+}
+
+.createForm textarea,
+.editorGrid textarea {
+  min-height: 96px;
+  padding-block: 0.7rem;
+  resize: vertical;
 }
 
 .summary {
@@ -243,6 +252,7 @@
 .collectionChooser small { color: var(--ink-muted); font-size: .64rem; }
 
 .editorActions {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   gap: 0.8rem;

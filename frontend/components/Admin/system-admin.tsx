@@ -1,32 +1,158 @@
 // @ts-nocheck
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Check, History, Save, ShieldCheck, ShieldOff, UserRoundCog } from "lucide-react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { Check, History, RefreshCw, ShieldCheck, ShieldOff, UserRoundCog } from "lucide-react";
+import { apiRequest } from "@/api/client";
 import { useToast } from "@/components/ui/toast";
 import styles from "./system-admin.module.css";
 
-type Setting = { key: string; label: string; group: string; value: string; defaultValue: string; updatedAt: number | null };
-type Person = { id: string; email: string | null; displayName: string; userStatus: string; staffId: string | null; staffStatus: "invited" | "active" | "disabled" | null; accessLevel: string | null; createdAt: number };
-type Audit = { id: string; actorUserId: string | null; action: string; entityType: string; entityId: string | null; createdAt: number };
-type Data = { settings: Setting[]; users: Person[]; audit: Audit[] };
+type StaffMember = {
+  id: number;
+  clerk_user_id?: string;
+  email?: string;
+  name?: string;
+  role: "staff" | "admin";
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
 
-async function patch(body: object) { const response = await fetch("/api/v1/admin/system", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }); if (!response.ok) throw new Error(); return (await response.json() as { data: Data }).data; }
-function when(timestamp: number) { return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(timestamp * 1000); }
+type AuditLog = {
+  id: number;
+  actor_email?: string;
+  request_id?: string;
+  method?: string;
+  path?: string;
+  status_code?: number;
+  ip_address?: string;
+  created_at?: string;
+};
+
+type ListResponse<T> = {
+  items: T[];
+};
+
+function when(value?: string) {
+  if (!value) return "Recent";
+  return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
 
 export function SettingsAdmin() {
-  const { showToast } = useToast(); const [data, setData] = useState<Data | null>(null); const [values, setValues] = useState<Record<string, string>>({}); const [saving, setSaving] = useState<string | null>(null);
-  useEffect(() => { void fetch("/api/v1/admin/system").then((response) => response.json()).then(({ data: value }: { data: Data }) => { setData(value); setValues(Object.fromEntries(value.settings.map((item) => [item.key, item.value]))); }).catch(() => showToast("Settings could not be loaded.")); }, [showToast]);
-  const groups = useMemo(() => [...new Set(data?.settings.map((item) => item.group) ?? [])], [data]);
-  async function save(item: Setting) { setSaving(item.key); try { setData(await patch({ entity: "setting", key: item.key, value: values[item.key] })); showToast(`${item.label} saved.`); } catch { showToast("Setting could not be saved."); } finally { setSaving(null); } }
-  if (!data) return <div className={styles.empty}>Loading gallery settings…</div>;
-  return <div className={styles.groups}>{groups.map((group) => <section className={styles.panel} key={group}><header><div><small>Settings group</small><h2>{group}</h2></div><Check size={18} /></header><div className={styles.settingGrid}>{data.settings.filter((item) => item.group === group).map((item) => <label key={item.key}><span>{item.label}</span>{item.value === "true" || item.value === "false" ? <select value={values[item.key]} onChange={(event) => setValues((current) => ({ ...current, [item.key]: event.target.value }))}><option value="true">Enabled</option><option value="false">Disabled</option></select> : <input value={values[item.key] ?? ""} onChange={(event) => setValues((current) => ({ ...current, [item.key]: event.target.value }))} />}<button onClick={() => void save(item)} disabled={saving === item.key || values[item.key] === item.value}><Save size={14} />Save</button></label>)}</div></section>)}</div>;
+  return (
+    <div className={styles.groups}>
+      <section className={styles.panel}>
+        <header><div><small>Backend connection</small><h2>Settings are environment-managed</h2></div><Check size={18} /></header>
+        <p className={styles.note}>
+          This Django backend does not expose a generic admin settings route. Frontend settings are
+          now read from environment variables and supported API routes instead of calling a missing
+          system endpoint.
+        </p>
+      </section>
+    </div>
+  );
 }
 
 export function StaffSecurityAdmin() {
-  const { showToast } = useToast(); const [data, setData] = useState<Data | null>(null); const [currentUserId, setCurrentUserId] = useState(""); const [tab, setTab] = useState<"staff" | "audit">("staff");
-  useEffect(() => { void fetch("/api/v1/admin/system").then((response) => response.json()).then(({ data: value, currentUserId: current }: { data: Data; currentUserId: string }) => { setData(value); setCurrentUserId(current); }).catch(() => showToast("Staff records could not be loaded.")); }, [showToast]);
-  async function change(person: Person) { const status = person.staffStatus === "active" ? "disabled" : "active"; try { setData(await patch({ entity: "staff", userId: person.id, status })); showToast(status === "active" ? `${person.displayName} now has full staff access.` : `${person.displayName} was removed from staff access.`); } catch { showToast("Staff access could not be changed. Your own access cannot be disabled."); } }
-  if (!data) return <div className={styles.empty}>Loading staff security…</div>;
-  return <><div className={styles.tabs}><button className={tab === "staff" ? styles.active : ""} onClick={() => setTab("staff")}><UserRoundCog size={16} />Staff accounts</button><button className={tab === "audit" ? styles.active : ""} onClick={() => setTab("audit")}><History size={16} />Audit history</button></div>{tab === "staff" ? <section className={styles.panel}><header><div><small>Account security</small><h2>Full-access staff</h2></div><ShieldCheck size={19} /></header><p className={styles.note}>Only activate people you trust. Every active staff member can manage products, orders, customers, content and settings.</p><div className={styles.people}>{data.users.map((person) => <article key={person.id}><span className={person.staffStatus === "active" ? styles.avatarActive : styles.avatar}>{person.displayName.slice(0, 1).toUpperCase()}</span><div><strong>{person.displayName}</strong><small>{person.email ?? "No email"}{person.id === currentUserId ? " · You" : ""}</small></div><em className={person.staffStatus === "active" ? styles.enabled : styles.disabled}>{person.staffStatus === "active" ? "Full access" : "Customer only"}</em><button onClick={() => void change(person)} disabled={person.id === currentUserId}>{person.staffStatus === "active" ? <><ShieldOff size={15} />Disable staff</> : <><ShieldCheck size={15} />Make staff</>}</button></article>)}</div></section> : <section className={styles.panel}><header><div><small>Security record</small><h2>Recent administrative activity</h2></div><History size={19} /></header><div className={styles.audit}>{data.audit.map((item) => <article key={item.id}><span>{item.action.replaceAll(".", " · ")}</span><small>{item.entityType}{item.entityId ? ` · ${item.entityId}` : ""}</small><time>{when(item.createdAt)}</time></article>)}</div></section>}</>;
+  const { showToast } = useToast();
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [audit, setAudit] = useState<AuditLog[]>([]);
+  const [tab, setTab] = useState<"staff" | "audit">("staff");
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [staffPayload, auditPayload] = await Promise.all([
+        apiRequest<ListResponse<StaffMember>>("/api/admin/staff?page_size=50"),
+        apiRequest<ListResponse<AuditLog>>("/api/v1/common/operations/audit-logs?page_size=30"),
+      ]);
+      setStaff(staffPayload.items ?? []);
+      setAudit(auditPayload.items ?? []);
+    } catch {
+      showToast("Staff security records could not be loaded.");
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function invite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    try {
+      await apiRequest<StaffMember>("/api/admin/staff", {
+        method: "POST",
+        body: JSON.stringify({ email: form.get("email"), role: form.get("role") }),
+      });
+      event.currentTarget.reset();
+      showToast("Staff invitation sent.");
+      await load();
+    } catch (reason) {
+      showToast(reason instanceof Error ? reason.message : "Staff invitation could not be sent.");
+    }
+  }
+
+  async function change(person: StaffMember, body: Record<string, unknown>) {
+    try {
+      const updated = await apiRequest<StaffMember>(`/api/admin/staff/${person.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      setStaff((current) => current.map((item) => item.id === person.id ? updated : item));
+      showToast("Staff access updated.");
+    } catch (reason) {
+      showToast(reason instanceof Error ? reason.message : "Staff access could not be changed.");
+    }
+  }
+
+  return (
+    <>
+      <div className={styles.tabs}>
+        <button className={tab === "staff" ? styles.active : ""} onClick={() => setTab("staff")}><UserRoundCog size={16} />Staff accounts</button>
+        <button className={tab === "audit" ? styles.active : ""} onClick={() => setTab("audit")}><History size={16} />Audit history</button>
+        <button onClick={() => void load()} disabled={loading}><RefreshCw size={16} />{loading ? "Loading..." : "Refresh"}</button>
+      </div>
+      {tab === "staff" ? (
+        <section className={styles.panel}>
+          <header><div><small>Account security</small><h2>Admin and staff access</h2></div><ShieldCheck size={19} /></header>
+          <p className={styles.note}>Staff management uses the existing Django `/api/admin/staff` route and preserves backend authorization rules.</p>
+          <form className={styles.settingGrid} onSubmit={invite}>
+            <label><span>Email</span><input name="email" type="email" required /></label>
+            <label><span>Role</span><select name="role" defaultValue="staff"><option value="staff">Staff</option><option value="admin">Admin</option></select></label>
+            <button type="submit">Invite staff</button>
+          </form>
+          <div className={styles.people}>
+            {staff.map((person) => (
+              <article key={person.id}>
+                <span className={person.is_active ? styles.avatarActive : styles.avatar}>{(person.name || person.email || "?").slice(0, 1).toUpperCase()}</span>
+                <div><strong>{person.name || person.email || "Staff member"}</strong><small>{person.email || "No email"} - {person.role}</small></div>
+                <em className={person.is_active ? styles.enabled : styles.disabled}>{person.is_active ? "Active" : "Inactive"}</em>
+                <button onClick={() => void change(person, { is_active: !person.is_active })}>{person.is_active ? <><ShieldOff size={15} />Disable</> : <><ShieldCheck size={15} />Enable</>}</button>
+                <button onClick={() => void change(person, { role: person.role === "admin" ? "staff" : "admin" })}>{person.role === "admin" ? "Make staff" : "Make admin"}</button>
+              </article>
+            ))}
+            {!loading && !staff.length ? <div className={styles.empty}>No staff records found.</div> : null}
+          </div>
+        </section>
+      ) : (
+        <section className={styles.panel}>
+          <header><div><small>Security record</small><h2>Recent admin activity</h2></div><History size={19} /></header>
+          <div className={styles.audit}>
+            {audit.map((item) => (
+              <article key={item.id}>
+                <span>{item.method || "API"} {item.path || "request"}</span>
+                <small>{item.actor_email || "Unknown actor"} - {item.status_code || "status pending"}</small>
+                <time>{when(item.created_at)}</time>
+              </article>
+            ))}
+            {!loading && !audit.length ? <div className={styles.empty}>No audit log rows found.</div> : null}
+          </div>
+        </section>
+      )}
+    </>
+  );
 }

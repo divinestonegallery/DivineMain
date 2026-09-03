@@ -4,52 +4,48 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Boxes, CheckCircle2, ExternalLink, PackageX, RefreshCw, Save, Search } from "lucide-react";
+import { apiRequest } from "@/api/client";
 import { useToast } from "@/components/ui/toast";
 import styles from "./commerce-admin.module.css";
 
-type StockState = "in_stock" | "low_stock" | "out_of_stock" | "inactive";
-type InventoryItem = {
-  id: string;
-  productName: string;
-  productSlug: string;
-  productStatus: "draft" | "active" | "archived";
-  sku: string;
-  variantName: string;
-  inventoryKind: "unique" | "repeatable";
-  stockQuantity: number;
-  lowStockThreshold: number;
-  reservedQuantity: number;
-  availableQuantity: number;
-  isActive: boolean;
-  stockState: StockState;
-};
-type InventoryPayload = {
-  data: InventoryItem[];
-  summary: { totalVariants: number; inStock: number; lowStock: number; outOfStock: number; reserved: number };
+type AdminProduct = {
+  id: number;
+  name: string;
+  slug: string;
+  status: "draft" | "active" | "archived";
+  availability: "in_stock" | "made_to_order" | "out_of_stock";
+  sales_mode: "quote_only" | "buy_and_quote" | "direct_purchase";
+  display_order?: number;
 };
 
-const labels: Record<StockState, string> = { in_stock: "In stock", low_stock: "Low stock", out_of_stock: "Out of stock", inactive: "Inactive" };
+type ProductList = {
+  items: AdminProduct[];
+};
 
-function InventoryRow({ item, onSaved }: { item: InventoryItem; onSaved: (payload: InventoryPayload) => void }) {
+const availabilityLabels = {
+  in_stock: "In stock",
+  made_to_order: "Made to order",
+  out_of_stock: "Out of stock",
+};
+
+function InventoryRow({ item, refresh }: { item: AdminProduct; refresh: () => Promise<void> }) {
   const { showToast } = useToast();
-  const [stock, setStock] = useState(String(item.stockQuantity));
-  const [threshold, setThreshold] = useState(String(item.lowStockThreshold));
-  const [isActive, setIsActive] = useState(item.isActive);
+  const [availability, setAvailability] = useState(item.availability);
+  const [status, setStatus] = useState(item.status);
+  const [salesMode, setSalesMode] = useState(item.sales_mode);
   const [saving, setSaving] = useState(false);
 
   async function save() {
     setSaving(true);
     try {
-      const response = await fetch("/api/v1/admin/inventory", {
+      await apiRequest<AdminProduct>(`/api/admin/products/${item.id}`, {
         method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: item.id, stockQuantity: Number(stock), lowStockThreshold: Number(threshold), isActive }),
+        body: JSON.stringify({ availability, status, sales_mode: salesMode }),
       });
-      if (!response.ok) throw new Error();
-      onSaved(await response.json() as InventoryPayload);
-      showToast(`${item.sku} inventory updated.`);
-    } catch {
-      showToast(`Could not update ${item.sku}. Stock values must be zero or greater.`);
+      showToast(`${item.name} availability updated.`);
+      await refresh();
+    } catch (reason) {
+      showToast(reason instanceof Error ? reason.message : "Availability could not be updated.");
     } finally {
       setSaving(false);
     }
@@ -57,73 +53,90 @@ function InventoryRow({ item, onSaved }: { item: InventoryItem; onSaved: (payloa
 
   return (
     <article className={styles.inventoryRow}>
-      <div className={styles.inventoryIdentity}><strong>{item.productName}</strong><span>{item.variantName} · {item.sku}</span><small>{item.inventoryKind === "unique" ? "One-of-a-kind piece" : "Repeatable variant"} · Product {item.productStatus}</small></div>
-      <span className={`${styles.stockPill} ${styles[item.stockState]}`}>{labels[item.stockState]}</span>
-      <div className={styles.stockMetric}><small>Reserved</small><strong>{item.reservedQuantity}</strong></div>
-      <div className={styles.stockMetric}><small>Available</small><strong>{item.availableQuantity}</strong></div>
-      <label><span>Total stock</span><input inputMode="numeric" value={stock} onChange={(event) => setStock(event.target.value)} /></label>
-      <label><span>Low-stock alert at</span><input inputMode="numeric" value={threshold} onChange={(event) => setThreshold(event.target.value)} /></label>
-      <label className={styles.switchField}><input type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} /><span>Available for sale</span></label>
-      <div className={styles.inventoryActions}><Link href={`/products/${item.productSlug}`} target="_blank" aria-label={`View ${item.productName}`}><ExternalLink size={15} /></Link><button className={styles.primaryButton} onClick={() => void save()} disabled={saving}><Save size={15} />{saving ? "Saving…" : "Save"}</button></div>
+      <div className={styles.inventoryIdentity}>
+        <strong>{item.name}</strong>
+        <span>{item.slug || "slug pending"}</span>
+        <small>Product status: {item.status}</small>
+      </div>
+      <span className={`${styles.stockPill} ${styles[item.availability === "out_of_stock" ? "out_of_stock" : item.status === "archived" ? "inactive" : "in_stock"]}`}>{availabilityLabels[item.availability]}</span>
+      <div className={styles.stockMetric}><small>ID</small><strong>{item.id}</strong></div>
+      <div className={styles.stockMetric}><small>Order</small><strong>{item.display_order ?? 999}</strong></div>
+      <label><span>Availability</span><select value={availability} onChange={(event) => setAvailability(event.target.value)}><option value="in_stock">In stock</option><option value="made_to_order">Made to order</option><option value="out_of_stock">Out of stock</option></select></label>
+      <label><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="draft">Draft</option><option value="active">Active</option><option value="archived">Archived</option></select></label>
+      <label><span>Sales mode</span><select value={salesMode} onChange={(event) => setSalesMode(event.target.value)}><option value="quote_only">Quote only</option><option value="buy_and_quote">Buy and quote</option><option value="direct_purchase">Direct purchase</option></select></label>
+      <div className={styles.inventoryActions}>
+        {item.slug ? <Link href={`/products/${item.slug}`} target="_blank" aria-label={`View ${item.name}`}><ExternalLink size={15} /></Link> : null}
+        <button className={styles.primaryButton} onClick={() => void save()} disabled={saving}><Save size={15} />{saving ? "Saving..." : "Save"}</button>
+      </div>
     </article>
   );
 }
 
 export function InventoryAdmin() {
   const { showToast } = useToast();
-  const [payload, setPayload] = useState<InventoryPayload | null>(null);
+  const [items, setItems] = useState<AdminProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | StockState>("all");
+  const [filter, setFilter] = useState<"all" | "in_stock" | "made_to_order" | "out_of_stock" | "draft" | "active" | "archived">("all");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/v1/admin/inventory", { cache: "no-store" });
-      if (!response.ok) throw new Error();
-      setPayload(await response.json() as InventoryPayload);
+      const payload = await apiRequest<ProductList>("/api/admin/products?page_size=100");
+      setItems(payload.items ?? []);
     } catch {
-      showToast("Inventory could not be loaded.");
+      showToast("Product availability could not be loaded.");
     } finally {
       setLoading(false);
     }
   }, [showToast]);
-  useEffect(() => {
-    let cancelled = false;
-    void fetch("/api/v1/admin/inventory", { cache: "no-store" })
-      .then((response) => {
-        if (!response.ok) throw new Error();
-        return response.json() as Promise<InventoryPayload>;
-      })
-      .then((data) => { if (!cancelled) setPayload(data); })
-      .catch(() => { if (!cancelled) showToast("Inventory could not be loaded."); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [showToast]);
 
-  const items = useMemo(() => {
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const filteredItems = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return (payload?.data ?? []).filter((item) => (filter === "all" || item.stockState === filter) && (!normalized || `${item.productName} ${item.variantName} ${item.sku}`.toLowerCase().includes(normalized)));
-  }, [payload, query, filter]);
+    return items.filter((item) => {
+      const matchesFilter = filter === "all" || item.availability === filter || item.status === filter;
+      const matchesQuery = !normalized || `${item.name} ${item.slug}`.toLowerCase().includes(normalized);
+      return matchesFilter && matchesQuery;
+    });
+  }, [filter, items, query]);
 
   const cards = [
-    { label: "Variants", value: payload?.summary.totalVariants ?? 0, icon: Boxes, tone: "neutral" },
-    { label: "In stock", value: payload?.summary.inStock ?? 0, icon: CheckCircle2, tone: "success" },
-    { label: "Low stock", value: payload?.summary.lowStock ?? 0, icon: AlertTriangle, tone: "warning" },
-    { label: "Out of stock", value: payload?.summary.outOfStock ?? 0, icon: PackageX, tone: "danger" },
+    { label: "Products", value: items.length, icon: Boxes, tone: "neutral", filter: "all" },
+    { label: "Active", value: items.filter((item) => item.status === "active").length, icon: CheckCircle2, tone: "success", filter: "active" },
+    { label: "Draft", value: items.filter((item) => item.status === "draft").length, icon: AlertTriangle, tone: "warning", filter: "draft" },
+    { label: "Out of stock", value: items.filter((item) => item.availability === "out_of_stock").length, icon: PackageX, tone: "danger", filter: "out_of_stock" },
   ];
 
   return (
     <section className={styles.managementSection}>
-      <div className={styles.summaryGrid}>{cards.map(({ label, value, icon: Icon, tone }) => <button key={label} className={styles[tone]} onClick={() => setFilter(label === "Variants" ? "all" : label === "In stock" ? "in_stock" : label === "Low stock" ? "low_stock" : "out_of_stock")}><Icon size={19} /><span><small>{label}</small><strong>{value}</strong></span></button>)}</div>
+      <div className={styles.summaryGrid}>
+        {cards.map(({ label, value, icon: Icon, tone, filter: cardFilter }) => (
+          <button key={label} className={styles[tone]} onClick={() => setFilter(cardFilter)}>
+            <Icon size={19} />
+            <span><small>{label}</small><strong>{value}</strong></span>
+          </button>
+        ))}
+      </div>
       <div className={styles.inventoryToolbar}>
-        <label><Search size={17} /><input type="search" placeholder="Search product or SKU" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
-        <select value={filter} onChange={(event) => setFilter(event.target.value as typeof filter)} aria-label="Filter inventory status"><option value="all">All stock states</option><option value="in_stock">In stock</option><option value="low_stock">Low stock</option><option value="out_of_stock">Out of stock</option><option value="inactive">Inactive</option></select>
-        <button className={styles.secondaryButton} onClick={() => void load()} disabled={loading}><RefreshCw size={16} />{loading ? "Loading…" : "Refresh"}</button>
+        <label><Search size={17} /><input type="search" placeholder="Search product" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+        <select value={filter} onChange={(event) => setFilter(event.target.value as typeof filter)} aria-label="Filter product availability">
+          <option value="all">All products</option>
+          <option value="active">Active</option>
+          <option value="draft">Draft</option>
+          <option value="archived">Archived</option>
+          <option value="in_stock">In stock</option>
+          <option value="made_to_order">Made to order</option>
+          <option value="out_of_stock">Out of stock</option>
+        </select>
+        <button className={styles.secondaryButton} onClick={() => void load()} disabled={loading}><RefreshCw size={16} />{loading ? "Loading..." : "Refresh"}</button>
       </div>
       <div className={styles.inventoryList}>
-        {items.map((item) => <InventoryRow key={item.id} item={item} onSaved={setPayload} />)}
-        {!loading && !items.length ? <p className={styles.emptyMessage}>No inventory matches this view.</p> : null}
+        {filteredItems.map((item) => <InventoryRow key={item.id} item={item} refresh={load} />)}
+        {!loading && !filteredItems.length ? <p className={styles.emptyMessage}>No products match this view.</p> : null}
       </div>
     </section>
   );

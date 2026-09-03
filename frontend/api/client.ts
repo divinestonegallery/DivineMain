@@ -1,5 +1,5 @@
 // @ts-nocheck
-const rawBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const rawBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "https://api.divinestonegallery.com";
 
 export const API_BASE_URL = rawBaseUrl
   .trim()
