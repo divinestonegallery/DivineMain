@@ -30,7 +30,7 @@ export interface ProductFilters {
   availability?: "in_stock" | "made_to_order" | "out_of_stock";
   min_price?: number | string;
   max_price?: number | string;
-  sort?: "price_asc" | "price_desc" | "newest" | "oldest" | "featured" | "display_order";
+  sort?: "newest" | "oldest" | "featured" | "display_order";
 }
 
 export interface TaxonomyItem {
@@ -66,6 +66,8 @@ export interface ProductListResult {
     page_size: number;
     total_items: number;
     total_pages: number;
+    has_next_page?: boolean;
+    has_previous_page?: boolean;
   };
 }
 

@@ -18,7 +18,7 @@
 .videoHero {
   position: relative;
   isolation: isolate;
-  min-height: clamp(660px, calc(100svh - 117px), 900px);
+  min-height: 100svh;
   padding-top: 0;
   color: #fffaf1;
   background: #21180f url("/brand/home-hero-poster.jpg") center / cover no-repeat;

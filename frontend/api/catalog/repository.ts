@@ -1,10 +1,22 @@
 // @ts-nocheck
-import { CatalogItem, catalogItems } from "@/components/Catalog/catalog-data";
-import { getCategories, getDeities, getProduct, getProductListing } from "@/api/products";
+import type { CatalogItem } from "@/components/Catalog/catalog-data";
+import { getCategories, getDeities, getMaterials, getProduct, getProductListing } from "@/api/products";
+import type { ProductFilters, ProductListResult, TaxonomyItem } from "@/api/products";
 
 export type PublicCatalogFacets = {
-  categories: string[];
-  deities: string[];
+  categories: PublicCatalogOption[];
+  deities: PublicCatalogOption[];
+  materials: PublicCatalogOption[];
+};
+
+export type PublicCatalogOption = {
+  label: string;
+  value: string;
+};
+
+export type PublicCatalogListing = {
+  items: CatalogItem[];
+  pagination: ProductListResult["pagination"];
 };
 
 function text(value: unknown, fallback = "") {
@@ -21,6 +33,24 @@ function salesMode(value: string | null | undefined): CatalogItem["salesMode"] {
   if (value === "direct_purchase") return "direct";
   if (value === "buy_and_quote") return "both";
   return "quote";
+}
+
+function fallbackPagination(page = 1, pageSize = 24): ProductListResult["pagination"] {
+  return {
+    page,
+    page_size: pageSize,
+    total_items: 0,
+    total_pages: 0,
+    has_next_page: false,
+    has_previous_page: page > 1,
+  };
+}
+
+function toCatalogOption(item: TaxonomyItem): PublicCatalogOption {
+  return {
+    label: text(item.name, item.slug),
+    value: text(item.slug, item.name),
+  };
 }
 
 function toCatalogItem(product: any, index = 0): CatalogItem {
@@ -47,30 +77,25 @@ function toCatalogItem(product: any, index = 0): CatalogItem {
 }
 
 export async function getPublicCatalog(): Promise<CatalogItem[]> {
-  try {
-    const data = await getProductListing({ page_size: 100, sort: "display_order" });
-    const items = data.items?.map(toCatalogItem) ?? [];
-    return items.length ? items : catalogItems;
-  } catch {
-    return catalogItems;
-  }
+  const data = await getPublicCatalogListing({ page_size: 100, sort: "display_order" });
+  return data.items;
+}
+
+export async function getPublicCatalogListing(filters: ProductFilters = {}): Promise<PublicCatalogListing> {
+  const data = await getProductListing(filters);
+  return {
+    items: data.items?.map(toCatalogItem) ?? [],
+    pagination: data.pagination ?? fallbackPagination(filters.page, filters.page_size),
+  };
 }
 
 export async function getPublicCatalogFacets(): Promise<PublicCatalogFacets> {
-  const fallback = {
-    categories: [...new Set(catalogItems.map((item) => item.category))],
-    deities: [...new Set(catalogItems.map((item) => item.deity))],
+  const [categories, deities, materials] = await Promise.all([getCategories(), getDeities(), getMaterials()]);
+  return {
+    categories: categories.map(toCatalogOption),
+    deities: deities.map(toCatalogOption),
+    materials: materials.map(toCatalogOption),
   };
-
-  try {
-    const [categories, deities] = await Promise.all([getCategories(), getDeities()]);
-    return {
-      categories: categories.map((item) => item.name),
-      deities: deities.map((item) => item.name),
-    };
-  } catch {
-    return fallback;
-  }
 }
 
 export async function getPublicCatalogItem(slug: string) {
