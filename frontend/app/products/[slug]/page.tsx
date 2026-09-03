@@ -25,6 +25,7 @@ import {
   getRelatedPublicCatalogItems,
   getProductGallery,
 } from "@/api/catalog/repository";
+import type { CatalogItem } from "@/components/Catalog/catalog-data";
 import { ProductActions } from "@/components/Catalog/product-actions";
 import { ProductGallery } from "@/components/Catalog/product-gallery";
 import styles from "./product-page.module.css";
@@ -182,7 +183,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               <Link href="/shop">View all works <ArrowRight aria-hidden="true" size={16} /></Link>
             </div>
             <div className={styles.relatedGrid}>
-              {related.map((item) => (
+              {related.map((item: CatalogItem) => (
                 <article key={item.id}>
                   <Link className={styles.relatedImage} href={`/products/${item.slug}`}>
                     <Image src={item.image} alt={item.imageAlt} fill sizes="(max-width: 680px) 50vw, 33vw" />

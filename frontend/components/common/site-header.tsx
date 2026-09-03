@@ -175,7 +175,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       setDockedSearchVisible(rect.bottom <= headerOffset || rect.top >= window.innerHeight);
     };
 
-    if (!("IntersectionObserver" in window)) {
+    if (typeof window.IntersectionObserver === "undefined") {
       updateDockedSearch();
       window.addEventListener("scroll", updateDockedSearch, { passive: true });
       window.addEventListener("resize", updateDockedSearch);
@@ -306,7 +306,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       >
         <div className={`${styles.headerMain} site-container`}>
           <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home">
-            {/* {animateLogo && !logoAnimationFinished ? (
+            {animateLogo && !logoAnimationFinished ? (
               <>
                 <video
                   ref={logoVideoRef}
@@ -315,7 +315,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                   muted
                   playsInline
                   preload="metadata"
-                  poster="/brand/logo.png"
+                  poster="/brand/logo-horizontal.jpg"
                   aria-hidden="true"
                   onEnded={() => setLogoAnimationFinished(true)}
                   onError={() => setLogoAnimationFinished(true)}
@@ -326,9 +326,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               </>
             ) : (
               <Image className={styles.brandLogo} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
-            )} */}
-            <Image className={styles.brandLogo} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
-
+            )}
           </Link>
 
           <div className={styles.headerCenter}>
@@ -366,7 +364,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           </div>
 
           <div className={styles.headerActions}>
-            {/* <a
+            <a
               className={styles.planButton}
               href="https://wa.me/919166138566?text=Namaste%2C%20I%20would%20like%20assistance%20from%20Divine%20Stone%20Gallery."
               target="_blank"
@@ -376,7 +374,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               <MessageCircle aria-hidden="true" size={18} strokeWidth={1.7} />
               <span className={styles.planTextDesktop}>Plan with Gallery</span>
               <span className={styles.planTextMobile}>Plan</span>
-            </a> */}
+            </a>
             {/* <Link className={`${styles.bookingButton} ${styles.desktopOnlyAction}`} href="/cart" aria-label={`Enquiry bag with ${enquiryBag.count} ${enquiryBag.count === 1 ? "work" : "works"}`}>
               <ShoppingBag aria-hidden="true" size={18} strokeWidth={1.6} />
               <span>Enquiry Bag</span>

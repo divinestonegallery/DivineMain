@@ -568,7 +568,7 @@ export default async function Home() {
               id="popular-mooti"
               eyebrow="Gallery favorites"
               title="Popular Mooti"
-              // copy="Featured moorties selected by the backend HomeService."
+              copy="Featured moorties selected by the backend HomeService."
               products={getProducts(popular)}
               actionHref="/shop"
               actionLabel="View popular works"
@@ -576,14 +576,14 @@ export default async function Home() {
             <DiscoverySection
               eyebrow="Shop by devotion"
               title="Shop by Dream Mooti"
-              // copy="Discover active deity collections and their published works from the Home API."
+              copy="Discover active deity collections and their published works from the Home API."
               groups={dreamMootiGroups}
               surface
             />
             <ProductRailSection
               eyebrow="Temple forms"
               title="Shop Dream Temple"
-              // copy="Temple products are loaded from the backend dream temples block."
+              copy="Temple products are loaded from the backend dream temples block."
               products={getProducts(dreamTemples)}
               actionHref="/shop?q=temple"
               actionLabel="Explore temples"
