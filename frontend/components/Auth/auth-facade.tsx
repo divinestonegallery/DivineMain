@@ -22,6 +22,7 @@ export function useAuth() {
     userId: context.user?.id || null,
     getToken: async () => (typeof window === "undefined" ? null : window.localStorage.getItem(ACCESS_TOKEN_KEY)),
     signOut: context.signOut,
+    refresh: context.refresh,
   };
 }
 

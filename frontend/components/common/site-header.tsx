@@ -15,7 +15,8 @@ import {
   X,
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
-import { AccountControl } from "@/components/Auth/account-control";
+import { AccountControl, MobileAccountControl } from "@/components/Auth/account-control";
+import { AuthModal } from "@/components/Auth/auth-modal";
 import { useEnquiryBag, useSavedWorks } from "@/components/Customer/device-collections";
 import { getDeities, searchApplication } from "@/api/products";
 import styles from "./site-shell.module.css";
@@ -634,8 +635,13 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
         <Link className={pathname.startsWith("/shop") || pathname.startsWith("/products/") ? styles.mobileNavActive : undefined} href="/shop" aria-current={pathname.startsWith("/shop") || pathname.startsWith("/products/") ? "page" : undefined}><ShoppingBag aria-hidden="true" size={20} /><span>Shop</span></Link>
         <Link className={pathname.startsWith("/custom-murti") ? styles.mobileNavActive : undefined} href="/custom-murti" aria-current={pathname.startsWith("/custom-murti") ? "page" : undefined}><Sparkles aria-hidden="true" size={20} /><span>Custom</span></Link>
         <Link className={pathname.startsWith("/cart") ? styles.mobileNavActive : undefined} href="/cart" aria-current={pathname.startsWith("/cart") ? "page" : undefined}><ShoppingBag aria-hidden="true" size={20} /><span>Bag{enquiryBag.count ? ` (${enquiryBag.count})` : ""}</span></Link>
-        <Link className={pathname.startsWith("/account") ? styles.mobileNavActive : undefined} href="/account" aria-current={pathname.startsWith("/account") ? "page" : undefined}><CircleUserRound aria-hidden="true" size={20} /><span>Account</span></Link>
+        <MobileAccountControl 
+          activeClassName={pathname.startsWith("/account") ? styles.mobileNavActive : undefined} 
+          defaultClassName={undefined} 
+        />
       </nav>
+      
+      <AuthModal />
     </>
   );
 }

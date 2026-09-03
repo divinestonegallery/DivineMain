@@ -13,9 +13,14 @@ export function AccountControl({ className }: { className?: string }) {
 
   if (!configured) {
     return (
-      <Link className={className} href="/account" aria-label="Customer account">
+      <button 
+        type="button"
+        className={className} 
+        onClick={() => window.dispatchEvent(new CustomEvent("dsg:open-auth"))}
+        aria-label="Sign in to your account"
+      >
         <CircleUserRound aria-hidden="true" size={21} strokeWidth={1.6} />
-      </Link>
+      </button>
     );
   }
 
@@ -50,9 +55,14 @@ function ConfiguredAccountControl({ className }: { className?: string }) {
   return (
     <>
       <Show when="signed-out">
-        <Link className={className} href="/sign-in" aria-label="Sign in to your account">
+        <button 
+          type="button"
+          className={className} 
+          onClick={() => window.dispatchEvent(new CustomEvent("dsg:open-auth"))}
+          aria-label="Sign in to your account"
+        >
           <CircleUserRound aria-hidden="true" size={21} strokeWidth={1.6} />
-        </Link>
+        </button>
       </Show>
       <Show when="signed-in">
         <>
@@ -70,5 +80,48 @@ function ConfiguredAccountControl({ className }: { className?: string }) {
         </>
       </Show>
     </>
+  );
+}
+
+export function MobileAccountControl({ activeClassName, defaultClassName }: { activeClassName?: string; defaultClassName?: string }) {
+  const configured = useAuthConfigured();
+  
+  if (!configured) {
+    return (
+      <button 
+        type="button" 
+        className={defaultClassName} 
+        onClick={() => window.dispatchEvent(new CustomEvent("dsg:open-auth"))}
+      >
+        <CircleUserRound aria-hidden="true" size={20} />
+        <span>Account</span>
+      </button>
+    );
+  }
+
+  return <ConfiguredMobileAccountControl activeClassName={activeClassName} defaultClassName={defaultClassName} />;
+}
+
+function ConfiguredMobileAccountControl({ activeClassName, defaultClassName }: { activeClassName?: string; defaultClassName?: string }) {
+  const { isSignedIn, isLoaded } = useAuth();
+  
+  if (!isLoaded || !isSignedIn) {
+    return (
+      <button 
+        type="button" 
+        className={defaultClassName} 
+        onClick={() => window.dispatchEvent(new CustomEvent("dsg:open-auth"))}
+      >
+        <CircleUserRound aria-hidden="true" size={20} />
+        <span>Account</span>
+      </button>
+    );
+  }
+
+  return (
+    <Link className={activeClassName || defaultClassName} href="/account" aria-current={activeClassName ? "page" : undefined}>
+      <CircleUserRound aria-hidden="true" size={20} />
+      <span>Account</span>
+    </Link>
   );
 }

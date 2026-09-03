@@ -25,7 +25,7 @@ import { getHome } from "@/api/products";
 import type { HomeBlock, HomeData, HomeDeityGroup, ProductCard, ReviewCard, TaxonomyItem } from "@/api/products";
 import styles from "./page.module.css";
 
-import { PopularMoortiTabs } from "./popular-moorti-tabs";
+import { DynamicCategoryTabs } from "./dynamic-category-tabs";
 
 export async function generateMetadata(): Promise<Metadata> {
   const page = await getPublishedPage("home");
@@ -224,12 +224,14 @@ function HomeApiError({ message }: { message: string }) {
   );
 }
 
-function PopularMoortiSection({
+function DynamicTabsSection({
   id,
   eyebrow,
   title,
   copy,
   products,
+  groups,
+  groupBy,
   actionHref,
   actionLabel,
   surface = false,
@@ -238,17 +240,20 @@ function PopularMoortiSection({
   eyebrow: string;
   title: string;
   copy: string;
-  products: ProductCard[];
+  products?: ProductCard[];
+  groups?: HomeDeityGroup[];
+  groupBy?: "deity" | "category";
   actionHref: string;
   actionLabel: string;
   surface?: boolean;
 }) {
+  const hasContent = (products && products.length > 0) || (groups && groups.length > 0);
   return (
     <section className={`${styles.dataSection} ${surface ? styles.surfaceSection : ""}`} id={id}>
       <div className="site-container">
         <SectionHeading eyebrow={eyebrow} title={title} copy={copy} href={actionHref} actionLabel={actionLabel} />
-        {products.length ? (
-          <PopularMoortiTabs products={products} title={title} />
+        {hasContent ? (
+          <DynamicCategoryTabs products={products} groups={groups} groupBy={groupBy} idPrefix={id || "tabs"} />
         ) : (
           <EmptySection label={`${title} is waiting for backend items`} />
         )}
@@ -390,26 +395,17 @@ function CategoriesSection({ categories }: { categories: TaxonomyItem[] }) {
 }
 
 function HomeDecorSection({ products, groups }: { products: ProductCard[]; groups: HomeDeityGroup[] }) {
-  if (products.length) {
-    return (
-      <ProductRailSection
-        eyebrow="Sacred accents"
-        title="Shop by Home Decor"
-        copy="Lamps, pots, bowls and devotional accents are rendered from the home decor block."
-        products={products}
-        actionHref="/shop?q=home%20decor"
-        actionLabel="Explore home decor"
-        surface
-      />
-    );
-  }
-
   return (
-    <DiscoverySection
+    <DynamicTabsSection
+      id="home-decor"
       eyebrow="Sacred accents"
       title="Shop by Home Decor"
       copy="Lamps, pots, bowls and devotional accents are rendered from the home decor block."
+      products={products}
       groups={groups}
+      groupBy="category"
+      actionHref="/shop?q=home%20decor"
+      actionLabel="Explore home decor"
       surface
     />
   );
@@ -599,7 +595,7 @@ export default async function Home() {
           <HomeApiError message={error} />
         ) : (
           <>
-            <PopularMoortiSection
+            <ProductRailSection
               id="popular-mooti"
               eyebrow="Gallery favorites"
               title="Popular Mooti"
@@ -608,11 +604,16 @@ export default async function Home() {
               actionHref="/shop"
               actionLabel="View popular works"
             />
-            <DiscoverySection
+            <DynamicTabsSection
+              id="dream-mooti"
               eyebrow="Shop by devotion"
               title="Shop by Dream Mooti"
               copy="Discover active deity collections and their published works from the Home API."
               groups={dreamMootiGroups}
+              products={getProducts(dreamMooti)}
+              groupBy="deity"
+              actionHref="/shop"
+              actionLabel="Explore shop"
               surface
             />
             <ProductRailSection
