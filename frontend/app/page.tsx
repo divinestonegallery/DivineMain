@@ -25,6 +25,8 @@ import { getHome } from "@/api/products";
 import type { HomeBlock, HomeData, HomeDeityGroup, ProductCard, ReviewCard, TaxonomyItem } from "@/api/products";
 import styles from "./page.module.css";
 
+import { PopularMoortiTabs } from "./popular-moorti-tabs";
+
 export async function generateMetadata(): Promise<Metadata> {
   const page = await getPublishedPage("home");
   return {
@@ -217,6 +219,39 @@ function HomeApiError({ message }: { message: string }) {
           <h2 className="font-display">Home data could not be loaded.</h2>
           <p>{message}</p>
         </div>
+      </div>
+    </section>
+  );
+}
+
+function PopularMoortiSection({
+  id,
+  eyebrow,
+  title,
+  copy,
+  products,
+  actionHref,
+  actionLabel,
+  surface = false,
+}: {
+  id?: string;
+  eyebrow: string;
+  title: string;
+  copy: string;
+  products: ProductCard[];
+  actionHref: string;
+  actionLabel: string;
+  surface?: boolean;
+}) {
+  return (
+    <section className={`${styles.dataSection} ${surface ? styles.surfaceSection : ""}`} id={id}>
+      <div className="site-container">
+        <SectionHeading eyebrow={eyebrow} title={title} copy={copy} href={actionHref} actionLabel={actionLabel} />
+        {products.length ? (
+          <PopularMoortiTabs products={products} title={title} />
+        ) : (
+          <EmptySection label={`${title} is waiting for backend items`} />
+        )}
       </div>
     </section>
   );
@@ -564,7 +599,7 @@ export default async function Home() {
           <HomeApiError message={error} />
         ) : (
           <>
-            <ProductRailSection
+            <PopularMoortiSection
               id="popular-mooti"
               eyebrow="Gallery favorites"
               title="Popular Mooti"
