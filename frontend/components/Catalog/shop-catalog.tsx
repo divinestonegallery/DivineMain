@@ -8,7 +8,6 @@ import { ReactNode, useMemo, useState } from "react";
 import {
   ArrowRight,
   ChevronDown,
-  Heart,
   Search,
   SlidersHorizontal,
   Sparkles,
@@ -16,7 +15,7 @@ import {
 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useSavedWorks } from "@/components/Customer/device-collections";
+
 import { CatalogItem } from "./catalog-data";
 import styles from "./shop-catalog.module.css";
 
@@ -56,7 +55,7 @@ function FilterControls({ filters, setFilters, categories, deities }: { filters:
   );
 }
 
-function ProductCard({ item, saved, toggleSaved }: { item: CatalogItem; saved: boolean; toggleSaved: () => void }) {
+function ProductCard({ item }: { item: CatalogItem }) {
   const whatsappText = encodeURIComponent(`Namaste, I would like details about the ${item.name} (${item.height} inch).`);
 
   return (
@@ -66,9 +65,7 @@ function ProductCard({ item, saved, toggleSaved }: { item: CatalogItem; saved: b
           <Image src={item.image} alt={`${item.name}, ${item.height}-inch hand-carved marble work`} fill sizes="(max-width: 680px) 50vw, (max-width: 1050px) 33vw, 25vw" />
         </Link>
         <span className={styles.heightBadge}>{item.height}&quot;</span>
-        <button className={`${styles.saveButton} ${saved ? styles.saved : ""}`} type="button" onClick={toggleSaved} aria-label={saved ? `Remove ${item.name} from wishlist` : `Save ${item.name} to wishlist`} aria-pressed={saved}>
-          <Heart aria-hidden="true" size={18} fill={saved ? "currentColor" : "none"} />
-        </button>
+
       </div>
       <div className={styles.productInfo}>
         <span>{item.category} · {item.deity}</span>
@@ -89,7 +86,7 @@ export function ShopCatalog({ breadcrumbs, products: catalogProducts, availableC
   const [sort, setSort] = useState("featured");
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
   const [filterOpen, setFilterOpen] = useState(false);
-  const savedWorks = useSavedWorks();
+
   const { showToast } = useToast();
   const categories = useMemo(() => ["All", ...Array.from(new Set([...availableCategories, ...catalogProducts.map((item) => item.category)]))], [availableCategories, catalogProducts]);
   const deities = useMemo(() => ["All", ...Array.from(new Set([...availableDeities, ...catalogProducts.map((item) => item.deity)]))], [availableDeities, catalogProducts]);
@@ -126,10 +123,7 @@ export function ShopCatalog({ breadcrumbs, products: catalogProducts, availableC
     setQuery("");
   }
 
-  function toggleSaved(item: CatalogItem) {
-    const willSave = savedWorks.toggle(item.id);
-    showToast(willSave ? `${item.name} added to your wishlist.` : `${item.name} removed from your wishlist.`);
-  }
+
 
   return (
     <>
@@ -210,7 +204,7 @@ export function ShopCatalog({ breadcrumbs, products: catalogProducts, availableC
               {products.length ? (
                 <div className={styles.productGrid}>
                   {products.map((item) => (
-                    <ProductCard item={item} key={item.id} saved={savedWorks.ids.has(item.id)} toggleSaved={() => toggleSaved(item)} />
+                    <ProductCard item={item} key={item.id} />
                   ))}
                 </div>
               ) : (

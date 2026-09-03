@@ -1,11 +1,11 @@
 // @ts-nocheck
 "use client";
 
-import { Heart, MessageCircle, Phone, Share2, ShoppingBag } from "lucide-react";
+import { MessageCircle, Phone, Share2, ShoppingBag } from "lucide-react";
 import { buttonClassName, Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { brand } from "@/src/config/brand";
-import { useEnquiryBag, useSavedWorks } from "@/components/Customer/device-collections";
+import { useEnquiryBag } from "@/components/Customer/device-collections";
 import styles from "@/app/products/[slug]/product-page.module.css";
 
 export function ProductActions({
@@ -25,9 +25,7 @@ export function ProductActions({
   stockQuantity?: number;
   salesMode?: "direct" | "quote" | "both";
 }) {
-  const savedWorks = useSavedWorks();
   const enquiryBag = useEnquiryBag();
-  const saved = savedWorks.ids.has(productId);
   const inBag = enquiryBag.ids.has(productId);
   const { showToast } = useToast();
   const message = encodeURIComponent(
@@ -64,17 +62,7 @@ export function ProductActions({
           <Phone aria-hidden="true" size={18} /> Call {brand.phone}
         </a>
         <div className={styles.secondaryActions}>
-          <Button
-            variant="ghost"
-            aria-pressed={saved}
-            onClick={() => {
-              const added = savedWorks.toggle(productId);
-              showToast(added ? "Added to your wishlist." : "Removed from your wishlist.");
-            }}
-          >
-            <Heart aria-hidden="true" size={17} fill={saved ? "currentColor" : "none"} />
-            {saved ? "Saved" : "Save"}
-          </Button>
+
           <Button
             variant="ghost"
             aria-pressed={inBag}

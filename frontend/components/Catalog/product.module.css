@@ -7,8 +7,7 @@
 .productImagePlaceholder small { color: var(--ink-muted); font-size: 0.66rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; }
 .productCard:hover .productMedia > a img { transform: scale(1.025); }
 .productBadges { position: absolute; top: 0.75rem; left: 0.75rem; display: flex; max-width: calc(100% - 4rem); flex-wrap: wrap; gap: 0.35rem; pointer-events: none; }
-.wishlistButton { position: absolute; top: 0.7rem; right: 0.7rem; display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid rgb(255 255 255 / 0.72); border-radius: 50%; color: var(--foreground); background: rgb(255 253 249 / 0.88); cursor: pointer; backdrop-filter: blur(10px); }
-.wishlistButton.wishlisted { color: var(--danger); }
+
 .quickAdd { position: absolute; right: 0.75rem; bottom: 0.75rem; left: 0.75rem; width: calc(100% - 1.5rem); opacity: 0; transform: translateY(8px); transition: opacity var(--transition-fast), transform var(--transition-fast); }
 .productCard:hover .quickAdd, .quickAdd:focus-visible { opacity: 1; transform: translateY(0); }
 .productInfo { display: flex; flex-direction: column; align-items: flex-start; padding: 0.9rem 0.15rem 0; }
@@ -36,7 +35,7 @@
 
 @media (max-width: 680px) {
   .productBadges { top: 0.5rem; left: 0.5rem; }
-  .wishlistButton { top: 0.45rem; right: 0.45rem; width: 36px; height: 36px; }
+
   .quickAdd { display: none; }
   .gallery { grid-template-columns: 1fr; }
   .galleryMain { grid-column: 1; grid-row: 1; }

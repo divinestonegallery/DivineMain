@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Gem, Heart, ShoppingBag } from "lucide-react";
-import { useState } from "react";
+import { Gem, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -76,7 +75,7 @@ function priceFallback(product: ProductCardInput) {
 }
 
 export function ProductCard({ product, priority = false, href }: { product: ProductCardInput; priority?: boolean; href?: string }) {
-  const [wishlisted, setWishlisted] = useState(false);
+
   const { showToast } = useToast();
   const name = productName(product);
   const image = productImage(product, name);
@@ -115,18 +114,7 @@ export function ProductCard({ product, priority = false, href }: { product: Prod
           {isReadyToShip(product, availability) ? <Badge tone="success">Ready to ship</Badge> : null}
           {isCustomizable(product) ? <Badge tone="gold">Customizable</Badge> : null}
         </div>
-        <button
-          className={`${styles.wishlistButton} ${wishlisted ? styles.wishlisted : ""}`}
-          type="button"
-          aria-label={wishlisted ? `Remove ${name} from wishlist` : `Add ${name} to wishlist`}
-          aria-pressed={wishlisted}
-          onClick={() => {
-            setWishlisted((value) => !value);
-            showToast(wishlisted ? "Removed from your wishlist." : "Saved to your wishlist.");
-          }}
-        >
-          <Heart aria-hidden="true" size={19} fill={wishlisted ? "currentColor" : "none"} strokeWidth={1.5} />
-        </button>
+
         <Button className={styles.quickAdd} disabled={unavailable} size="sm" onClick={addToBag}>
           <ShoppingBag aria-hidden="true" size={15} />
           {unavailable ? "Sold out" : "Quick add"}

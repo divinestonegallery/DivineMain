@@ -16,7 +16,6 @@ export default function robots(): MetadataRoute.Robots {
         "/checkout",
         "/sign-in",
         "/sign-up",
-        "/wishlist",
       ],
     },
     sitemap: `${siteUrl}/sitemap.xml`,

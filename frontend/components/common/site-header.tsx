@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CircleUserRound,
-  Heart,
   Home,
   Menu,
   MessageCircle,
@@ -17,7 +16,7 @@ import {
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { AccountControl, MobileAccountControl } from "@/components/Auth/account-control";
 import { AuthModal } from "@/components/Auth/auth-modal";
-import { useEnquiryBag, useSavedWorks } from "@/components/Customer/device-collections";
+import { useEnquiryBag } from "@/components/Customer/device-collections";
 import { getDeities, searchApplication } from "@/api/products";
 import styles from "./site-shell.module.css";
 
@@ -82,7 +81,6 @@ function searchDeities(results: { deities?: Array<{ id?: number; name: string; s
 
 export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const pathname = usePathname();
-  const savedWorks = useSavedWorks();
   const enquiryBag = useEnquiryBag();
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   const [megaMenuClosing, setMegaMenuClosing] = useState(false);
@@ -382,10 +380,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               {enquiryBag.count ? <strong>{enquiryBag.count}</strong> : null}
             </Link> */}
             <AccountControl className={`${styles.headerAction} ${styles.desktopOnlyAction}`} />
-            <Link className={`${styles.headerAction} ${styles.desktopOnlyAction}`} href="/wishlist" aria-label={`Wishlist with ${savedWorks.count} saved ${savedWorks.count === 1 ? "work" : "works"}`}>
-              <Heart aria-hidden="true" size={21} strokeWidth={1.6} />
-              {savedWorks.count ? <span className={styles.actionBadge}>{savedWorks.count}</span> : null}
-            </Link>
+
             <button
               className={styles.headerAction}
               type="button"
@@ -606,7 +601,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
             <nav className={styles.mobileNav} aria-label="Mobile navigation">
               <Link href="/shop" onClick={() => setMobileMenuOpen(false)}>Shop all moorties</Link>
               <Link href="/cart" onClick={() => setMobileMenuOpen(false)}>Enquiry bag</Link>
-              <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)}>Wishlist</Link>
+
               {mainLinks.map(([label, href]) => (
                 <Link href={href} key={href} onClick={() => setMobileMenuOpen(false)}>
                   {label}

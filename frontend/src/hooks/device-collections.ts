@@ -20,28 +20,3 @@ export function useEnquiryBag() {
   return { count };
 }
 
-export function useSavedWorks() {
-  const [count, setCount] = useState(0);
-  
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(window.localStorage.getItem("dsg_wishlist") ?? "[]");
-      setCount(Array.isArray(saved) ? saved.length : 0);
-    } catch {
-      setCount(0);
-    }
-    
-    const handleWishlistUpdate = () => {
-       try {
-        const saved = JSON.parse(window.localStorage.getItem("dsg_wishlist") ?? "[]");
-        setCount(Array.isArray(saved) ? saved.length : 0);
-      } catch {
-        setCount(0);
-      }
-    };
-    window.addEventListener("wishlist-updated", handleWishlistUpdate);
-    return () => window.removeEventListener("wishlist-updated", handleWishlistUpdate);
-  }, []);
-
-  return { count };
-}

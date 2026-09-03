@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   CircleUserRound,
-  Heart,
   KeyRound,
   MessageCircle,
   PackageSearch,
@@ -16,11 +15,10 @@ import {
 } from "lucide-react";
 import { AccountBootstrap } from "@/components/Auth/account-bootstrap";
 import { useAuthConfigured } from "@/components/Auth/auth-provider";
-import { useEnquiryBag, useSavedWorks } from "./device-collections";
+import { useEnquiryBag } from "./device-collections";
 import styles from "./customer-page.module.css";
 
 function AccountCards({ status, preferences }: { status: React.ReactNode; preferences?: React.ReactNode }) {
-  const savedWorks = useSavedWorks();
   const enquiryBag = useEnquiryBag();
 
   return (
@@ -34,13 +32,7 @@ function AccountCards({ status, preferences }: { status: React.ReactNode; prefer
           <p>Track quotations, reference images, production milestones and approvals.</p>
           <Link href="/account/commissions">View commissions <ArrowRight aria-hidden="true" size={15} /></Link>
         </article>
-        <article className={styles.accountCard}>
-          <Heart aria-hidden="true" size={22} />
-          <strong>{savedWorks.count}</strong>
-          <h2 className="font-display">Wishlist</h2>
-          <p>Works saved while you explore the collection.</p>
-          <Link href="/wishlist">View wishlist <ArrowRight aria-hidden="true" size={15} /></Link>
-        </article>
+
         <article className={styles.accountCard}>
           <ShoppingBag aria-hidden="true" size={22} />
           <strong>{enquiryBag.count}</strong>
