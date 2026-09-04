@@ -138,9 +138,9 @@ function StaticArtisansPage() {
           <div className="site-container">
             <div className={styles.galleryHeading}><div><p className={styles.eyebrow}>The craft, completed</p><h2 className="font-display">Details in devotion.</h2></div><Link href="/shop">Explore all works <ArrowRight aria-hidden="true" size={16} /></Link></div>
             <div className={styles.galleryGrid}>
-              <Link href="/products/ornate-ganesh-24-inch-marble"><Image src="/catalog/ganesh-24.jpg" alt="Ornate hand-painted marble Ganesha" fill sizes="(max-width: 680px) 50vw, 33vw" /><span>Ornamentation</span></Link>
-              <Link href="/products/lakshmi-mata-24-inch-marble"><Image src="/catalog/lakshmi-24.jpg" alt="Hand-painted Lakshmi Mata marble moorti" fill sizes="(max-width: 680px) 50vw, 33vw" /><span>Expression</span></Link>
-              <Link href="/products/ram-darbar-24-inch-marble"><Image src="/catalog/ram-darbar-24.jpg" alt="Natural white Ram Darbar marble set" fill sizes="(max-width: 680px) 50vw, 33vw" /><span>Composition</span></Link>
+              <Link href="/shop?q=Ganesha"><Image src="/catalog/ganesh-24.jpg" alt="Ornate hand-painted marble Ganesha" fill sizes="(max-width: 680px) 50vw, 33vw" /><span>Ornamentation</span></Link>
+              <Link href="/shop?q=Lakshmi"><Image src="/catalog/lakshmi-24.jpg" alt="Hand-painted Lakshmi Mata marble moorti" fill sizes="(max-width: 680px) 50vw, 33vw" /><span>Expression</span></Link>
+              <Link href="/shop?q=Ram%20Darbar"><Image src="/catalog/ram-darbar-24.jpg" alt="Natural white Ram Darbar marble set" fill sizes="(max-width: 680px) 50vw, 33vw" /><span>Composition</span></Link>
             </div>
           </div>
         </section>

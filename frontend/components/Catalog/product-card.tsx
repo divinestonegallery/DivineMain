@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import type { Product } from "@/src/types/product";
-import type { ProductCard as ApiProductCard } from "@/api/products";
+import type { BackendProductImage, ProductCard as ApiProductCard } from "@/api/products";
 import { ProductPrice } from "./product-price";
 import { ProductRating } from "./product-rating";
 import styles from "./product.module.css";
@@ -15,7 +15,7 @@ import styles from "./product.module.css";
 type ProductCardInput = Product | (ApiProductCard & {
   image?: Product["image"];
   image_url?: string | null;
-  name?: string;
+  name?: string | null;
   price?: number;
   compareAtPrice?: number;
   rating?: number;
@@ -42,8 +42,18 @@ function productImage(product: ProductCardInput, fallbackAlt: string) {
   const typedImage = (product as Product).image;
   if (typedImage?.src) return { src: typedImage.src, alt: typedImage.alt || fallbackAlt };
 
-  const src = text((product as ApiProductCard).cover_photo) || text((product as { image_url?: string | null }).image_url);
-  return src ? { src, alt: fallbackAlt } : null;
+  const images = Array.isArray((product as { images?: BackendProductImage[] }).images)
+    ? [...((product as { images?: BackendProductImage[] }).images ?? [])]
+        .filter((item) => text(item.image_url))
+        .sort((a, b) => Number(a.display_order ?? 0) - Number(b.display_order ?? 0))
+    : [];
+  const galleryImage = images.find((item) => item.cover_photo) ?? images[0];
+  const src =
+    text(galleryImage?.image_url) ||
+    text((product as ApiProductCard).cover_photo) ||
+    text((product as { image_url?: string | null }).image_url);
+  const alt = text(galleryImage?.alt_text) || fallbackAlt;
+  return src ? { src, alt } : null;
 }
 
 function productPrice(product: ProductCardInput) {

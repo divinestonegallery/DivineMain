@@ -19,9 +19,9 @@ const devotion: Item[] = [
   { title: "Lakshmi", body: "Prosperity with sacred beauty", href: "/shop?q=Lakshmi", image: "/catalog/lakshmi-24.jpg" },
 ];
 const featured: Item[] = [
-  { title: "Radha Krishna Moorti", body: "39 in · Hand-painted white marble", href: "/products/radha-krishna-39-inch-marble", image: "/catalog/radha-krishna-39.jpg" },
-  { title: "Sri Ornate Ganesha", body: "24 in · Makrana marble", href: "/products/ornate-ganesh-24-inch-marble", image: "/catalog/ganesh-24.jpg" },
-  { title: "Gauri Shankar Family", body: "18 in · Hand-carved marble", href: "/products/gauri-shankar-family-18-inch-marble", image: "/catalog/gauri-shankar-18.jpg" },
+  { title: "Radha Krishna Moorti", body: "39 in · Hand-painted white marble", href: "/shop?q=Radha%20Krishna", image: "/catalog/radha-krishna-39.jpg" },
+  { title: "Sri Ornate Ganesha", body: "24 in · Makrana marble", href: "/shop?q=Ganesha", image: "/catalog/ganesh-24.jpg" },
+  { title: "Gauri Shankar Family", body: "18 in · Hand-carved marble", href: "/shop?q=Shiva", image: "/catalog/gauri-shankar-18.jpg" },
 ];
 const fallbackImages: Record<string, string> = { hero: "/catalog/radha-krishna-39.jpg", "custom-commission": "/catalog/ram-darbar-24.jpg", "family-legacy": "/catalog/lakshmi-ganesh-saraswati-12.jpg" };
 

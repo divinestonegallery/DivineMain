@@ -11,18 +11,26 @@ import type { CatalogItem } from "@/components/Catalog/catalog-data";
 import { useEnquiryBag } from "@/components/Customer/device-collections";
 import styles from "./checkout.module.css";
 
+function isRemoteImage(src: string) {
+  return /^https?:\/\//i.test(src);
+}
+
+function itemSize(item: CatalogItem) {
+  return item.height > 0 ? `${item.height} inch` : "custom sizing";
+}
+
 function SelectedItems({ items }: { items: CatalogItem[] }) {
   return (
     <div className={styles.items}>
       {items.map((item) => (
         <article className={styles.item} key={item.id}>
           <Link className={styles.itemImage} href={`/products/${item.slug}`}>
-            <Image src={item.image} alt={item.imageAlt} fill sizes="92px" />
+            <Image src={item.image} alt={item.imageAlt} fill sizes="92px" unoptimized={isRemoteImage(item.image)} />
           </Link>
           <div>
             <small>{item.deity} - {item.material}</small>
             <h3 className="font-display">{item.name}</h3>
-            <p>{item.height ? `${item.height} inch` : "Custom sizing"} - {item.salesMode === "quote_only" ? "quote only" : "enquiry ready"}</p>
+            <p>{itemSize(item)} - {item.salesMode === "quote" ? "quote only" : "enquiry ready"}</p>
           </div>
           <strong>{item.pricePaise ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(item.pricePaise / 100) : "Quote"}</strong>
         </article>
@@ -58,7 +66,7 @@ export function CheckoutExperience({ products }: { products: CatalogItem[] }) {
         message: [
           "Checkout enquiry from selected bag:",
           "",
-          ...selectedItems.map((item, index) => `${index + 1}. ${item.name} (${item.slug}) - ${item.height || "custom"} inch - ${item.material}`),
+          ...selectedItems.map((item, index) => `${index + 1}. ${item.name} (${item.slug}) - ${itemSize(item)} - ${item.material}`),
           "",
           `Delivery city: ${value("city")}`,
           `Postcode: ${value("postalCode")}`,

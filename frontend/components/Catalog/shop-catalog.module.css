@@ -272,7 +272,8 @@
   font-weight: 650;
 }
 
-.filterControls select {
+.filterControls select,
+.filterControls input {
   width: 100%;
   min-height: 44px;
   padding: 0.65rem 0.75rem;
@@ -283,7 +284,8 @@
   outline: none;
 }
 
-.filterControls select:focus {
+.filterControls select:focus,
+.filterControls input:focus {
   border-color: var(--gold);
   box-shadow: 0 0 0 3px rgb(161 118 51 / 0.1);
 }
@@ -339,6 +341,31 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(1rem, 2.2vw, 2rem) clamp(0.8rem, 1.8vw, 1.5rem);
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  margin-top: 2rem;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+}
+
+.paginationControls button {
+  min-height: 42px;
+  padding-inline: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--foreground);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.paginationControls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .productCard {

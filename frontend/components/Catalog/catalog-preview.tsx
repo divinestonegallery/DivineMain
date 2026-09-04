@@ -93,7 +93,7 @@ export function CatalogPreview() {
           <Button variant="ghost">View all moorties <ArrowRight aria-hidden="true" size={17} /></Button>
         </div>
         <div className={styles.productGrid}>
-          {sampleProducts.map((product, index) => <ProductCard product={product} href="/" key={product.id} priority={index === 0} />)}
+          {sampleProducts.map((product, index) => <ProductCard product={product} key={product.id} priority={index === 0} />)}
         </div>
         <div className={styles.paginationWrap}>
           <Pagination currentPage={1} totalPages={3} basePath="/" />

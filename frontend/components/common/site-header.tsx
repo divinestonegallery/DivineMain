@@ -18,6 +18,7 @@ import { AccountControl, MobileAccountControl } from "@/components/Auth/account-
 import { AuthModal } from "@/components/Auth/auth-modal";
 import { useEnquiryBag } from "@/components/Customer/device-collections";
 import { getDeities, searchApplication } from "@/api/products";
+import type { BackendProductImage } from "@/api/products";
 import styles from "./site-shell.module.css";
 
 const defaultDeityLinks = [
@@ -52,10 +53,11 @@ const mainLinks = [
 ] as const;
 
 type SearchProductResult = {
-  slug?: string;
+  slug?: string | null;
   uid?: string | null;
-  title?: string;
-  name?: string;
+  title?: string | null;
+  name?: string | null;
+  images?: BackendProductImage[];
   cover_photo?: string | null;
   image_url?: string | null;
   deity?: string | null;
@@ -72,7 +74,13 @@ function searchProductTitle(product: SearchProductResult) {
 }
 
 function searchProductImage(product: SearchProductResult) {
-  return product.cover_photo?.trim() || product.image_url?.trim() || "";
+  const images = Array.isArray(product.images)
+    ? [...product.images]
+        .filter((item) => item.image_url?.trim())
+        .sort((a, b) => Number(a.display_order ?? 0) - Number(b.display_order ?? 0))
+    : [];
+  const image = images.find((item) => item.cover_photo) ?? images[0];
+  return image?.image_url?.trim() || product.cover_photo?.trim() || product.image_url?.trim() || "";
 }
 
 function searchDeities(results: { deities?: Array<{ id?: number; name: string; slug: string }>; dieties?: Array<{ id?: number; name: string; slug: string }> } | null) {

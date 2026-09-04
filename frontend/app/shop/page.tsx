@@ -5,7 +5,6 @@ import { Breadcrumbs } from "@/components/common/breadcrumbs";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
-import { WhatsAppAssistance } from "@/components/common/whatsapp-assistance";
 import { ToastProvider } from "@/components/ui/toast";
 import { getPublicCatalogFacets, getPublicCatalogListing } from "@/api/catalog/repository";
 import type { PublicCatalogFacets } from "@/api/catalog/repository";
@@ -24,7 +23,8 @@ export const dynamic = "force-dynamic";
 
 type ShopSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-const supportedSorts = new Set(["featured", "display_order", "newest", "oldest"]);
+const supportedSorts = new Set(["featured", "display_order", "newest", "oldest", "price_asc", "price_desc"]);
+const supportedAvailability = new Set(["in_stock", "made_to_order", "out_of_stock"]);
 const emptyFacets: PublicCatalogFacets = { categories: [], deities: [], materials: [] };
 const emptyPagination: ProductListResult["pagination"] = {
   page: 1,
@@ -44,6 +44,12 @@ function positivePage(value: string) {
   return Number.isFinite(page) && page > 0 ? page : 1;
 }
 
+function priceParam(value: string) {
+  if (!value) return undefined;
+  const price = Number(value);
+  return Number.isFinite(price) && price >= 0 ? price : undefined;
+}
+
 function shopFiltersFromSearchParams(params: Record<string, string | string[] | undefined>) {
   const query = firstParam(params.q) || firstParam(params.search);
   const sort = firstParam(params.sort);
@@ -51,26 +57,40 @@ function shopFiltersFromSearchParams(params: Record<string, string | string[] | 
   const category = firstParam(params.category);
   const deity = firstParam(params.deity);
   const material = firstParam(params.material);
+  const availability = firstParam(params.availability);
+  const minPrice = firstParam(params.min_price);
+  const maxPrice = firstParam(params.max_price);
 
   const apiFilters: ProductFilters = {
     page,
+    page_size: 24,
     search: query || undefined,
     category: category || undefined,
     deity: deity || undefined,
     material: material || undefined,
+    availability: supportedAvailability.has(availability) ? availability as ProductFilters["availability"] : undefined,
+    min_price: priceParam(minPrice),
+    max_price: priceParam(maxPrice),
     sort: supportedSorts.has(sort) ? sort as ProductFilters["sort"] : "featured",
   };
 
   return {
     apiFilters,
-    currentFilters: { category, deity, material },
+    currentFilters: {
+      category,
+      deity,
+      material,
+      availability: apiFilters.availability ?? "",
+      min_price: apiFilters.min_price === undefined ? "" : String(apiFilters.min_price),
+      max_price: apiFilters.max_price === undefined ? "" : String(apiFilters.max_price),
+    },
     currentQuery: query,
     currentSort: apiFilters.sort ?? "featured",
   };
 }
 
 function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "The shop data could not be loaded.";
+  return "We could not load the collection right now. Please try again in a moment.";
 }
 
 async function ShopCatalogData({ searchParams, breadcrumbs }: { searchParams: ShopSearchParams; breadcrumbs: ReactNode }) {

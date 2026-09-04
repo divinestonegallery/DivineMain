@@ -5,6 +5,7 @@ import { getPublicCatalog } from "@/api/catalog/repository";
 import { CustomerPageShell } from "@/components/Customer/customer-page-shell";
 import { EnquiryBagView } from "@/components/Customer/enquiry-bag-view";
 
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Enquiry Bag", description: "Collect Divine Stone Gallery marble works and request availability, pricing and delivery guidance together.", alternates: { canonical: "/cart" }, robots: { index: false, follow: true } };
 
 export default async function CartPage() {

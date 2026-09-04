@@ -28,8 +28,9 @@ export function ProductActions({
   const enquiryBag = useEnquiryBag();
   const inBag = enquiryBag.ids.has(productId);
   const { showToast } = useToast();
+  const heightDetail = height > 0 ? ` (${height} inch)` : "";
   const message = encodeURIComponent(
-    `Namaste, I would like current availability and details for ${name} (${height} inch).`,
+    `Namaste, I would like current availability and details for ${name}${heightDetail}.`,
   );
   const whatsappHref = `https://wa.me/919166138566?text=${message}`;
   const directReady = pricePaise !== null && pricePaise !== undefined && gstRateBps !== null && gstRateBps !== undefined && Boolean(stockQuantity) && salesMode !== "quote";
