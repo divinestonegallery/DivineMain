@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { Breadcrumbs } from "@/components/common/breadcrumbs";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
@@ -195,14 +194,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <JsonLd data={productSchema} />
       <main className={styles.productPage} id="main-content" tabIndex={-1}>
         <div className="site-container">
-          <Breadcrumbs
-            items={[
-              { label: "Home", href: "/" },
-              { label: "Shop", href: "/shop" },
-              { label: product.category },
-              { label: cleanProductName(product.name) },
-            ]}
-          />
 
           <section className={styles.productHero}>
             <div className={styles.galleryWrap}>
