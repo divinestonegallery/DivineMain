@@ -255,21 +255,21 @@ export function ShopCatalog({
 
       <section className={styles.catalogSection}>
         <div className="site-container">
-          <div className={styles.categoryChips} aria-label="Shop by category">
-            {categories.map((category) => (
-              <button type="button" key={category.value || "all-categories-chip"} aria-pressed={currentFilters.category === category.value} onClick={() => updateFilter("category", category.value)} disabled={isPending}>
-                {category.label}
-              </button>
-            ))}
-          </div>
-
-          <div className={styles.catalogToolbar}>
+          <div className={styles.unifiedToolbar}>
             <label className={styles.catalogSearch}>
               <Search aria-hidden="true" size={18} />
               <span className="sr-only">Search collection</span>
               <input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="Search the collection" />
               {query ? <button type="button" aria-label="Clear search" onClick={() => setQuery("")}><X aria-hidden="true" size={17} /></button> : null}
             </label>
+
+            <div className={styles.categoryChips} aria-label="Shop by category">
+              {categories.map((category) => (
+                <button type="button" key={category.value || "all-categories-chip"} aria-pressed={currentFilters.category === category.value} onClick={() => updateFilter("category", category.value)} disabled={isPending}>
+                  {category.label}
+                </button>
+              ))}
+            </div>
 
             <div className={styles.toolbarActions}>
               <button className={styles.mobileFilterButton} type="button" onClick={() => setFilterOpen(true)}>
