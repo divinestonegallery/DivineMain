@@ -6,13 +6,8 @@ from django.db import models
 from django.db.models.functions import Lower
 
 from app.common.models import BaseModel
-
-AVAILABILITY_CHOICES = [
-    ('in_stock', 'In Stock'),
-    ('made_to_order', 'Made to Order'),
-    ('out_of_stock', 'Out of Stock')
-]
-
+from app.products.enums import Availability, ProductStatus, SalesMode
+from framework.utils import enum_choices
 def create_random_uid(size=8, chars=string.digits + string.ascii_uppercase):
     return ''.join(secrets.choice(chars) for _ in range(size))
 
@@ -51,15 +46,6 @@ class Diety(BaseModel):
         return self.name
 
 class Product(BaseModel):
-    class Status(models.TextChoices):
-        DRAFT = 'draft', 'Draft'
-        ACTIVE = 'active', 'Active'
-        ARCHIVED = 'archived', 'Archived'
-
-    class SalesMode(models.TextChoices):
-        QUOTE_ONLY = 'quote_only', 'Quote only'
-        BUY_AND_QUOTE = 'buy_and_quote', 'Buy and quote'
-        DIRECT_PURCHASE = 'direct_purchase', 'Direct purchase'
 
     category = models.ForeignKey(Category, related_name='products', on_delete=models.PROTECT, null=False, blank=False)
     material = models.ForeignKey(Material, related_name='products', on_delete=models.PROTECT, null=False, blank=False)
@@ -72,16 +58,16 @@ class Product(BaseModel):
     keywords = models.TextField(blank=True, null=True)
     height = models.CharField(max_length=100, blank=True, null=True)
     min_weight = models.CharField(max_length=100, blank=True, null=True)
-    max_weight = models.CharField(max_length=100, blank=True, null=True) 
+    max_weight = models.CharField(max_length=100, blank=True, null=True)
     original_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     selling_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     discount_percentage = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     gst = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-    availability = models.CharField(max_length=20, choices=AVAILABILITY_CHOICES, default='in_stock') 
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True)
-    sales_mode = models.CharField(max_length=30, choices=SalesMode.choices, default=SalesMode.QUOTE_ONLY)
+    availability = models.CharField(max_length=20, choices=enum_choices(Availability), default=Availability.IN_STOCK.value)
+    status = models.CharField(max_length=20, choices=enum_choices(ProductStatus), default=ProductStatus.DRAFT.value, db_index=True)
+    sales_mode = models.CharField(max_length=30, choices=enum_choices(SalesMode), default=SalesMode.QUOTE_ONLY.value)
     display_order = models.PositiveIntegerField(default=999, db_index=True)
 
     def __str__(self):
@@ -135,7 +121,7 @@ class ProductVariant(BaseModel):
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     stock_quantity = models.PositiveIntegerField(default=0)
-    availability = models.CharField(max_length=20, choices=AVAILABILITY_CHOICES, default='in_stock')
+    availability = models.CharField(max_length=20, choices=enum_choices(Availability), default=Availability.IN_STOCK.value)
     sculpture_height_inches = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
     sculpture_width_inches = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
     sculpture_depth_inches = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)

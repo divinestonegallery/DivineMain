@@ -227,5 +227,5 @@ class AdminAuthorizationTests(TestCase):
         self.assertFalse(response.json()["success"])
 
     def test_public_catalogue_remains_public(self):
-        response = self.client.get("/api/v1/products")
+        response = self.client.post("/api/v1/products", {}, format='json')
         self.assertEqual(response.status_code, 200)

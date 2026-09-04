@@ -1,3 +1,4 @@
+from app.products.enums import ProductStatus
 import logging
 
 from django.conf import settings
@@ -45,7 +46,7 @@ def _product_queryset(public=False):
     )
     if public:
         queryset = queryset.filter(
-            status=Product.Status.ACTIVE,
+            status=ProductStatus.ACTIVE.value,
             is_active=True,
             category__is_active=True,
             material__is_active=True,
@@ -156,7 +157,7 @@ class ProductRepository:
         data['category_id'] = data.pop('category')
         data['material_id'] = data.pop('material')
         data['diety_id'] = data.pop('diety')
-        data['is_active'] = data.get('status', Product.Status.DRAFT) != Product.Status.ARCHIVED
+        data['is_active'] = data.get('status', ProductStatus.DRAFT.value) != ProductStatus.ARCHIVED.value
         try:
             with transaction.atomic():
                 product = Product.objects.create(**data)
@@ -173,7 +174,7 @@ class ProductRepository:
         for key, value in data.items():
             setattr(product, f'{key}_id' if key in relation_fields else key, value)
         if 'status' in data:
-            product.is_active = data['status'] != Product.Status.ARCHIVED
+            product.is_active = data['status'] != ProductStatus.ARCHIVED.value
         try:
             with transaction.atomic():
                 product.save()
@@ -184,7 +185,7 @@ class ProductRepository:
     @staticmethod
     def archive(product_id):
         updated = Product.objects.filter(id=product_id).update(
-            status=Product.Status.ARCHIVED,
+            status=ProductStatus.ARCHIVED.value,
             is_active=False,
         )
         return bool(updated)
@@ -225,7 +226,7 @@ class ProductRepository:
 
     @staticmethod
     def get_dream_temples_data():
-        products = _product_queryset(public=True).filter(category__slug='temples').order_by('-is_featured', 'display_order')[:10]
+        products = _product_queryset(public=True).filter(category__slug='temple').order_by('-is_featured', 'display_order')[:10]
         return None, ProductCardSerializer(products, many=True).data
 
     @staticmethod
