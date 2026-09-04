@@ -1,90 +1,264 @@
-// @ts-nocheck
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useAuth } from "@/components/Auth/auth-facade";
-import Link from "next/link";
-import { ArrowRight, CheckCircle2, LockKeyhole, MessageCircle } from "lucide-react";
-import { submitCustomizeRequest } from "@/api/contact";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { ArrowRight, CheckCircle2, ImageIcon, LockKeyhole, PencilRuler, UploadCloud, X } from "lucide-react";
+import { createCustomizationUploadSession, submitCustomizeRequest, type CustomizationUploadSession } from "@/api/contact";
+import { useUser } from "@/components/Auth/auth-facade";
 import { buttonClassName } from "@/components/ui/button";
-import { FormField, SelectField, TextareaField } from "@/components/ui/form-field";
-import { AccountBootstrap } from "@/components/Auth/account-bootstrap";
-import { useAuthConfigured } from "@/components/Auth/auth-provider";
+import { FormField, TextareaField } from "@/components/ui/form-field";
 import styles from "@/app/custom-murti/custom-murti.module.css";
 
-function ConnectedConsultationForm() {
-  const configured = true;
-  const { getToken, isLoaded, isSignedIn } = useAuth();
+type Identity = { name: string; email: string; phone: string };
+type SupportedImageType = "image/jpeg" | "image/png" | "image/webp";
+
+const blankIdentity: Identity = { name: "", email: "", phone: "" };
+const supportedImageTypes = new Set<string>(["image/jpeg", "image/png", "image/webp"]);
+const phonePattern = /^\+?[0-9][0-9\s-]{7,19}$/;
+
+function cleanText(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function supportedImageType(type: string): type is SupportedImageType {
+  return supportedImageTypes.has(type);
+}
+
+function friendlySubmitError(reason: unknown) {
+  const message = reason instanceof Error ? reason.message : "";
+  if (/already submitted/i.test(message)) return "This custom request was already sent recently.";
+  return "Something went wrong. Please try again.";
+}
+
+function ProfileField({ label, loading, value }: { label: string; loading: boolean; value?: string }) {
+  return (
+    <div className={styles.profileField} aria-busy={loading}>
+      <span>{label}</span>
+      {loading ? <strong className={styles.profileSkeleton} aria-hidden="true" /> : <strong>{value || "Not available"}</strong>}
+      <small>From your profile</small>
+    </div>
+  );
+}
+
+function uploadHeaders(session: CustomizationUploadSession, file: File) {
+  const headers = new Headers();
+  Object.entries(session.required_headers || {}).forEach(([name, value]) => {
+    if (name.toLowerCase() !== "content-length") headers.set(name, String(value));
+  });
+  if (!headers.has("Content-Type")) headers.set("Content-Type", file.type);
+  return headers;
+}
+
+export function ConsultationForm() {
+  const { isLoaded, isSignedIn, user } = useUser();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const profileIdentity: Identity = {
+    name: cleanText(user?.name),
+    email: cleanText(user?.email),
+    phone: cleanText(user?.phone),
+  };
+  const [manualIdentity, setManualIdentity] = useState(blankIdentity);
+  const [referencePhoto, setReferencePhoto] = useState<{ file: File; previewUrl: string } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [created, setCreated] = useState<string | null>(null);
-  const [createdWarning, setCreatedWarning] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (referencePhoto?.previewUrl) URL.revokeObjectURL(referencePhoto.previewUrl);
+    };
+  }, [referencePhoto?.previewUrl]);
+
+  function updateIdentity(field: keyof Identity) {
+    return (event: ChangeEvent<HTMLInputElement>) => {
+      setManualIdentity((current) => ({ ...current, [field]: event.target.value }));
+      setFieldErrors((current) => ({ ...current, [field]: "" }));
+    };
+  }
+
+  function clearFieldError(field: string) {
+    return () => setFieldErrors((current) => ({ ...current, [field]: "" }));
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setError("");
+    setFieldErrors((current) => ({ ...current, referencePhoto: "" }));
+
+    if (!file) {
+      setReferencePhoto(null);
+      return;
+    }
+
+    if (!file.size || !supportedImageType(file.type)) {
+      setReferencePhoto(null);
+      setFieldErrors((current) => ({ ...current, referencePhoto: "Please select a valid image." }));
+      event.target.value = "";
+      return;
+    }
+
+    setReferencePhoto({ file, previewUrl: URL.createObjectURL(file) });
+  }
+
+  function removeReferencePhoto() {
+    setReferencePhoto(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setFieldErrors((current) => ({ ...current, referencePhoto: "" }));
+  }
+
+  function validate(form: FormData) {
+    const nextErrors: Record<string, string> = {};
+    const value = (name: string) => form.get(name)?.toString().trim() || "";
+
+    if (!isSignedIn) {
+      if (!value("name")) nextErrors.name = "Please enter your name.";
+      if (!value("email")) nextErrors.email = "Please enter a valid email address.";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value("email"))) nextErrors.email = "Please enter a valid email address.";
+      if (!value("phone")) nextErrors.phone = "Please enter your phone number.";
+      else if (!phonePattern.test(value("phone"))) nextErrors.phone = "Please enter your phone number.";
+    } else if (!profileIdentity.email && !profileIdentity.phone) {
+      nextErrors.profile = "We could not find contact details in your profile.";
+    }
+
+    if (!value("height")) nextErrors.height = "Please enter the required height.";
+    if (!value("city")) nextErrors.city = "Please enter your city and state.";
+    if (referencePhoto && !isSignedIn) nextErrors.referencePhoto = "Please sign in to include a reference photo, or remove it to send without the photo.";
+
+    return { errors: nextErrors, value };
+  }
+
+  async function uploadReferencePhoto(file: File) {
+    if (!supportedImageType(file.type)) throw new Error("Invalid reference image.");
+
+    const session = await createCustomizationUploadSession({
+      filename: (file.name || "reference-image").slice(0, 255),
+      content_type: file.type,
+      file_size: file.size,
+    });
+
+    const response = await fetch(session.upload_url, {
+      method: session.method || "PUT",
+      headers: uploadHeaders(session, file),
+      body: file,
+    });
+
+    if (!response.ok) throw new Error("Reference upload failed.");
+    return session.object_key;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitting(true);
-    setError(null);
+    if (!isLoaded) return;
+
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    const value = (name: string) => form.get(name)?.toString().trim() || "";
+    const { errors, value } = validate(form);
+    setFieldErrors(errors);
+    setError(errors.profile || "");
+    if (Object.values(errors).some(Boolean)) return;
+
+    setSubmitting(true);
+    setError("");
+
     try {
-      await getToken();
+      const referenceObjectKey = referencePhoto ? await uploadReferencePhoto(referencePhoto.file) : undefined;
       await submitCustomizeRequest({
-        name: value("name") || undefined,
-        email: value("email") || undefined,
-        phone: value("phone") || undefined,
+        name: isSignedIn ? profileIdentity.name || undefined : value("name"),
+        email: isSignedIn ? profileIdentity.email || undefined : value("email"),
+        phone: isSignedIn ? profileIdentity.phone || undefined : value("phone"),
         city: value("city"),
-        pincode: value("postalCode") || undefined,
-        approximate_height: value("heightInches") ? `${value("heightInches")} inches` : undefined,
-        preferred_material: value("material") || undefined,
-        description: [
-          `Deity or subject: ${value("deity") || "Not specified"}`,
-          `Placement: ${value("placement") || "Not specified"}`,
-          `Preferred finish: ${value("finish") || "Not specified"}`,
-          `Timeline: ${value("timeline") || "Flexible"}`,
-          "",
-          value("notes"),
-        ].join("\n").trim(),
+        approximate_height: value("height"),
+        description: value("description") || undefined,
+        reference_object_key: referenceObjectKey,
       });
-      setCreated("custom-murti");
+
+      setSent(true);
+      setReferencePhoto(null);
       formElement.reset();
+      if (!isSignedIn) setManualIdentity(blankIdentity);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "The custom murti request could not be saved.");
+      setError(friendlySubmitError(reason));
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (created) return <div className={styles.consultationForm}><div className={styles.formSuccess}><CheckCircle2 aria-hidden="true" size={34} /><h2 className="font-display">Your custom murti request is saved.</h2><p>The gallery team will review the details and contact you.</p>{createdWarning || error ? <p className={styles.formError}>{createdWarning || error}</p> : null}<button className={buttonClassName({ size: "lg" })} type="button" onClick={() => setCreated(null)}>Send another request <ArrowRight aria-hidden="true" size={18} /></button></div></div>;
+  if (sent) {
+    return (
+      <div className={`${styles.customizeForm} ${styles.formSuccess}`} role="status">
+        <CheckCircle2 aria-hidden="true" size={34} />
+        <p className={styles.formEyebrow}>Custom Request Sent</p>
+        <h2 className="font-display">Thank you for sharing your requirements.</h2>
+        <p>Our team will review your request and get back to you shortly.</p>
+        <button className={buttonClassName({ size: "lg", className: styles.formSubmit })} type="button" onClick={() => setSent(false)}>
+          Send another request <ArrowRight aria-hidden="true" size={18} />
+        </button>
+      </div>
+    );
+  }
+
+  const showProfileFields = !isLoaded || isSignedIn;
 
   return (
-    <form className={styles.consultationForm} onSubmit={handleSubmit}>
-      {configured ? <AccountBootstrap /> : null}
-      <div className={styles.formHeading}><span><MessageCircle aria-hidden="true" size={20} /></span><div><p>Begin your consultation</p><h2 className="font-display">Tell us what you envision.</h2></div></div>
-      {isLoaded && !isSignedIn ? <div className={styles.referenceNote}><LockKeyhole aria-hidden="true" size={20} /><span><strong>You can submit without signing in.</strong><small>Sign in first if you want this request associated with your gallery account.</small></span></div> : null}
-      <div className={styles.formGrid}>
-        <FormField label="Your name" name="name" autoComplete="name" placeholder="Full name" required />
-        <FormField label="Email" name="email" type="email" autoComplete="email" placeholder="you@example.com" required />
-        <FormField label="WhatsApp number" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="e.g. +91 98765 43210" required />
-        <FormField label="Deity or subject" name="deity" placeholder="e.g. Radha Krishna" required />
-        <FormField label="City or delivery destination" name="city" autoComplete="address-level2" placeholder="City, state" required />
-        <FormField label="Delivery postcode" name="postalCode" inputMode="numeric" pattern="[1-9][0-9]{5}" maxLength={6} placeholder="6-digit Indian postcode" required />
-        <FormField label="Approximate height (inches)" name="heightInches" type="number" inputMode="decimal" min="1" max="240" placeholder="e.g. 24" required />
-        <SelectField label="Where will it be placed?" name="placement" defaultValue="" required><option value="" disabled>Select placement</option><option>Home mandir</option><option>Temple</option><option>Commercial or institutional space</option><option>Gift</option><option>Not decided yet</option></SelectField>
-        <SelectField label="Preferred material" name="material" defaultValue="Marble"><option>Marble</option><option>Makrana marble</option><option>Discuss with the gallery</option></SelectField>
-        <SelectField label="Preferred finish" name="finish" defaultValue="Not decided yet"><option>Not decided yet</option><option>Natural white marble</option><option>Traditional hand-painted</option><option>Subtle gold accents</option><option>Discuss with the gallery</option></SelectField>
-        <SelectField label="Preferred timeline" name="timeline" defaultValue="Flexible"><option>Flexible</option><option>Within 1–2 months</option><option>Within 3–6 months</option><option>For a specific ceremony or date</option></SelectField>
-        <TextareaField className={styles.fullField} label="Describe the posture, expression or details" name="notes" placeholder="Share the style, ornamentation, base, accompanying figures or other preferences." />
+    <form className={styles.customizeForm} noValidate onSubmit={handleSubmit}>
+      <div className={styles.formHeading}>
+        <span><PencilRuler aria-hidden="true" size={20} /></span>
+        <div>
+          <p className={styles.formEyebrow}>Send your requirements</p>
+          <h2 className="font-display">Customize Moorti Form</h2>
+        </div>
       </div>
-      {error ? <p className={styles.formError}>{error}</p> : null}
-      <button className={buttonClassName({ size: "lg", className: styles.formSubmit })} type="submit" disabled={submitting}>{submitting ? "Saving securely..." : <>Submit custom request <ArrowRight aria-hidden="true" size={18} /></>}</button>
-      <p className={styles.formPrivacy}><LockKeyhole aria-hidden="true" size={14} /> Requests are saved through the Django customisation endpoint for gallery staff follow-up.</p>
+
+      <div className={styles.formGrid}>
+        {showProfileFields ? (
+          <>
+            <ProfileField label="Name" loading={!isLoaded} value={profileIdentity.name} />
+            <ProfileField label="Email" loading={!isLoaded} value={profileIdentity.email} />
+            <ProfileField label="Phone" loading={!isLoaded} value={profileIdentity.phone} />
+          </>
+        ) : (
+          <>
+            <FormField label="Name" name="name" autoComplete="name" placeholder="Full name" value={manualIdentity.name} onChange={updateIdentity("name")} error={fieldErrors.name} required />
+            <FormField label="Email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={manualIdentity.email} onChange={updateIdentity("email")} error={fieldErrors.email} required />
+            <FormField label="Phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="e.g. +91 98765 43210" pattern="\+?[0-9][0-9\s-]{7,19}" value={manualIdentity.phone} onChange={updateIdentity("phone")} error={fieldErrors.phone} required />
+          </>
+        )}
+        <FormField label="Height" name="height" placeholder="e.g. 24 inches" error={fieldErrors.height} onChange={clearFieldError("height")} required />
+        <FormField className={styles.fullField} label="Address / City / State" name="city" autoComplete="address-level2" placeholder="Jaipur, Rajasthan" error={fieldErrors.city} onChange={clearFieldError("city")} required />
+        <TextareaField className={styles.fullField} label="Description / Comment" name="description" placeholder="Tell us about your customization requirements..." />
+
+        <div className={`${styles.uploadField} ${styles.fullField}`}>
+          <div className={styles.uploadLabel}>
+            <span>Reference Photo <small>(Optional)</small></span>
+            <small>{isSignedIn ? "Upload a photo or design reference if you have one." : "Sign in to include the photo with your request."}</small>
+          </div>
+          <input ref={fileInputRef} className={styles.fileInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} />
+          {referencePhoto ? (
+            <div className={styles.uploadPreview}>
+              <Image src={referencePhoto.previewUrl} alt="Selected reference preview" width={46} height={46} unoptimized />
+              <span>
+                <strong>{referencePhoto.file.name}</strong>
+                <small>{referencePhoto.file.type.replace("image/", "").toUpperCase()}</small>
+              </span>
+              <button type="button" aria-label="Remove selected reference photo" onClick={removeReferencePhoto}><X aria-hidden="true" size={16} /></button>
+            </div>
+          ) : (
+            <button className={styles.uploadButton} type="button" onClick={() => fileInputRef.current?.click()}>
+              <UploadCloud aria-hidden="true" size={20} />
+              <span><strong>Upload Reference Photo</strong><small>JPG, PNG, WEBP</small></span>
+              <ImageIcon aria-hidden="true" size={18} />
+            </button>
+          )}
+          {fieldErrors.referencePhoto ? <p className={styles.formError} role="alert">{fieldErrors.referencePhoto}</p> : null}
+        </div>
+      </div>
+
+      {error ? <p className={styles.formError} role="alert">{error}</p> : null}
+      <button className={buttonClassName({ size: "lg", className: styles.formSubmit })} type="submit" disabled={submitting || !isLoaded}>
+        {submitting ? "Sending request..." : <>Send custom request <ArrowRight aria-hidden="true" size={18} /></>}
+      </button>
+      <p className={styles.formPrivacy}><LockKeyhole aria-hidden="true" size={14} /> Your details are used only to respond to this custom request.</p>
     </form>
   );
-}
-
-export function ConsultationForm() {
-  const configured = useAuthConfigured();
-  if (configured) return <ConnectedConsultationForm />;
-  return <div className={styles.consultationForm}><div className={styles.formSuccess}><MessageCircle aria-hidden="true" size={34} /><h2 className="font-display">Begin with a personal conversation.</h2><p>The secure commission workspace is ready and opens when account keys are configured.</p><a className={buttonClassName({ size: "lg" })} href="https://wa.me/919166138566?text=Namaste%2C%20I%20would%20like%20to%20discuss%20a%20custom%20murti." target="_blank" rel="noreferrer">Continue on WhatsApp <ArrowRight aria-hidden="true" size={18} /></a></div></div>;
 }

@@ -66,6 +66,44 @@ export default function ContactPage() {
 
             <ContactForm />
           </div>
+
+          <div className={`${styles.locationLayout} site-container`}>
+            <div className={styles.locationContent}>
+              <div className={styles.locationInfo}>
+                <h2 className={styles.locationHeading}>Our Location</h2>
+                <div className={styles.addressWrapper}>
+                  <div className={styles.pinIcon}>
+                    <MapPin aria-hidden="true" size={24} />
+                  </div>
+                  <div className={styles.addressText}>
+                    <strong>Divine Stone Gallery</strong>
+                    <p>Alwar-Dausa Road, VPO Gola Ka Bas,<br />Patti Beena, Rajasthan 301410, India</p>
+                  </div>
+                </div>
+                <a 
+                  href="https://maps.google.com/maps?q=Divine+Stone+Gallery,+Alwar-Dausa+Road,+VPO+Gola+Ka+Bas,+Patti+Beena,+Rajasthan+301410,+India" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className={styles.directionsBtn}
+                  aria-label="Get directions to Divine Stone Gallery on Google Maps"
+                >
+                  Get Directions
+                </a>
+              </div>
+              <div className={styles.mapWrapper}>
+                <iframe 
+                  src="https://maps.google.com/maps?q=Divine%20Stone%20Gallery,%20Alwar-Dausa%20Road,%20VPO%20Gola%20Ka%20Bas,%20Patti%20Beena,%20Rajasthan%20301410,%20India&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                  width="100%" 
+                  height="100%" 
+                  style={{ border: 0 }} 
+                  allowFullScreen 
+                  loading="lazy" 
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Divine Stone Gallery Location Map"
+                ></iframe>
+              </div>
+            </div>
+          </div>
         </section>
       </main>
       <SiteFooter /><CookieConsent />
