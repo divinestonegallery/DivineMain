@@ -28,7 +28,7 @@ const supportedAvailability = new Set(["in_stock", "made_to_order", "out_of_stoc
 const emptyFacets: PublicCatalogFacets = { categories: [], deities: [], materials: [] };
 const emptyPagination: ProductListResult["pagination"] = {
   page: 1,
-  page_size: 24,
+  page_size: 9,
   total_items: 0,
   total_pages: 0,
   has_next_page: false,
@@ -63,7 +63,7 @@ function shopFiltersFromSearchParams(params: Record<string, string | string[] | 
 
   const apiFilters: ProductFilters = {
     page,
-    page_size: 24,
+    page_size: 9,
     search: query || undefined,
     category: category || undefined,
     deity: deity || undefined,

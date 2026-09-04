@@ -160,7 +160,7 @@ function normalizeProductListResult(payload: ProductListPayload, filters: Produc
   const items = payload.items ?? payload.products ?? payload.results ?? [];
   const pagination = payload.pagination ?? {};
   const page = numberValue(pagination.page ?? payload.page, filters.page ?? 1);
-  const pageSize = numberValue(pagination.page_size ?? payload.page_size, filters.page_size ?? 24);
+  const pageSize = numberValue(pagination.page_size ?? payload.page_size, filters.page_size ?? 9);
   const totalItems = numberValue(
     pagination.total_items ?? payload.total_items ?? payload.total ?? payload.count,
     items.length,

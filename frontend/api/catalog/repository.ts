@@ -50,7 +50,7 @@ function integerValue(value: unknown, fallback: number | null = null) {
   return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
 }
 
-function fallbackPagination(page = 1, pageSize = 24): ProductListResult["pagination"] {
+function fallbackPagination(page = 1, pageSize = 9): ProductListResult["pagination"] {
   return {
     page,
     page_size: pageSize,
