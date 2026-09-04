@@ -52,30 +52,34 @@ export function ProductActions({
     <>
       <div className={styles.actionCard}>
         <div className={styles.priceNote}>
-          <span>Price</span>
-          <strong className="font-display">{price ?? "Available on request"}</strong>
-          <small>{price ? "Price before GST. Shipping is calculated separately for your postcode." : "Ask us for current availability, pricing and delivery guidance."}</small>
+          <span className={styles.availabilityBadge}>{price ? "Price" : "Availability"}</span>
+          <strong className={styles.availabilityTitle}>{price ?? "Available on request"}</strong>
+          <p className={styles.availabilityDesc}>{price ? "Price before GST. Shipping calculated separately." : "Contact our gallery for current availability, pricing and delivery details."}</p>
         </div>
-        <a className={buttonClassName({ size: "lg", className: styles.whatsappButton })} href={whatsappHref} target="_blank" rel="noreferrer">
-          <MessageCircle aria-hidden="true" size={18} /> Enquire on WhatsApp
-        </a>
-        <a className={buttonClassName({ variant: "outline", size: "lg", className: styles.callButton })} href="tel:+919166138566">
-          <Phone aria-hidden="true" size={18} /> Call {brand.phone}
-        </a>
+        <div className={styles.primaryActions}>
+          <a className={buttonClassName({ size: "lg", className: styles.whatsappButton })} href={whatsappHref} target="_blank" rel="noreferrer">
+            <MessageCircle aria-hidden="true" size={18} /> Enquire on WhatsApp
+          </a>
+          <a className={buttonClassName({ variant: "outline", size: "lg", className: styles.callButton })} href="tel:+919166138566">
+            <Phone aria-hidden="true" size={18} /> Call {brand.phone}
+          </a>
+        </div>
         <div className={styles.secondaryActions}>
-
           <Button
             variant="ghost"
+            className={styles.secondaryBtn}
             aria-pressed={inBag}
             onClick={() => {
               const added = enquiryBag.toggle(productId);
               showToast(added ? "Added to your enquiry bag." : "Removed from your enquiry bag.");
             }}
           >
-            <ShoppingBag aria-hidden="true" size={17} /> {inBag ? "In bag" : "Add to bag"}
+            <ShoppingBag aria-hidden="true" size={17} /> 
+            <span>{inBag ? "In bag" : "Add to bag"}</span>
           </Button>
-          <Button variant="ghost" onClick={shareProduct}>
-            <Share2 aria-hidden="true" size={17} /> Share
+          <Button variant="ghost" className={styles.secondaryBtn} onClick={shareProduct}>
+            <Share2 aria-hidden="true" size={17} /> 
+            <span>Share</span>
           </Button>
         </div>
       </div>

@@ -75,22 +75,28 @@
   min-width: 0;
 }
 
-.eyebrow {
-  margin: 0 0 0.85rem;
+.categoryBadge {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: 0.35rem 0.85rem;
   color: var(--gold-deep);
-  font-size: 0.7rem;
+  background: rgba(197, 160, 89, 0.08);
+  border: 1px solid rgba(197, 160, 89, 0.15);
+  border-radius: var(--radius-full);
+  font-size: 0.65rem;
   font-weight: 680;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .productDetails h1 {
   max-width: 650px;
   margin: 0;
-  font-size: clamp(3.2rem, 5.4vw, 5.9rem);
+  font-size: clamp(1.875rem, 3.5vw, 3.25rem);
   font-weight: 400;
-  letter-spacing: -0.04em;
-  line-height: 0.98;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--ink);
 }
 
 .description {
@@ -101,77 +107,99 @@
   line-height: 1.85;
 }
 
+.catalogSection {
+  margin: 2.5rem 0 0;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.catalogHeading {
+  margin: 0 0 1.25rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 680;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
 .specificationGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 2.2rem 0 0;
-  gap: 0.5rem;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .specificationGrid > div {
   padding: 1rem 1.25rem;
-  background: #fbf9f6;
-  border-radius: var(--radius-md);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: transparent;
 }
 
 .specificationGrid dt {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
   color: var(--ink-muted);
-  font-size: 0.63rem;
-}
-
-.specificationGrid dt svg {
-  color: var(--gold-deep);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
 }
 
 .specificationGrid dd {
   margin: 0.45rem 0 0;
-  font-size: 0.85rem;
-  font-weight: 650;
-  color: var(--ink);
-}
-
-.actionCard {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.8rem;
-  margin-top: 2rem;
-  padding: 1.5rem;
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  border-radius: var(--radius-lg);
-  background: #fbf9f6;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
-}
-
-.priceNote {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 0.35rem;
-}
-
-.priceNote > span {
-  color: var(--gold-deep);
-  font-size: 0.6rem;
-  font-weight: 680;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.priceNote strong {
-  margin-top: 0.35rem;
-  font-size: 1.8rem;
+  font-size: 0.9rem;
   font-weight: 400;
   color: var(--ink);
 }
 
-.priceNote small {
-  margin-top: 0.2rem;
+.actionCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 2.5rem;
+  padding: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
+}
+
+.priceNote {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.availabilityBadge {
+  color: var(--gold-deep);
+  font-size: 0.65rem;
+  font-weight: 680;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.availabilityTitle {
+  margin-top: 0.5rem;
+  font-size: 1.6rem;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.availabilityDesc {
+  margin: 0.4rem 0 0;
   color: var(--ink-muted);
-  font-size: 0.67rem;
-  line-height: 1.45;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+.primaryActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
 }
 
 .whatsappButton,
@@ -187,22 +215,25 @@
 }
 
 .secondaryActions {
-  grid-column: 1 / -1;
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 0.6rem;
-  padding-top: 0.2rem;
+  gap: 1rem;
+  padding-top: 0.25rem;
 }
 
-.secondaryActions button {
+.secondaryBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
   transition: all 0.2s ease;
 }
 
-.secondaryActions button:hover {
+.secondaryBtn:hover {
   color: var(--ink);
-  background: rgba(0, 0, 0, 0.03);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .reassuranceList {
@@ -303,26 +334,49 @@
   gap: clamp(0.8rem, 2vw, 1.5rem);
 }
 
-.relatedGrid article > span {
-  display: block;
-  margin-top: 0.8rem;
+.relatedCard {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  height: 100%;
+}
+
+.relatedCard:hover {
+  transform: translateY(-4px);
+}
+
+.relatedCard:hover .relatedImage img {
+  transform: scale(1.05);
+}
+
+.relatedContent {
+  padding: 1rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.relatedCategory {
   color: var(--gold-deep);
-  font-size: 0.59rem;
+  font-size: 0.6rem;
   font-weight: 680;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .relatedGrid h3 {
-  margin: 0.35rem 0 0;
-  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  margin: 0.4rem 0 0;
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
   font-weight: 400;
+  line-height: 1.2;
 }
 
-.relatedGrid p {
-  margin: 0.35rem 0 0;
+.relatedMeta {
+  margin: 0.4rem 0 0;
   color: var(--ink-muted);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 
 .relatedImage {
@@ -331,16 +385,12 @@
   overflow: hidden;
   aspect-ratio: 4 / 5;
   border-radius: var(--radius-lg);
-  background: #e7ded2;
+  background: #f4efeb;
 }
 
 .relatedImage img {
   object-fit: contain;
-  transition: transform 450ms ease;
-}
-
-.relatedImage:hover img {
-  transform: scale(1.025);
+  transition: transform 600ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .mobileEnquiryBar {
@@ -372,20 +422,15 @@
   }
 
   .productDetails h1 {
-    font-size: clamp(3rem, 14vw, 4.6rem);
+    font-size: clamp(1.875rem, 8vw, 2.25rem);
   }
 
   .specificationGrid {
     margin-top: 1.4rem;
   }
 
-  .actionCard {
+  .primaryActions {
     grid-template-columns: 1fr;
-  }
-
-  .priceNote,
-  .secondaryActions {
-    grid-column: 1;
   }
 
   .guidanceGrid {

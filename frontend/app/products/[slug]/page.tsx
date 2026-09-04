@@ -199,6 +199,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             items={[
               { label: "Home", href: "/" },
               { label: "Shop", href: "/shop" },
+              { label: product.category },
               { label: cleanProductName(product.name) },
             ]}
           />
@@ -213,18 +214,21 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </div>
 
             <div className={styles.productDetails}>
-              <p className={styles.eyebrow}>{product.category} · {product.deity}</p>
+              <div className={styles.categoryBadge}>{product.category} • Handcrafted</div>
               <h1 className="font-display">{cleanProductName(product.name)}</h1>
               <p className={styles.description}>{product.description}</p>
 
-              <dl className={styles.specificationGrid}>
-                {product.height > 0 ? <div><dt><Ruler aria-hidden="true" size={17} /> Height</dt><dd>{product.height} inches</dd></div> : null}
-                {product.weightGrams ? <div><dt>Weight</dt><dd>{product.weightMinGrams ? `${Number((product.weightMinGrams / 1000).toFixed(1))}–${Number((product.weightGrams / 1000).toFixed(1))} kg` : `${Number((product.weightGrams / 1000).toFixed(1))} kg`}</dd></div> : null}
-                <div><dt><Gem aria-hidden="true" size={17} /> Material</dt><dd>{product.material}</dd></div>
-                {product.availability ? <div><dt><PackageCheck aria-hidden="true" size={17} /> Availability</dt><dd>{availabilityLabel(product.availability)}</dd></div> : null}
-                <div><dt><Sparkles aria-hidden="true" size={17} /> Finish</dt><dd>{product.finish}</dd></div>
-                <div><dt><HandHeart aria-hidden="true" size={17} /> Made by</dt><dd>Master moortikars</dd></div>
-              </dl>
+              <div className={styles.catalogSection}>
+                <h3 className={styles.catalogHeading}>Product Details</h3>
+                <dl className={styles.specificationGrid}>
+                  <div><dt>Material</dt><dd>{product.material}</dd></div>
+                  {product.height > 0 ? <div><dt>Dimensions</dt><dd>{product.height} Inches</dd></div> : null}
+                  <div><dt>Craft</dt><dd>Handcrafted</dd></div>
+                  <div><dt>Finish</dt><dd>{product.finish}</dd></div>
+                  {product.weightGrams ? <div><dt>Weight</dt><dd>{product.weightMinGrams ? `${Number((product.weightMinGrams / 1000).toFixed(1))}–${Number((product.weightGrams / 1000).toFixed(1))} kg` : `${Number((product.weightGrams / 1000).toFixed(1))} kg`}</dd></div> : null}
+                  {product.deity ? <div><dt>Deity</dt><dd>{product.deity}</dd></div> : null}
+                </dl>
+              </div>
 
               <ProductActions
                 productId={product.id}
@@ -270,13 +274,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </div>
             <div className={styles.relatedGrid}>
               {related.map((item: CatalogItem) => (
-                <article key={item.id}>
+                <article key={item.id} className={styles.relatedCard}>
                   <Link className={styles.relatedImage} href={`/products/${item.slug}`}>
                     <Image src={item.image} alt={item.imageAlt} fill sizes="(max-width: 680px) 50vw, 33vw" unoptimized={/^https?:\/\//i.test(item.image)} />
                   </Link>
-                  <span>{[item.deity, item.height > 0 ? `${item.height}"` : ""].filter(Boolean).join(" · ")}</span>
-                  <h3 className="font-display"><Link href={`/products/${item.slug}`}>{cleanProductName(item.name)}</Link></h3>
-                  <p>{item.material} · {item.finish}</p>
+                  <div className={styles.relatedContent}>
+                    <span className={styles.relatedCategory}>{item.category}</span>
+                    <h3 className="font-display"><Link href={`/products/${item.slug}`}>{cleanProductName(item.name)}</Link></h3>
+                    <p className={styles.relatedMeta}>{item.height > 0 ? `${item.height}" · ` : ""}{item.material} · {item.finish}</p>
+                  </div>
                 </article>
               ))}
             </div>
