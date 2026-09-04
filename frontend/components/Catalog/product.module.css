@@ -7,9 +7,6 @@
 .productImagePlaceholder small { color: var(--ink-muted); font-size: 0.66rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; }
 .productCard:hover .productMedia > a img { transform: scale(1.05); }
 .productBadges { position: absolute; top: 0.75rem; left: 0.75rem; display: flex; max-width: calc(100% - 4rem); flex-wrap: wrap; gap: 0.35rem; pointer-events: none; }
-
-.quickAdd { position: absolute; right: 0.75rem; bottom: 0.75rem; left: 0.75rem; width: calc(100% - 1.5rem); opacity: 0; transform: translateY(8px); transition: opacity var(--transition-fast), transform var(--transition-fast); }
-.productCard:hover .quickAdd, .quickAdd:focus-visible { opacity: 1; transform: translateY(0); }
 .productInfo { display: flex; flex-direction: column; align-items: flex-start; padding: 0.9rem 0.15rem 0; }
 .productMeta { display: flex; flex-wrap: wrap; gap: 0.35rem; color: var(--gold-deep); font-size: 0.62rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; }
 .productMeta span:not(:last-child)::after { margin-left: 0.35rem; content: "·"; }
@@ -38,7 +35,6 @@
 @media (max-width: 680px) {
   .productBadges { top: 0.5rem; left: 0.5rem; }
 
-  .quickAdd { display: none; }
   .gallery { grid-template-columns: 1fr; gap: 0.8rem; }
   .galleryMain { grid-column: 1; grid-row: 1; aspect-ratio: 1 / 1; }
   .galleryThumbnails { grid-column: 1; grid-row: 2; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.5rem; scrollbar-width: none; }
@@ -47,5 +43,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .productMedia img, .quickAdd, .galleryThumbnails button { transition: none; }
+  .productMedia img, .galleryThumbnails button { transition: none; }
 }

@@ -25,6 +25,7 @@ export default async function AccountPage() {
     <CustomerPageShell
       title="Your gallery account"
       eyebrow="Personal gallery space"
+      hideBreadcrumb
       intro="One secure place for addresses, orders and custom-moorti approvals."
       note={
         <>

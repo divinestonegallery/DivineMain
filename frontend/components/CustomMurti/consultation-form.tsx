@@ -112,7 +112,7 @@ export function ConsultationForm() {
     const value = (name: string) => form.get(name)?.toString().trim() || "";
 
     if (!isSignedIn) {
-      if (!value("name")) nextErrors.name = "Please enter your name.";
+      if (!value("name") || value("name").length < 2) nextErrors.name = "Please enter your name.";
       if (!value("email")) nextErrors.email = "Please enter a valid email address.";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value("email"))) nextErrors.email = "Please enter a valid email address.";
       if (!value("phone")) nextErrors.phone = "Please enter your phone number.";
@@ -122,7 +122,7 @@ export function ConsultationForm() {
     }
 
     if (!value("height")) nextErrors.height = "Please enter the required height.";
-    if (!value("city")) nextErrors.city = "Please enter your city and state.";
+    if (!value("city") || value("city").length < 2) nextErrors.city = "Please enter your city and state.";
     if (referencePhoto && !isSignedIn) nextErrors.referencePhoto = "Please sign in to include a reference photo, or remove it to send without the photo.";
 
     return { errors: nextErrors, value };
@@ -219,14 +219,14 @@ export function ConsultationForm() {
           </>
         ) : (
           <>
-            <FormField label="Name" name="name" autoComplete="name" placeholder="Full name" value={manualIdentity.name} onChange={updateIdentity("name")} error={fieldErrors.name} required />
+            <FormField label="Name" name="name" autoComplete="name" placeholder="Full name" minLength={2} maxLength={255} value={manualIdentity.name} onChange={updateIdentity("name")} error={fieldErrors.name} required />
             <FormField label="Email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={manualIdentity.email} onChange={updateIdentity("email")} error={fieldErrors.email} required />
-            <FormField label="Phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="e.g. +91 98765 43210" pattern="\+?[0-9][0-9\s-]{7,19}" value={manualIdentity.phone} onChange={updateIdentity("phone")} error={fieldErrors.phone} required />
+            <FormField label="Phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="e.g. +91 98765 43210" pattern="\+?[0-9][0-9\s-]{7,19}" maxLength={20} value={manualIdentity.phone} onChange={updateIdentity("phone")} error={fieldErrors.phone} required />
           </>
         )}
-        <FormField label="Height" name="height" placeholder="e.g. 24 inches" error={fieldErrors.height} onChange={clearFieldError("height")} required />
-        <FormField className={styles.fullField} label="Address / City / State" name="city" autoComplete="address-level2" placeholder="Jaipur, Rajasthan" error={fieldErrors.city} onChange={clearFieldError("city")} required />
-        <TextareaField className={styles.fullField} label="Description / Comment" name="description" placeholder="Tell us about your customization requirements..." />
+        <FormField label="Height" name="height" placeholder="e.g. 24 inches" maxLength={100} error={fieldErrors.height} onChange={clearFieldError("height")} required />
+        <FormField className={styles.fullField} label="Address / City / State" name="city" autoComplete="address-level2" placeholder="Jaipur, Rajasthan" minLength={2} maxLength={100} error={fieldErrors.city} onChange={clearFieldError("city")} required />
+        <TextareaField className={styles.fullField} label="Description / Comment" name="description" maxLength={10000} placeholder="Tell us about your customization requirements..." />
 
         <div className={`${styles.uploadField} ${styles.fullField}`}>
           <div className={styles.uploadLabel}>

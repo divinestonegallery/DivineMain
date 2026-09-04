@@ -1,7 +1,6 @@
 // @ts-nocheck
 import type { Metadata } from "next";
 import { ArrowRight, Clock3, MapPin, MessageCircle, Phone, ShieldCheck } from "lucide-react";
-import { Breadcrumbs } from "@/components/common/breadcrumbs";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
@@ -22,7 +21,6 @@ export default function ContactPage() {
         <section className={styles.contactSection}>
           <div className={`${styles.contactLayout} site-container`}>
             <div className={styles.contactIntro}>
-              <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Contact" }]} />
               <p className={styles.eyebrow}>Get in touch</p>
               <h1 className="font-display">Speak directly with our gallery.</h1>
               <p className={styles.lede}>

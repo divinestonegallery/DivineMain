@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   Sparkles,
   X,
+  ChevronRight
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { AccountControl, MobileAccountControl } from "@/components/Auth/account-control";
@@ -43,13 +44,6 @@ const featuredLinks = [
   ["Wall Sculptures", "/shop?q=Wall%20Sculpture"],
   ["Custom Commissions", "/custom-murti"],
   ["Sizing Guide", "/guides/sizing"],
-] as const;
-
-const mainLinks = [
-  ["Customize Your Moorti", "/custom-murti"],
-  ["Artisans", "/artisans"],
-  ["Our Story", "/our-story"],
-  ["Guides", "/guides"],
 ] as const;
 
 type SearchProductResult = {
@@ -575,7 +569,9 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           />
           <div className={styles.mobileDrawerPanel} ref={mobilePanelRef} tabIndex={-1}>
             <div className={styles.mobileDrawerHeader}>
-              <Image src="/brand/logo-horizontal.jpg" alt="Divine Stone Gallery" width={280} height={150} />
+              <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home" onClick={() => setMobileMenuOpen(false)}>
+                <Image className={styles.brandLogo} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
+              </Link>
               <button
                 className={styles.closeButton}
                 type="button"
@@ -585,29 +581,52 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                 <X aria-hidden="true" size={24} strokeWidth={1.5} />
               </button>
             </div>
-            <nav className={styles.mobileNav} aria-label="Mobile navigation">
-              <Link href="/shop" onClick={() => setMobileMenuOpen(false)}>Shop all moorties</Link>
-              <Link href="/cart" onClick={() => setMobileMenuOpen(false)}>Enquiry bag</Link>
-
-              {mainLinks.map(([label, href]) => (
-                <Link href={href} key={href} onClick={() => setMobileMenuOpen(false)}>
-                  {label}
-                </Link>
-              ))}
-            </nav>
-            <div className={styles.mobileShopGroups}>
-              <p>Popular deities</p>
-              <div>
-                {deityLinks.slice(0, 5).map(([label, href]) => (
-                  <Link href={href} key={href} onClick={() => setMobileMenuOpen(false)}>
-                    {label}
+            <div className={styles.mobileDrawerSections}>
+              <div className={styles.mobileSection}>
+                <p className={styles.mobileSectionHeader}>Account</p>
+                <div className={styles.mobileSectionList}>
+                  <Link href="/account" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                    <span>My Profile</span>
+                    <ChevronRight size={18} strokeWidth={1.5} />
                   </Link>
-                ))}
+                  <Link href="/account/wishlist" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                    <span>My Wishlist</span>
+                    <ChevronRight size={18} strokeWidth={1.5} />
+                  </Link>
+                  <Link href="/sign-in" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                    <span>Login / Sign Up</span>
+                    <ChevronRight size={18} strokeWidth={1.5} />
+                  </Link>
+                </div>
+              </div>
+
+              <div className={styles.mobileSection}>
+                <p className={styles.mobileSectionHeader}>Other</p>
+                <div className={styles.mobileSectionList}>
+                  <Link href="/our-story" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                    <span>About Us</span>
+                    <ChevronRight size={18} strokeWidth={1.5} />
+                  </Link>
+                  <Link href="/contact" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                    <span>Contact Us</span>
+                    <ChevronRight size={18} strokeWidth={1.5} />
+                  </Link>
+                  <Link href="/faq" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                    <span>FAQ</span>
+                    <ChevronRight size={18} strokeWidth={1.5} />
+                  </Link>
+                </div>
+              </div>
+
+              <div className={styles.mobileSection}>
+                <p className={styles.mobileSectionHeader}>Social Media</p>
+                <div className={styles.mobileSocials}>
+                  <a href="https://www.instagram.com/divinestone_gallery?igsi=MWZwN3U4NnF0cWUwNQ==" target="_blank" rel="noreferrer" className={styles.mobileSocialLinkText}>Instagram</a>
+                  <a href="#" className={styles.mobileSocialLinkText}>Facebook</a>
+                  <a href="https://youtube.com/@divinestonegallery?si=GGX9Xu-UidKMfvBl" target="_blank" rel="noreferrer" className={styles.mobileSocialLinkText}>YouTube</a>
+                </div>
               </div>
             </div>
-            <Link className={styles.mobileConsultation} href="/contact" onClick={() => setMobileMenuOpen(false)}>
-              Book a private consultation
-            </Link>
           </div>
         </div>
       ) : null}

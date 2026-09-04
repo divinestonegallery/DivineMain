@@ -2,10 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Gem, ShoppingBag } from "lucide-react";
+import { Gem } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/toast";
 import type { Product } from "@/src/types/product";
 import type { BackendProductImage, ProductCard as ApiProductCard } from "@/api/products";
 import { ProductPrice } from "./product-price";
@@ -64,15 +62,6 @@ function productCompareAtPrice(product: ProductCardInput) {
   return amount((product as Product).compareAtPrice) ?? amount((product as ApiProductCard).original_price) ?? undefined;
 }
 
-function normalizedAvailability(product: ProductCardInput) {
-  return text((product as Product).availability || (product as ApiProductCard).availability);
-}
-
-function isReadyToShip(product: ProductCardInput, availability: string) {
-  if (typeof (product as Product).readyToShip === "boolean") return Boolean((product as Product).readyToShip);
-  return availability === "in-stock" || availability === "in_stock";
-}
-
 function isCustomizable(product: ProductCardInput) {
   if (typeof (product as Product).customizable === "boolean") return Boolean((product as Product).customizable);
   const salesMode = text((product as ApiProductCard).sales_mode);
@@ -85,20 +74,12 @@ function priceFallback(product: ProductCardInput) {
 }
 
 export function ProductCard({ product, priority = false, href }: { product: ProductCardInput; priority?: boolean; href?: string }) {
-
-  const { showToast } = useToast();
   const name = productName(product);
   const image = productImage(product, name);
   const price = productPrice(product);
   const compareAtPrice = productCompareAtPrice(product);
-  const availability = normalizedAvailability(product);
-  const unavailable = availability === "sold-out" || availability === "out_of_stock";
   const productHref = href ?? (product.slug ? `/products/${product.slug}` : "/shop");
   const meta = [text(product.deity), text(product.material || (product as ApiProductCard).category)].filter(Boolean);
-
-  function addToBag() {
-    showToast(`${name} added to your bag.`);
-  }
 
   return (
     <article className={styles.productCard}>
@@ -121,14 +102,8 @@ export function ProductCard({ product, priority = false, href }: { product: Prod
           )}
         </Link>
         <div className={styles.productBadges}>
-          {isReadyToShip(product, availability) ? <Badge tone="success">Ready to ship</Badge> : null}
           {isCustomizable(product) ? <Badge tone="gold">Customizable</Badge> : null}
         </div>
-
-        <Button className={styles.quickAdd} disabled={unavailable} size="sm" onClick={addToBag}>
-          <ShoppingBag aria-hidden="true" size={15} />
-          {unavailable ? "Sold out" : "Quick add"}
-        </Button>
       </div>
       <div className={styles.productInfo}>
         {meta.length ? (

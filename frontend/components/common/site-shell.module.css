@@ -744,53 +744,70 @@
   border-bottom: 1px solid var(--border);
 }
 
-  .mobileDrawerHeader img {
-    width: 145px;
-    height: 70px;
-    object-fit: contain;
-    mix-blend-mode: multiply;
-  }
 
-.mobileNav {
+.mobileDrawerSections {
   display: flex;
   flex-direction: column;
-  padding-block: 1rem;
 }
 
-.mobileNav a {
-  padding-block: 0.85rem;
+.mobileSection {
+  padding-block: 1.25rem 0.75rem;
   border-bottom: 1px solid rgb(217 205 189 / 0.65);
-  font-family: var(--font-brand-display);
-  font-size: 1.28rem;
 }
 
-.mobileShopGroups {
-  padding-block: 1rem 1.4rem;
+.mobileSection:last-child {
+  border-bottom: none;
 }
 
-.mobileShopGroups > div {
+.mobileSectionHeader {
+  margin: 0 0 0.8rem;
+  color: var(--gold-deep);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mobileSectionList {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
+  flex-direction: column;
 }
 
-.mobileShopGroups a {
-  padding: 0.55rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  color: var(--ink-muted);
-  font-size: 0.78rem;
-}
-
-.mobileConsultation {
+.mobileSectionLink {
   display: flex;
-  min-height: 48px;
   align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
-  color: white;
-  background: var(--foreground);
-  font-size: 0.85rem;
+  justify-content: space-between;
+  padding-block: 0.85rem;
+  color: var(--foreground);
+  font-family: var(--font-brand-display);
+  font-size: 1.35rem;
+  transition: color var(--transition-fast);
+}
+
+.mobileSectionLink:hover {
+  color: var(--gold-deep);
+}
+
+.mobileSectionLink svg {
+  color: var(--ink-muted);
+}
+
+.mobileSocials {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding-block: 0.5rem;
+}
+
+.mobileSocialLinkText {
+  color: var(--ink-muted);
+  font-family: var(--font-brand-display);
+  font-size: 1.15rem;
+  transition: color var(--transition-fast);
+}
+
+.mobileSocialLinkText:hover {
+  color: var(--gold-deep);
 }
 
 .mobileBottomNav {

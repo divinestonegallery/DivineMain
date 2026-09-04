@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { ArrowRight, BadgeCheck, Gem, HandHeart, MessageCircle, PackageCheck, Ruler } from "lucide-react";
-import { Breadcrumbs } from "@/components/common/breadcrumbs";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
@@ -32,7 +31,6 @@ export default function CustomMurtiPage() {
         <section className={styles.customizeSection}>
           <div className={`${styles.customizeLayout} site-container`}>
             <div className={styles.customizeIntro}>
-              <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Custom Murti" }]} />
               <p className={styles.eyebrow}>Customize your moorti</p>
               <h1 className="font-display">Customize Your Moorti</h1>
               <p className={styles.lede}>
