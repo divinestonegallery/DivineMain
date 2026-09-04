@@ -14,9 +14,10 @@ import {
   X,
   ChevronRight
 } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
+import { FormEvent, MouseEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { AccountControl, MobileAccountControl } from "@/components/Auth/account-control";
 import { AuthModal } from "@/components/Auth/auth-modal";
+import { useAuth } from "@/components/Auth/auth-facade";
 import { useEnquiryBag } from "@/components/Customer/device-collections";
 import { getDeities, searchApplication } from "@/api/products";
 import type { BackendProductImage } from "@/api/products";
@@ -83,6 +84,7 @@ function searchDeities(results: { deities?: Array<{ id?: number; name: string; s
 
 export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const pathname = usePathname();
+  const { isLoaded, isSignedIn } = useAuth();
   const enquiryBag = useEnquiryBag();
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   const [megaMenuClosing, setMegaMenuClosing] = useState(false);
@@ -280,6 +282,17 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
     if (!query) {
       event.preventDefault();
     }
+  }
+
+  function handleMyProfileClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (isLoaded && isSignedIn) {
+      setMobileMenuOpen(false);
+      return;
+    }
+
+    event.preventDefault();
+    setMobileMenuOpen(false);
+    window.dispatchEvent(new CustomEvent("dsg:open-auth"));
   }
 
   return (
@@ -585,7 +598,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               <div className={styles.mobileSection}>
                 <p className={styles.mobileSectionHeader}>Account</p>
                 <div className={styles.mobileSectionList}>
-                  <Link href="/account" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/account" className={styles.mobileSectionLink} onClick={handleMyProfileClick}>
                     <span>My Profile</span>
                     <ChevronRight size={18} strokeWidth={1.5} />
                   </Link>
