@@ -450,10 +450,10 @@
   width: 100%;
   min-height: 52px;
   margin-top: 0.5rem;
-  border: none;
+  border: 1px solid var(--gold-deep);
   border-radius: var(--radius-sm);
   background: var(--ink);
-  color: var(--surface);
+  color: var(--gold-deep);
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.05em;
