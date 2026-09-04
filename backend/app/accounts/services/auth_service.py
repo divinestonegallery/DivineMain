@@ -200,6 +200,13 @@ class AuthService:
         return None, customer_dict
 
     @classmethod
+    def update_profile(cls, customer_id, data):
+        customer_dict = CustomerRepository.update_profile(customer_id, data)
+        if not customer_dict:
+            return 'User not found.', None
+        return None, customer_dict
+
+    @classmethod
     def logout(cls, customer_id, token=None):
         return None, {
             'message': 'Logged out successfully.',
