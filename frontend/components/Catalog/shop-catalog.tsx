@@ -235,7 +235,7 @@ export function ShopCatalog({
 
   return (
     <>
-      <section className={styles.shopHero}>
+      {/* <section className={styles.shopHero}>
         <div className="site-container">
           {breadcrumbs}
           <div className={styles.heroGrid}>
@@ -251,7 +251,7 @@ export function ShopCatalog({
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       <section className={styles.catalogSection}>
         <div className="site-container">

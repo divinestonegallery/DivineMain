@@ -2,7 +2,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ArrowRight, CheckCircle2, LockKeyhole, MessageCircle } from "lucide-react";
+import { ArrowRight, CheckCircle2, LockKeyhole } from "lucide-react";
 import { sendContactMessage } from "@/api/contact";
 import { buttonClassName } from "@/components/ui/button";
 import { FormField, SelectField, TextareaField } from "@/components/ui/form-field";
@@ -44,9 +44,13 @@ export function ContactForm() {
 
   if (sent) {
     return (
-      <div className={styles.contactForm}>
-        <div className={styles.formTitle}><CheckCircle2 aria-hidden="true" size={24} /><div><p>Enquiry received</p><h2 className="font-display">We will contact you shortly.</h2></div></div>
-        <p className={styles.formPrivacy}>Your message has been saved in the gallery backend.</p>
+      <div className={`${styles.contactForm} ${styles.successCard}`} role="status">
+        <span className={styles.successIcon}><CheckCircle2 aria-hidden="true" size={30} /></span>
+        <div className={styles.formHeader}>
+          <p>Enquiry received</p>
+          <h2 className="font-display">We will contact you shortly.</h2>
+          <span>Your enquiry has been sent successfully. Our team will get back to you soon.</span>
+        </div>
         <button className={buttonClassName({ size: "lg", className: styles.submitButton })} type="button" onClick={() => setSent(false)}>Send another enquiry</button>
       </div>
     );
@@ -54,7 +58,11 @@ export function ContactForm() {
 
   return (
     <form className={styles.contactForm} onSubmit={handleSubmit}>
-      <div className={styles.formTitle}><MessageCircle aria-hidden="true" size={21} /><div><p>Send an enquiry</p><h2 className="font-display">How can we help?</h2></div></div>
+      <div className={styles.formHeader}>
+        <p>Send an enquiry</p>
+        <h2 className="font-display">How can we help?</h2>
+        <span>Tell us what you are looking for, and the gallery team will guide you personally.</span>
+      </div>
       <div className={styles.formGrid}>
         <FormField label="Your name" name="name" autoComplete="name" placeholder="Full name" required />
         <FormField label="Email" name="email" type="email" autoComplete="email" placeholder="you@example.com" required />
@@ -72,9 +80,9 @@ export function ContactForm() {
         <FormField className={styles.fullField} label="Product name or page link" name="product" placeholder="Optional" />
         <TextareaField className={styles.fullField} label="Your message" name="message" placeholder="Tell us the deity, size, destination or question you have in mind." required />
       </div>
-      {error ? <p className={styles.formPrivacy}>{error}</p> : null}
+      {error ? <p className={styles.formError} role="alert">{error}</p> : null}
       <button className={buttonClassName({ size: "lg", className: styles.submitButton })} type="submit" disabled={submitting}>{submitting ? "Sending..." : <>Send enquiry <ArrowRight aria-hidden="true" size={18} /></>}</button>
-      <p className={styles.formPrivacy}><LockKeyhole aria-hidden="true" size={14} /> Your message is sent securely to the Divine Stone Gallery backend.</p>
+      <p className={styles.formPrivacy}><LockKeyhole aria-hidden="true" size={14} /> Your details are used only to respond to this enquiry.</p>
     </form>
   );
 }

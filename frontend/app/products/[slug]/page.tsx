@@ -64,8 +64,17 @@ function availabilityLabel(value: string | null | undefined) {
   return value ? labels[value] ?? value.replace(/_/g, " ") : "";
 }
 
+function cleanProductName(name: string) {
+  return name.replace(/\s*[-|]\s*[A-Z0-9]+$/i, '').replace(/\s*\([A-Z0-9]+\)$/i, '').trim();
+}
+
 function productGallery(product: CatalogItem) {
-  return product.gallery?.length ? product.gallery : [{ src: product.image, alt: product.imageAlt }];
+  const mainImage = { src: product.image, alt: product.imageAlt };
+  if (!product.gallery || product.gallery.length === 0) {
+    return [mainImage];
+  }
+  const hasMainImage = product.gallery.some(img => img.src === product.image);
+  return hasMainImage ? product.gallery : [mainImage, ...product.gallery];
 }
 
 function productStateCopy(error: ProductLoadState | null) {
@@ -190,7 +199,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             items={[
               { label: "Home", href: "/" },
               { label: "Shop", href: "/shop" },
-              { label: product.name },
+              { label: cleanProductName(product.name) },
             ]}
           />
 
@@ -205,7 +214,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
             <div className={styles.productDetails}>
               <p className={styles.eyebrow}>{product.category} · {product.deity}</p>
-              <h1 className="font-display">{product.name}</h1>
+              <h1 className="font-display">{cleanProductName(product.name)}</h1>
               <p className={styles.description}>{product.description}</p>
 
               <dl className={styles.specificationGrid}>
@@ -219,7 +228,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
               <ProductActions
                 productId={product.id}
-                name={product.name}
+                name={cleanProductName(product.name)}
                 height={product.height}
                 pricePaise={product.pricePaise}
                 gstRateBps={product.gstRateBps}
@@ -266,7 +275,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     <Image src={item.image} alt={item.imageAlt} fill sizes="(max-width: 680px) 50vw, 33vw" unoptimized={/^https?:\/\//i.test(item.image)} />
                   </Link>
                   <span>{[item.deity, item.height > 0 ? `${item.height}"` : ""].filter(Boolean).join(" · ")}</span>
-                  <h3 className="font-display"><Link href={`/products/${item.slug}`}>{item.name}</Link></h3>
+                  <h3 className="font-display"><Link href={`/products/${item.slug}`}>{cleanProductName(item.name)}</Link></h3>
                   <p>{item.material} · {item.finish}</p>
                 </article>
               ))}
