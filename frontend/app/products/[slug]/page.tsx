@@ -216,7 +216,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <div className={styles.productDetails}>
               <div className={styles.categoryBadge}>{product.category} • Handcrafted</div>
               <h1 className="font-display">{cleanProductName(product.name)}</h1>
+              
+              <hr className={styles.divider} />
+              
               <p className={styles.description}>{product.description}</p>
+              
+              <hr className={styles.divider} />
 
               <div className={styles.catalogSection}>
                 <h3 className={styles.catalogHeading}>Product Details</h3>
@@ -229,6 +234,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   {product.deity ? <div><dt>Deity</dt><dd>{product.deity}</dd></div> : null}
                 </dl>
               </div>
+
+              <hr className={styles.divider} />
 
               <ProductActions
                 productId={product.id}
@@ -245,7 +252,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 <span><PackageCheck aria-hidden="true" size={18} /> Protective packing and delivery support</span>
                 <span><BadgeCheck aria-hidden="true" size={18} /> Fourth-generation family atelier</span>
               </div>
+            </div>
+          </section>
 
+          <hr className={styles.sectionDivider} />
+
+          <section className={styles.faqSection}>
+            <div className={styles.faqContainer}>
+              <h2 className="font-display">Product Information</h2>
               <Accordion items={accordionItems} />
             </div>
           </section>

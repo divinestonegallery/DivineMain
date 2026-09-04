@@ -591,8 +591,8 @@ export default async function Home() {
               products={getProducts(dreamTemples)}
               actionHref="/shop?q=temple"
             />
-            <CategoriesSection categories={categoryItems} />
             <HomeDecorSection products={getProducts(homeDecor)} groups={getGroups(homeDecor)} />
+            <CategoriesSection categories={categoryItems} />
             <ReviewsSection reviews={getReviews(reviews)} />
           </>
         )}

@@ -57,10 +57,10 @@ export function ProductActions({
           <p className={styles.availabilityDesc}>{price ? "Price before GST. Shipping calculated separately." : "Contact our gallery for current availability, pricing and delivery details."}</p>
         </div>
         <div className={styles.primaryActions}>
-          <a className={buttonClassName({ size: "lg", className: styles.whatsappButton })} href={whatsappHref} target="_blank" rel="noreferrer">
+          <a className={buttonClassName({ size: "md", className: styles.whatsappButton })} href={whatsappHref} target="_blank" rel="noreferrer">
             <MessageCircle aria-hidden="true" size={18} /> Enquire on WhatsApp
           </a>
-          <a className={buttonClassName({ variant: "outline", size: "lg", className: styles.callButton })} href="tel:+919166138566">
+          <a className={buttonClassName({ variant: "outline", size: "md", className: styles.callButton })} href="tel:+919166138566">
             <Phone aria-hidden="true" size={18} /> Call {brand.phone}
           </a>
         </div>

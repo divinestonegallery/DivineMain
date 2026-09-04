@@ -47,9 +47,9 @@
 
 .productHero {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.72fr);
-  gap: clamp(2.5rem, 6vw, 7rem);
-  padding-block: clamp(2rem, 4vw, 4rem) clamp(5rem, 9vw, 8rem);
+  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 1fr);
+  gap: clamp(1.5rem, 4vw, 4rem);
+  padding-block: clamp(1rem, 2vw, 2rem) 1rem;
 }
 
 .galleryWrap {
@@ -77,13 +77,13 @@
 
 .categoryBadge {
   display: inline-block;
-  margin: 0 0 1rem;
-  padding: 0.35rem 0.85rem;
+  margin: 0 0 0.5rem;
+  padding: 0.25rem 0.65rem;
   color: var(--gold-deep);
   background: rgba(197, 160, 89, 0.08);
   border: 1px solid rgba(197, 160, 89, 0.15);
   border-radius: var(--radius-full);
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 680;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -92,31 +92,36 @@
 .productDetails h1 {
   max-width: 650px;
   margin: 0;
-  font-size: clamp(1.875rem, 3.5vw, 3.25rem);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
   font-weight: 400;
   letter-spacing: -0.03em;
   line-height: 1.1;
   color: var(--ink);
 }
 
+.divider {
+  border: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin: 0.8rem 0;
+}
+
 .description {
   max-width: 620px;
-  margin: 1.5rem 0 0;
+  margin: 0;
   color: var(--ink-muted);
-  font-size: 1rem;
-  line-height: 1.85;
+  font-size: 0.85rem;
+  line-height: 1.6;
 }
 
 .catalogSection {
-  margin: 2.5rem 0 0;
-  padding-top: 2rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  margin: 0;
+  padding: 0;
 }
 
 .catalogHeading {
-  margin: 0 0 1.25rem;
+  margin: 0 0 0.75rem;
   font-family: var(--font-sans);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 680;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -131,7 +136,7 @@
 }
 
 .specificationGrid > div {
-  padding: 1rem 1.25rem;
+  padding: 0.6rem 0.8rem;
   border-right: 1px solid rgba(0, 0, 0, 0.08);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   background: transparent;
@@ -139,15 +144,15 @@
 
 .specificationGrid dt {
   color: var(--ink-muted);
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 500;
 }
 
 .specificationGrid dd {
-  margin: 0.45rem 0 0;
-  font-size: 0.9rem;
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
   font-weight: 400;
   color: var(--ink);
 }
@@ -155,45 +160,44 @@
 .actionCard {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  margin-top: 2.5rem;
-  padding: 2rem;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: var(--radius-lg);
-  background: #fff;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
+  gap: 1rem;
+  margin-top: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .priceNote {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  align-items: flex-start;
+  text-align: left;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .availabilityBadge {
   color: var(--gold-deep);
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 680;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .availabilityTitle {
-  margin-top: 0.5rem;
-  font-size: 1.6rem;
+  margin-top: 0.3rem;
+  font-size: 1.3rem;
   font-weight: 400;
   color: var(--ink);
 }
 
 .availabilityDesc {
-  margin: 0.4rem 0 0;
+  margin: 0.2rem 0 0;
   color: var(--ink-muted);
-  font-size: 0.8rem;
-  line-height: 1.5;
-  max-width: 280px;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  max-width: 100%;
 }
 
 .primaryActions {
@@ -237,26 +241,29 @@
 }
 
 .reassuranceList {
-  display: grid;
-  gap: 0.85rem;
-  margin-block: 2rem;
-  padding: 1.25rem;
-  background: #fdfbf8;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  display: none;
 }
 
-.reassuranceList span {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: var(--ink-muted);
-  font-size: 0.78rem;
+.sectionDivider {
+  border: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin: 3rem 0;
 }
 
-.reassuranceList svg {
-  flex: 0 0 auto;
-  color: var(--gold-deep);
+.faqSection {
+  padding-bottom: clamp(4rem, 8vw, 6rem);
+}
+
+.faqContainer {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faqContainer h2 {
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: 400;
+  margin: 0 0 2.5rem;
+  text-align: center;
 }
 
 .guidanceSection {
