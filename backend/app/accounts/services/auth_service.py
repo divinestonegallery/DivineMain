@@ -201,17 +201,10 @@ class AuthService:
 
     @classmethod
     def update_profile(cls, customer_id, data):
-        customer = CustomerRepository.get_customer_by_id(customer_id)
-        if not customer:
+        customer_dict = CustomerRepository.update_profile(customer_id, data)
+        if not customer_dict:
             return 'User not found.', None
-        if 'name' in data:
-            customer.name = data['name']
-        if 'phone' in data:
-            customer.phone = data['phone']
-        update_fields = [k for k in ('name', 'phone') if k in data] + ['updated_at']
-        customer.save(update_fields=update_fields)
-        from app.accounts.serializers import CustomerSerializer
-        return None, CustomerSerializer(customer).data
+        return None, customer_dict
 
     @classmethod
     def logout(cls, customer_id, token=None):
