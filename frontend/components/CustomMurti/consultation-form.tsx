@@ -122,7 +122,11 @@ export function ConsultationForm() {
     }
 
     if (!value("height")) nextErrors.height = "Please enter the required height.";
-    if (!value("city") || value("city").length < 2) nextErrors.city = "Please enter your city and state.";
+    if (!value("address")) nextErrors.address = "Please enter your full address.";
+    if (!value("city") || value("city").length < 2) nextErrors.city = "Please enter your city.";
+    if (!value("state") || value("state").length < 2) nextErrors.state = "Please enter your state.";
+    const combinedCity = [value("address"), value("city"), value("state")].filter(Boolean).join(", ");
+    if (combinedCity.length > 100) nextErrors.city = "Please keep your address details within 100 characters.";
     if (referencePhoto && !isSignedIn) nextErrors.referencePhoto = "Please sign in to include a reference photo, or remove it to send without the photo.";
 
     return { errors: nextErrors, value };
@@ -167,7 +171,7 @@ export function ConsultationForm() {
         name: isSignedIn ? profileIdentity.name || undefined : value("name"),
         email: isSignedIn ? profileIdentity.email || undefined : value("email"),
         phone: isSignedIn ? profileIdentity.phone || undefined : value("phone"),
-        city: value("city"),
+        city: [value("address"), value("city"), value("state")].join(", "),
         approximate_height: value("height"),
         description: value("description") || undefined,
         reference_object_key: referenceObjectKey,
@@ -206,7 +210,6 @@ export function ConsultationForm() {
         <span><PencilRuler aria-hidden="true" size={20} /></span>
         <div>
           <p className={styles.formEyebrow}>Send your requirements</p>
-          <h2 className="font-display">Customize Moorti Form</h2>
         </div>
       </div>
 
@@ -225,7 +228,9 @@ export function ConsultationForm() {
           </>
         )}
         <FormField label="Height" name="height" placeholder="e.g. 24 inches" maxLength={100} error={fieldErrors.height} onChange={clearFieldError("height")} required />
-        <FormField className={styles.fullField} label="Address / City / State" name="city" autoComplete="address-level2" placeholder="Jaipur, Rajasthan" minLength={2} maxLength={100} error={fieldErrors.city} onChange={clearFieldError("city")} required />
+        <FormField className={styles.fullField} label="Full Address" name="address" autoComplete="street-address" placeholder="House number, street, area" maxLength={100} error={fieldErrors.address} onChange={clearFieldError("address")} required />
+        <FormField label="City" name="city" autoComplete="address-level2" placeholder="Jaipur" minLength={2} maxLength={50} error={fieldErrors.city} onChange={clearFieldError("city")} required />
+        <FormField label="State" name="state" autoComplete="address-level1" placeholder="Rajasthan" minLength={2} maxLength={50} error={fieldErrors.state} onChange={clearFieldError("state")} required />
         <TextareaField className={styles.fullField} label="Description / Comment" name="description" maxLength={10000} placeholder="Tell us about your customization requirements..." />
 
         <div className={`${styles.uploadField} ${styles.fullField}`}>

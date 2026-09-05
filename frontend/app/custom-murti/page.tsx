@@ -31,7 +31,7 @@ export default function CustomMurtiPage() {
         <section className={styles.customizeSection}>
           <div className={`${styles.customizeLayout} site-container`}>
             <div className={styles.customizeIntro}>
-              <p className={styles.eyebrow}>Customize your moorti</p>
+              <p className={styles.eyebrow}>Turn Imagination into Reality</p>
               <h1 className="font-display">Customize Your Moorti</h1>
               <p className={styles.lede}>
                 Have a specific vision in mind? Share your requirements with us and our artisans will help bring your customized stone moorti to life.
