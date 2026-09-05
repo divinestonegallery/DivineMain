@@ -251,6 +251,19 @@
   line-height: 1.5;
 }
 
+.contactForm select {
+  border-color: var(--dropdown-border);
+  background-color: var(--dropdown-control-bg);
+  box-shadow: var(--dropdown-control-shadow);
+  font-weight: 650;
+}
+
+.contactForm select:hover {
+  border-color: rgb(120 82 31 / 0.36);
+  background-color: #fffdf9;
+  box-shadow: var(--dropdown-control-shadow-hover);
+}
+
 .contactForm input::placeholder,
 .contactForm textarea::placeholder {
   color: rgb(110 102 91 / 0.66);
@@ -261,7 +274,7 @@
 .contactForm textarea:focus {
   border-color: var(--gold-deep);
   background: #fffdf9;
-  box-shadow: 0 0 0 4px rgb(161 118 51 / 0.13);
+  box-shadow: var(--dropdown-focus-ring), var(--dropdown-control-shadow-hover);
 }
 
 .submitButton {

@@ -9,7 +9,7 @@
 .toolbar { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; }
 .toolbar > label { display: flex; min-width: min(100%, 320px); min-height: 43px; align-items: center; gap: .55rem; padding-inline: .85rem; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--background); }
 .toolbar label input { width: 100%; border: 0; outline: 0; background: transparent; }
-.toolbar > select { min-height: 43px; padding-inline: .8rem; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--background); text-transform: capitalize; }
+.toolbar > select { min-height: 46px; padding-inline: .95rem; border: 1px solid var(--dropdown-border); border-radius: var(--radius-pill); background-color: var(--dropdown-control-bg); box-shadow: var(--dropdown-control-shadow); font-weight: 650; text-transform: capitalize; }
 .toolbar > .secondary { margin-left: auto; }
 .primary,
 .secondary { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: .4rem; padding-inline: .85rem; border: 1px solid var(--foreground); border-radius: var(--radius-pill); color: white; background: var(--foreground); font-size: .66rem; font-weight: 750; cursor: pointer; }
@@ -47,6 +47,13 @@
 .customerRow select,
 .createForm input,
 .createForm select { width: 100%; min-height: 41px; padding: .6rem .7rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--background); font: inherit; }
+.fieldGrid select,
+.customerRow select,
+.createForm select { border-color: var(--dropdown-border); background-color: var(--dropdown-control-bg); box-shadow: var(--dropdown-control-shadow); font-weight: 650; }
+.toolbar > select:hover,
+.fieldGrid select:hover,
+.customerRow select:hover,
+.createForm select:hover { border-color: rgb(120 82 31 / .36); background-color: #fffdf9; box-shadow: var(--dropdown-control-shadow-hover); }
 .fieldGrid input:disabled { color: var(--ink-muted); background: var(--surface-muted); }
 .fieldGrid textarea { resize: vertical; }
 .fieldGrid .wide { grid-column: span 3; }

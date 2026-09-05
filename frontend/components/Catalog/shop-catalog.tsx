@@ -5,14 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import {
   ArrowRight,
+  Check,
   ChevronDown,
   Search,
   SlidersHorizontal,
   Sparkles,
-  X,
 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import type { PublicCatalogOption } from "@/api/catalog/repository";
@@ -81,30 +81,22 @@ function FilterControls({
 }) {
   return (
     <div className={styles.filterControls}>
-      <label>
+      <div className={styles.filterGroup}>
         <span>Category</span>
-        <select value={filters.category} onChange={(event) => onFilterChange("category", event.target.value)}>
-          {categories.map((category) => <option value={category.value} key={category.value || "all-categories"}>{category.label}</option>)}
-        </select>
-      </label>
-      <label>
+        <CatalogDropdown label="Category" value={filters.category} options={categories} onChange={(value) => onFilterChange("category", value)} controlClassName={styles.filterDropdown} />
+      </div>
+      <div className={styles.filterGroup}>
         <span>Deity</span>
-        <select value={filters.deity} onChange={(event) => onFilterChange("deity", event.target.value)}>
-          {deities.map((deity) => <option value={deity.value} key={deity.value || "all-deities"}>{deity.label}</option>)}
-        </select>
-      </label>
-      <label>
+        <CatalogDropdown label="Deity" value={filters.deity} options={deities} onChange={(value) => onFilterChange("deity", value)} controlClassName={styles.filterDropdown} />
+      </div>
+      <div className={styles.filterGroup}>
         <span>Material</span>
-        <select value={filters.material} onChange={(event) => onFilterChange("material", event.target.value)}>
-          {materials.map((material) => <option value={material.value} key={material.value || "all-materials"}>{material.label}</option>)}
-        </select>
-      </label>
-      <label>
+        <CatalogDropdown label="Material" value={filters.material} options={materials} onChange={(value) => onFilterChange("material", value)} controlClassName={styles.filterDropdown} />
+      </div>
+      <div className={styles.filterGroup}>
         <span>Availability</span>
-        <select value={filters.availability} onChange={(event) => onFilterChange("availability", event.target.value)}>
-          {availabilityOptions.map((availability) => <option value={availability.value} key={availability.value || "all-availability"}>{availability.label}</option>)}
-        </select>
-      </label>
+        <CatalogDropdown label="Availability" value={filters.availability} options={availabilityOptions} onChange={(value) => onFilterChange("availability", value)} controlClassName={styles.filterDropdown} />
+      </div>
       <label>
         <span>Minimum price</span>
         <input value={filters.min_price} onChange={(event) => onFilterChange("min_price", event.target.value)} min="0" inputMode="decimal" type="number" placeholder="100" />
@@ -143,6 +135,147 @@ function ProductCard({ item }: { item: CatalogItem }) {
   );
 }
 
+function CatalogDropdown({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+  inlineLabel,
+  controlClassName = "",
+}: {
+  label: string;
+  value: string;
+  options: Array<{ label: string; value: string }>;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  inlineLabel?: string;
+  controlClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const listboxId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const currentIndex = Math.max(0, options.findIndex((option) => option.value === value));
+  const currentOption = options[currentIndex] ?? options[0] ?? { label: "Choose", value: "" };
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      setOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  function focusOption(index: number) {
+    if (!options.length) return;
+    window.requestAnimationFrame(() => optionRefs.current[index]?.focus());
+  }
+
+  function openMenu(index = currentIndex) {
+    if (disabled) return;
+    setOpen(true);
+    focusOption(index);
+  }
+
+  function selectOption(nextValue: string) {
+    onChange(nextValue);
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  function handleTriggerKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      openMenu(currentIndex);
+    }
+  }
+
+  function handleOptionKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {
+    if (!options.length) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusOption((index + 1) % options.length);
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      focusOption((index - 1 + options.length) % options.length);
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      focusOption(0);
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      focusOption(options.length - 1);
+    }
+  }
+
+  return (
+    <div className={`${styles.sortControl} ${controlClassName} ${open ? styles.sortControlOpen : ""}`} ref={rootRef}>
+      {inlineLabel ? <span>{inlineLabel}</span> : null}
+      <button
+        type="button"
+        className={styles.sortTrigger}
+        aria-label={`${label}: ${currentOption.label}`}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-controls={listboxId}
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={handleTriggerKeyDown}
+        ref={triggerRef}
+      >
+        <span>{currentOption.label}</span>
+        <ChevronDown className={styles.sortChevron} aria-hidden="true" size={18} />
+      </button>
+      {open ? (
+        <div className={styles.sortMenu} id={listboxId} role="listbox" aria-label={label}>
+          {options.map((option, index) => {
+            const selected = option.value === value;
+
+            return (
+              <button
+                type="button"
+                className={`${styles.sortOption} ${selected ? styles.sortOptionActive : ""}`}
+                role="option"
+                aria-selected={selected}
+                key={option.value}
+                onClick={() => selectOption(option.value)}
+                onKeyDown={(event) => handleOptionKeyDown(event, index)}
+                ref={(node) => { optionRefs.current[index] = node; }}
+              >
+                <span>{option.label}</span>
+                {selected ? <Check aria-hidden="true" size={16} /> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function ShopCatalog({
   breadcrumbs,
   products,
@@ -170,7 +303,6 @@ export function ShopCatalog({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [query, setQuery] = useState(currentQuery);
   const [filterOpen, setFilterOpen] = useState(false);
   const categories = useMemo(() => mergeOptions(availableCategories, currentFilters.category), [availableCategories, currentFilters.category]);
   const deities = useMemo(() => mergeOptions(availableDeities, currentFilters.deity), [availableDeities, currentFilters.deity]);
@@ -199,21 +331,6 @@ export function ShopCatalog({
     });
   }, [pathname, router, searchParams]);
 
-  useEffect(() => {
-    setQuery(currentQuery);
-  }, [currentQuery]);
-
-  useEffect(() => {
-    const nextQuery = query.trim();
-    if (nextQuery === currentQuery.trim()) return;
-
-    const timer = window.setTimeout(() => {
-      updateUrl({ q: nextQuery || null, page: null });
-    }, 350);
-
-    return () => window.clearTimeout(timer);
-  }, [currentQuery, query, updateUrl]);
-
   function updateFilter(name: keyof Filters, value: string) {
     updateUrl({ [name]: value || null, page: null });
   }
@@ -227,7 +344,6 @@ export function ShopCatalog({
   }
 
   function resetFilters() {
-    setQuery("");
     startTransition(() => {
       router.replace(pathname, { scroll: false });
     });
@@ -256,13 +372,6 @@ export function ShopCatalog({
       <section className={styles.catalogSection}>
         <div className="site-container">
           <div className={styles.unifiedToolbar}>
-            <label className={styles.catalogSearch}>
-              <Search aria-hidden="true" size={18} />
-              <span className="sr-only">Search collection</span>
-              <input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="Search the collection" />
-              {query ? <button type="button" aria-label="Clear search" onClick={() => setQuery("")}><X aria-hidden="true" size={17} /></button> : null}
-            </label>
-
             <div className={styles.categoryChips} aria-label="Shop by category">
               {categories.map((category) => (
                 <button type="button" key={category.value || "all-categories-chip"} aria-pressed={currentFilters.category === category.value} onClick={() => updateFilter("category", category.value)} disabled={isPending}>
@@ -275,13 +384,7 @@ export function ShopCatalog({
               <button className={styles.mobileFilterButton} type="button" onClick={() => setFilterOpen(true)}>
                 <SlidersHorizontal aria-hidden="true" size={17} /> Filters {activeFilterCount ? <span>{activeFilterCount}</span> : null}
               </button>
-              <label className={styles.sortControl}>
-                <span>Sort</span>
-                <select value={currentSort} onChange={(event) => updateSort(event.target.value as SortValue)} disabled={isPending}>
-                  {sortOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
-                </select>
-                <ChevronDown aria-hidden="true" size={16} />
-              </label>
+              <CatalogDropdown label="Sort collection" inlineLabel="Sort" value={currentSort} options={sortOptions} onChange={(value) => updateSort(value as SortValue)} disabled={isPending} />
             </div>
           </div>
 
@@ -289,7 +392,7 @@ export function ShopCatalog({
             <aside className={styles.filterSidebar} aria-label="Collection filters">
               <div className={styles.filterHeading}>
                 <strong>Refine</strong>
-                {activeFilterCount || query ? <button type="button" onClick={resetFilters}>Clear all</button> : null}
+                {activeFilterCount ? <button type="button" onClick={resetFilters}>Clear all</button> : null}
               </div>
               <FilterControls filters={currentFilters} onFilterChange={updateFilter} categories={categories} deities={deities} materials={materials} />
               <div className={styles.advisorCard}>
@@ -302,8 +405,7 @@ export function ShopCatalog({
 
             <div className={styles.resultsArea}>
               <div className={styles.resultsCount} role="status" aria-busy={isPending}>
-                <span>{isPending ? "Updating collection..." : `${totalItems} ${totalItems === 1 ? "work" : "works"}`}</span>
-                {(activeFilterCount || query) ? <button type="button" onClick={resetFilters}>Reset filters</button> : null}
+                <span>{isPending ? "Updating collection..." : `${totalItems} ${totalItems === 1 ? "Result" : "Results"}`}</span>
               </div>
 
               {errorMessage ? (
@@ -331,7 +433,7 @@ export function ShopCatalog({
               ) : (
                 <div className={styles.emptyState}>
                   <Search aria-hidden="true" size={28} />
-                  <h2 className="font-display">No works match these filters.</h2>
+                  <h2 className="font-display">No results match these filters.</h2>
                   <p>Try a different deity, material or search term—or speak with us about a custom creation.</p>
                   <button type="button" onClick={resetFilters}>Show the full collection</button>
                 </div>
@@ -345,7 +447,7 @@ export function ShopCatalog({
         <FilterControls filters={currentFilters} onFilterChange={updateFilter} categories={categories} deities={deities} materials={materials} />
         <div className={styles.modalActions}>
           <button type="button" onClick={resetFilters}>Clear all</button>
-          <button type="button" onClick={() => setFilterOpen(false)}>Show {totalItems} {totalItems === 1 ? "work" : "works"}</button>
+          <button type="button" onClick={() => setFilterOpen(false)}>Show {totalItems} {totalItems === 1 ? "Result" : "Results"}</button>
         </div>
       </Modal>
     </>

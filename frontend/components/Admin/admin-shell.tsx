@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BellRing,
   Boxes,
@@ -95,11 +95,20 @@ export function AdminShell({ children }: { children: ReactNode }) {
     return groups.flatMap((group) => group.items).filter((item) => `${item.label} ${item.description}`.toLowerCase().includes(normalized));
   }, [query]);
 
-  function closeNavigation() {
+  const closeNavigation = useCallback(() => {
     setMenuOpen(false);
     setSearchOpen(false);
     setQuery("");
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeNavigation();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [closeNavigation, searchOpen]);
 
   return (
     <ToastProvider><div className={styles.root}>
@@ -145,7 +154,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </header>
 
         {searchOpen ? (
-          <section className={styles.commandPanel} aria-label="Search administration">
+          <section className={styles.commandPanel} role="dialog" aria-label="Search administration">
             <div className={styles.commandInput}><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products, commissions or admin tools…" aria-label="Search administration" /><button onClick={closeNavigation} aria-label="Close search"><X size={18} /></button></div>
             <div className={styles.commandResults}>
               {results.map(({ label, href, description, icon: Icon }) => href ? (

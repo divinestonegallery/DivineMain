@@ -323,7 +323,9 @@
   top: 100%;
   right: 0;
   left: 0;
-  z-index: 1;
+  z-index: 3;
+  padding-top: 0.9rem;
+  pointer-events: none;
 }
 
 .megaBackdrop {
@@ -334,6 +336,7 @@
   background: rgb(25 21 16 / 0.3);
   backdrop-filter: blur(2px);
   cursor: default;
+  pointer-events: auto;
   animation: megaBackdropIn 200ms ease both;
 }
 
@@ -343,28 +346,45 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(260px, 1.3fr);
   column-gap: clamp(2.25rem, 4vw, 5rem);
-  padding-inline: clamp(1.75rem, 3vw, 3.5rem);
-  padding-block: 2.7rem 3.2rem;
-  background: var(--surface);
-  box-shadow: var(--shadow-lifted);
+  overflow: hidden;
+  padding-inline: clamp(1.6rem, 3vw, 3.35rem);
+  padding-block: 2.55rem 3rem;
+  border: 1px solid var(--dropdown-border);
+  border-radius: 26px;
+  background: var(--dropdown-surface);
+  box-shadow: var(--dropdown-shadow);
+  backdrop-filter: blur(18px);
+  pointer-events: auto;
   transform-origin: top center;
   animation: megaMenuIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .megaMenu::before {
   position: absolute;
-  right: 0;
-  left: 0;
+  inset: 0;
   z-index: -1;
-  height: 100%;
-  background: var(--surface);
+  background:
+    linear-gradient(90deg, rgb(216 189 138 / 0.1), transparent 26%, transparent 74%, rgb(120 82 31 / 0.08)),
+    var(--dropdown-surface);
   content: "";
+}
+
+.megaMenu::after {
+  position: absolute;
+  top: 0;
+  right: 2rem;
+  left: 2rem;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, transparent, var(--gold-soft), var(--gold-deep), var(--gold-soft), transparent);
+  content: "";
+  opacity: 0.78;
 }
 
 .megaColumn {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 0.42rem;
 }
 
 .megaColumn p,
@@ -378,15 +398,40 @@
 }
 
 .megaColumn a {
-  width: fit-content;
-  color: var(--ink-muted);
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  width: 100%;
+  padding-inline: 0.82rem;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: var(--foreground);
   font-size: 0.9rem;
-  transition: color var(--transition-fast), transform var(--transition-fast);
+  font-weight: 620;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .megaColumn a:hover {
-  color: var(--foreground);
+  border-color: rgb(120 82 31 / 0.16);
+  color: var(--gold-deep);
+  background: var(--dropdown-hover);
+  box-shadow: inset 3px 0 0 rgb(120 82 31 / 0.46);
   transform: translateX(3px);
+}
+
+.megaColumn a:focus-visible,
+.megaFeature:focus-visible,
+.quickSearches a:focus-visible,
+.searchProduct:focus-visible,
+.searchPills a:focus-visible,
+.mobileSectionLink:focus-visible {
+  outline: none;
+  border-color: var(--gold-deep);
+  box-shadow: var(--dropdown-focus-ring);
 }
 
 .megaFeature {
@@ -397,9 +442,20 @@
   gap: 0.65rem;
   min-height: 190px;
   padding: 1.6rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(145deg, #eee6d8, #fffdf9);
+  border: 1px solid rgb(120 82 31 / 0.18);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgb(238 230 216 / 0.92), rgb(255 253 249 / 0.98));
+  box-shadow: 0 18px 45px rgb(47 37 24 / 0.08);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.megaFeature:hover {
+  border-color: rgb(120 82 31 / 0.34);
+  box-shadow: 0 22px 58px rgb(47 37 24 / 0.12);
+  transform: translateY(-2px);
 }
 
 .megaMenuClosing {
@@ -446,6 +502,28 @@
   to { opacity: 0; }
 }
 
+@keyframes dropdownSurfaceIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dropdownDrawerIn {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .megaFeature svg {
   color: var(--gold);
 }
@@ -477,16 +555,21 @@
   inset: 0;
   width: 100%;
   border: 0;
-  background: rgb(25 21 16 / 0.55);
-  backdrop-filter: blur(4px);
+  background: rgb(25 21 16 / 0.48);
+  backdrop-filter: blur(5px);
 }
 
 .searchPanel {
   position: relative;
   z-index: 1;
+  overflow: hidden;
   padding-block: clamp(2rem, 5vw, 4.5rem);
-  background: var(--surface);
-  box-shadow: var(--shadow-lifted);
+  border-bottom: 1px solid var(--dropdown-border);
+  border-radius: 0 0 28px 28px;
+  background: var(--dropdown-surface);
+  box-shadow: var(--dropdown-shadow);
+  animation: dropdownSurfaceIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top center;
 }
 
 .overlayHeading {
@@ -530,9 +613,17 @@
   gap: 1rem;
   margin-top: 2rem;
   padding: 0.45rem 0.5rem 0.45rem 1.2rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--dropdown-border);
   border-radius: var(--radius-pill);
-  background: var(--background);
+  background: rgb(255 253 249 / 0.88);
+  box-shadow: var(--dropdown-control-shadow);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.searchForm:focus-within {
+  border-color: var(--gold-deep);
+  background: #fffdf9;
+  box-shadow: var(--dropdown-focus-ring), var(--dropdown-control-shadow-hover);
 }
 
 .searchForm svg {
@@ -570,9 +661,26 @@
 }
 
 .quickSearches a {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  padding-inline: 0.9rem;
+  border: 1px solid var(--dropdown-border);
+  border-radius: var(--radius-pill);
   color: var(--gold-deep);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  background: rgb(255 253 249 / 0.72);
+  font-weight: 680;
+  text-decoration: none;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.quickSearches a:hover {
+  border-color: rgb(120 82 31 / 0.34);
+  background: var(--dropdown-hover);
+  transform: translateY(-1px);
 }
 
 .searchResults {
@@ -638,17 +746,21 @@
   grid-template-columns: 64px minmax(0, 1fr);
   align-items: center;
   gap: 0.8rem;
+  min-height: 82px;
   min-width: 0;
-  padding: 0.55rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--background);
-  transition: border-color var(--transition-fast), background var(--transition-fast);
+  padding: 0.65rem;
+  border: 1px solid var(--dropdown-border);
+  border-radius: 16px;
+  background: rgb(255 253 249 / 0.78);
+  box-shadow: 0 10px 24px rgb(47 37 24 / 0.045);
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .searchProduct:hover {
-  border-color: var(--gold-soft);
-  background: var(--surface-muted);
+  border-color: rgb(120 82 31 / 0.38);
+  background: var(--dropdown-hover);
+  box-shadow: 0 14px 32px rgb(47 37 24 / 0.08);
+  transform: translateY(-1px);
 }
 
 .searchProductImage {
@@ -677,19 +789,26 @@
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .searchProduct strong {
+  display: -webkit-box;
+  min-height: calc(2 * 1.2em);
   font-family: var(--font-brand-display);
   font-size: 1rem;
   font-weight: 400;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .searchProduct small {
   margin-top: 0.2rem;
   color: var(--ink-muted);
   font-size: 0.7rem;
+  white-space: nowrap;
 }
 
 .searchResultColumns {
@@ -706,33 +825,36 @@
 
 .searchPills a {
   display: inline-flex;
-  min-height: 38px;
+  min-height: 40px;
   align-items: center;
-  padding-inline: 0.85rem;
-  border: 1px solid var(--border);
+  padding-inline: 0.95rem;
+  border: 1px solid var(--dropdown-border);
   border-radius: var(--radius-pill);
   color: var(--foreground);
-  background: var(--background);
+  background: rgb(255 253 249 / 0.72);
   font-size: 0.78rem;
   transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 
 .searchPills a:hover {
-  border-color: var(--gold-soft);
+  border-color: rgb(120 82 31 / 0.36);
   color: var(--gold-deep);
-  background: var(--surface-muted);
+  background: var(--dropdown-hover);
 }
 
 .mobileDrawerPanel {
   position: relative;
   z-index: 1;
-  width: min(90vw, 390px);
+  width: min(92vw, 430px);
   height: 100%;
   margin-left: auto;
   padding: 1.1rem 1.25rem 2rem;
   overflow-y: auto;
-  background: var(--surface);
-  box-shadow: var(--shadow-lifted);
+  border-left: 1px solid var(--dropdown-border);
+  border-radius: 26px 0 0 26px;
+  background: var(--dropdown-surface);
+  box-shadow: var(--dropdown-shadow);
+  animation: dropdownDrawerIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .mobileDrawerHeader {
@@ -771,21 +893,32 @@
 .mobileSectionList {
   display: flex;
   flex-direction: column;
+  gap: 0.35rem;
 }
 
 .mobileSectionLink {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-block: 0.85rem;
+  min-height: 56px;
+  padding: 0.72rem 0.82rem;
+  border: 1px solid transparent;
+  border-radius: 16px;
   color: var(--foreground);
   font-family: var(--font-brand-display);
-  font-size: 1.35rem;
-  transition: color var(--transition-fast);
+  font-size: 1.18rem;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .mobileSectionLink:hover {
+  border-color: rgb(120 82 31 / 0.18);
   color: var(--gold-deep);
+  background: var(--dropdown-hover);
+  transform: translateX(2px);
 }
 
 .mobileSectionLink svg {
@@ -794,20 +927,33 @@
 
 .mobileSocials {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1.5rem;
+  gap: 0.55rem;
   padding-block: 0.5rem;
 }
 
 .mobileSocialLinkText {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  padding-inline: 0.82rem;
+  border: 1px solid var(--dropdown-border);
+  border-radius: var(--radius-pill);
   color: var(--ink-muted);
+  background: rgb(255 253 249 / 0.68);
   font-family: var(--font-brand-display);
-  font-size: 1.15rem;
-  transition: color var(--transition-fast);
+  font-size: 1rem;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .mobileSocialLinkText:hover {
+  border-color: rgb(120 82 31 / 0.34);
   color: var(--gold-deep);
+  background: var(--dropdown-hover);
 }
 
 .mobileBottomNav {
@@ -1375,6 +1521,8 @@
 
   .megaBackdrop,
   .megaMenu,
+  .searchPanel,
+  .mobileDrawerPanel,
   .megaMenuClosing .megaBackdrop,
   .megaMenuClosing .megaMenu {
     animation-duration: 1ms;

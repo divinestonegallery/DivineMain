@@ -167,14 +167,14 @@ function SectionHeading({
   title,
   href,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   href?: string;
 }) {
   return (
     <div className={styles.sectionHeadingRow}>
       <div>
-        <p className={styles.eyebrow}>{eyebrow}</p>
+        {eyebrow ? <p className={styles.eyebrow}>{eyebrow}</p> : null}
         <div className={styles.sectionTitleLine}>
           <h2 className="font-display">{title}</h2>
           {href ? (
@@ -223,7 +223,7 @@ function DynamicTabsSection({
   surface = false,
 }: {
   id?: string;
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   products?: ProductCard[];
   groups?: HomeDeityGroup[];
@@ -255,7 +255,7 @@ function ProductRailSection({
   surface = false,
 }: {
   id?: string;
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   products: ProductCard[];
   actionHref?: string;
@@ -406,7 +406,7 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
                   <Star fill={index < Math.round(averageRating) ? "currentColor" : "none"} key={index} size={17} strokeWidth={1.5} />
                 ))}
               </div>
-              <span>{reviews.length} approved {reviews.length === 1 ? "review" : "reviews"}</span>
+              <span>{reviews.length} {reviews.length === 1 ? "review" : "reviews"}</span>
             </aside>
             <div className={styles.reviewRail}>
               {reviews.map((review) => {
@@ -570,14 +570,12 @@ export default async function Home() {
           <>
             <ProductRailSection
               id="popular-mooti"
-              eyebrow="Gallery favorites"
               title="Popular Mooti"
               products={getProducts(popular)}
               actionHref="/shop"
             />
             <DynamicTabsSection
               id="dream-mooti"
-              eyebrow="Shop by devotion"
               title="Shop by Dream Mooti"
               groups={dreamMootiGroups}
               products={getProducts(dreamMooti)}
@@ -586,7 +584,6 @@ export default async function Home() {
               surface
             />
             <ProductRailSection
-              eyebrow="Temple forms"
               title="Shop Dream Temple"
               products={getProducts(dreamTemples)}
               actionHref="/shop?q=temple"

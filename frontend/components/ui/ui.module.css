@@ -57,9 +57,21 @@
   color: var(--foreground);
   background: var(--surface);
   outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+.field select {
+  border-color: var(--dropdown-border);
+  background-color: var(--dropdown-control-bg);
+  box-shadow: var(--dropdown-control-shadow);
+  font-weight: 650;
+}
+.field select:hover {
+  border-color: rgb(120 82 31 / 0.36);
+  background-color: #fffdf9;
+  box-shadow: var(--dropdown-control-shadow-hover);
 }
 .field textarea { min-height: 120px; resize: vertical; }
-.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgb(161 118 51 / 0.12); }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); box-shadow: var(--dropdown-focus-ring); }
 .field input[aria-invalid="true"], .field select[aria-invalid="true"], .field textarea[aria-invalid="true"] { border-color: var(--danger); }
 .field p { margin: 0; color: var(--ink-muted); font-size: 0.68rem; line-height: 1.45; }
 .field .fieldError { color: var(--danger); }

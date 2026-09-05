@@ -8,7 +8,8 @@
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
 .toolbar > label { display: flex; min-width: min(100%, 300px); min-height: 42px; align-items: center; gap: .5rem; padding-inline: .8rem; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--background); }
 .toolbar label input { width: 100%; border: 0; outline: 0; background: transparent; }
-.toolbar > select { min-height: 42px; padding-inline: .75rem; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--background); }
+.toolbar > select { min-height: 46px; padding-inline: .95rem; border: 1px solid var(--dropdown-border); border-radius: var(--radius-pill); background-color: var(--dropdown-control-bg); box-shadow: var(--dropdown-control-shadow); font-weight: 650; }
+.toolbar > select:hover { border-color: rgb(120 82 31 / .36); background-color: #fffdf9; box-shadow: var(--dropdown-control-shadow-hover); }
 .primary,
 .secondary { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: .4rem; padding-inline: .85rem; border: 1px solid var(--foreground); border-radius: var(--radius-pill); color: white; background: var(--foreground); font-size: .64rem; font-weight: 750; cursor: pointer; }
 .secondary { border-color: var(--border); color: var(--foreground); background: var(--background); }

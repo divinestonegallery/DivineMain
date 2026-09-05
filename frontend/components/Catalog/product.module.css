@@ -7,10 +7,10 @@
 .productImagePlaceholder small { color: var(--ink-muted); font-size: 0.66rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; }
 .productCard:hover .productMedia > a img { transform: scale(1.05); }
 .productBadges { position: absolute; top: 0.75rem; left: 0.75rem; display: flex; max-width: calc(100% - 4rem); flex-wrap: wrap; gap: 0.35rem; pointer-events: none; }
-.productInfo { display: flex; flex-direction: column; align-items: flex-start; padding: 0.9rem 0.15rem 0; }
+.productInfo { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; padding: 0.9rem 0.15rem 0; }
 .productMeta { display: flex; flex-wrap: wrap; gap: 0.35rem; color: var(--gold-deep); font-size: 0.62rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; }
 .productMeta span:not(:last-child)::after { margin-left: 0.35rem; content: "·"; }
-.productName { margin-top: 0.4rem; font-family: var(--font-brand-display); font-size: clamp(1rem, 1.5vw, 1.22rem); line-height: 1.25; }
+.productName { display: -webkit-box; width: 100%; min-height: calc(2 * 1.25em); margin-top: 0.4rem; overflow: hidden; font-family: var(--font-brand-display); font-size: clamp(1rem, 1.5vw, 1.22rem); line-height: 1.25; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
 .rating { display: inline-flex; align-items: center; gap: 0.25rem; margin-top: 0.45rem; color: var(--gold-deep); font-size: 0.73rem; }
 .rating small { color: var(--ink-muted); }
 .price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.6rem; }

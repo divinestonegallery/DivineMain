@@ -39,6 +39,12 @@
 .addSectionForm select,
 .itemRow input,
 .itemRow textarea { width: 100%; min-height: 40px; padding: .6rem .7rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--background); font: inherit; }
+.settingsGrid select,
+.editorFields select,
+.addSectionForm select { border-color: var(--dropdown-border); background-color: var(--dropdown-control-bg); box-shadow: var(--dropdown-control-shadow); font-weight: 650; }
+.settingsGrid select:hover,
+.editorFields select:hover,
+.addSectionForm select:hover { border-color: rgb(120 82 31 / .36); background-color: #fffdf9; box-shadow: var(--dropdown-control-shadow-hover); }
 .settingsGrid textarea,
 .editorFields textarea,
 .itemRow textarea { resize: vertical; }

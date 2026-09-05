@@ -55,6 +55,10 @@
 .inventoryRow input,
 .inventoryRow select,
 .inventoryToolbar select { width: 100%; min-height: 41px; padding: .65rem .7rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--background); font: inherit; }
+.inventoryRow select,
+.inventoryToolbar select { border-color: var(--dropdown-border); background-color: var(--dropdown-control-bg); box-shadow: var(--dropdown-control-shadow); font-weight: 650; }
+.inventoryRow select:hover,
+.inventoryToolbar select:hover { border-color: rgb(120 82 31 / .36); background-color: #fffdf9; box-shadow: var(--dropdown-control-shadow-hover); }
 .createStructure textarea,
 .structureEditor textarea { resize: vertical; }
 
