@@ -7,6 +7,7 @@ from app.accounts.validators import (
     RefreshTokenValidator,
     ResetPasswordValidator,
     SignupValidator,
+    UpdateProfileValidator,
 )
 from framework.core.base_apiviews import AuthenticatedAPIView, OpenAPIView
 from framework.core.responses import ErrorResponse, SuccessResponse
@@ -85,6 +86,15 @@ class CurrentProfileView(AuthenticatedAPIView):
         if error:
             return get_response(ErrorResponse(message=error, status_code=404))
         return get_response(SuccessResponse(data=data, message='Current user fetched successfully'))
+
+    def patch(self, request):
+        validator = UpdateProfileValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid profile update', err=validator.errors, status_code=400))
+        error, data = AuthService.update_profile(request.user.id, validator.validated_data)
+        if error:
+            return get_response(ErrorResponse(message=error, status_code=404))
+        return get_response(SuccessResponse(data=data, message='Profile updated successfully'))
 
 
 class LogoutView(AuthenticatedAPIView):

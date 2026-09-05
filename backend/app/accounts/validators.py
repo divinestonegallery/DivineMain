@@ -64,3 +64,19 @@ class ResetPasswordValidator(serializers.Serializer):
 class RefreshTokenValidator(serializers.Serializer):
     refresh_token = serializers.CharField()
 
+
+class UpdateProfileValidator(serializers.Serializer):
+    name = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
+
+    def validate_name(self, value):
+        return value.strip() if value else ''
+
+    def validate_phone(self, value):
+        return value.strip() if value else ''
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError('Provide at least one field to update.')
+        return attrs
+

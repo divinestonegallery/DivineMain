@@ -146,3 +146,16 @@ class CustomerRepository:
             setattr(customer, key, value)
         customer.save(update_fields=[*data.keys(), 'updated_at'])
         return StaffSerializer(customer).data
+
+    @staticmethod
+    def update_profile(customer_id, data):
+        customer = Customer.objects.filter(id=customer_id).first()
+        if not customer:
+            return None
+        allowed = ('name', 'phone')
+        for key in allowed:
+            if key in data:
+                setattr(customer, key, data[key])
+        update_fields = [k for k in allowed if k in data] + ['updated_at']
+        customer.save(update_fields=update_fields)
+        return CustomerSerializer(customer).data

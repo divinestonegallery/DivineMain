@@ -7,15 +7,15 @@ from framework.core.responses import ErrorResponse, SuccessResponse
 from framework.utils import get_response
 
 
-class StaffListCreateView(OwnerAPIView):
-    def get(self, request):
+class StaffView(OwnerAPIView):
+    def get(self, request, customer_id=None):
         validator = StaffListValidator(data=request.query_params)
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid query parameters', err=validator.errors, status_code=400))
         error, data = StaffService.list_staff(validator.validated_data)
         return get_response(SuccessResponse(data=data, message='Staff fetched successfully'))
 
-    def post(self, request):
+    def post(self, request, customer_id=None):
         validator = StaffInviteValidator(data=request.data)
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid invitation', err=validator.errors, status_code=400))
@@ -24,8 +24,6 @@ class StaffListCreateView(OwnerAPIView):
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(data=data, message='Staff invitation sent', status_code=status.HTTP_201_CREATED))
 
-
-class StaffDetailView(OwnerAPIView):
     def patch(self, request, customer_id):
         validator = StaffUpdateValidator(data=request.data)
         if not validator.is_valid():
