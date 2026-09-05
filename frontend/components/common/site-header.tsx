@@ -362,11 +362,10 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               href="https://wa.me/919166138566?text=Namaste%2C%20I%20would%20like%20assistance%20from%20Divine%20Stone%20Gallery."
               target="_blank"
               rel="noreferrer"
-              aria-label="Plan with Divine Stone Gallery on WhatsApp"
+              aria-label="Connect on WhatsApp"
             >
               <MessageCircle aria-hidden="true" size={18} strokeWidth={1.7} />
-              <span className={styles.planTextDesktop}>Plan with Gallery</span>
-              <span className={styles.planTextMobile}>Plan</span>
+              <span>Connect on WhatsApp</span>
             </a>
             {/* <Link className={`${styles.bookingButton} ${styles.desktopOnlyAction}`} href="/cart" aria-label={`Enquiry bag with ${enquiryBag.count} ${enquiryBag.count === 1 ? "work" : "works"}`}>
               <ShoppingBag aria-hidden="true" size={18} strokeWidth={1.6} />

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { ProductCard as CatalogProductCard } from "@/components/Catalog/product-card";
 import type { ProductCard, HomeDeityGroup } from "@/api/products";
+import { HomeCarouselRail } from "./home-carousel-rail";
 import styles from "./page.module.css";
 
 function groupName(group: HomeDeityGroup) {
@@ -34,11 +35,11 @@ export function DynamicCategoryTabs({
         id: groupName(g) || g.deity_slug || `group-${index}`,
         label: groupName(g) || "Collection",
         content: (
-          <div className={styles.productRail}>
+          <HomeCarouselRail className={styles.productRail} label={`${groupName(g) || "Collection"} products`}>
             {g.products.map((product, pIndex) => (
               <CatalogProductCard product={product} priority={pIndex === 0} key={product.uid ?? product.slug ?? `${idPrefix}-${pIndex}`} />
             ))}
-          </div>
+          </HomeCarouselRail>
         )
       })).filter(t => t.label);
     }
@@ -70,11 +71,11 @@ export function DynamicCategoryTabs({
           id: "all",
           label: "All",
           content: (
-            <div className={styles.productRail}>
+            <HomeCarouselRail className={styles.productRail} label="All products">
               {products.map((product, index) => (
                 <CatalogProductCard product={product} priority={index === 0} key={product.uid ?? product.slug ?? `${idPrefix}-${index}`} />
               ))}
-            </div>
+            </HomeCarouselRail>
           ),
         },
       ];
@@ -101,11 +102,11 @@ export function DynamicCategoryTabs({
         id: key,
         label: key,
         content: (
-          <div className={styles.productRail}>
+          <HomeCarouselRail className={styles.productRail} label={`${key} products`}>
             {groupProducts.map((product, index) => (
               <CatalogProductCard product={product} priority={index === 0} key={product.uid ?? product.slug ?? `${idPrefix}-${index}`} />
             ))}
-          </div>
+          </HomeCarouselRail>
         ),
       };
     });

@@ -874,6 +874,12 @@
   color: var(--gold-deep);
 }
 
+.whatsappCta,
+.whatsappCta:hover:not(:disabled) {
+  color: white;
+  background: #25d366;
+}
+
 .dataSection,
 .categorySection,
 .reviewsSection {
@@ -893,6 +899,8 @@
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   padding-bottom: 0.85rem;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
   scroll-padding-inline: var(--page-gutter);
   scroll-snap-type: x proximity;
 }
@@ -904,13 +912,71 @@
 
 .productRail::-webkit-scrollbar,
 .reviewRail::-webkit-scrollbar {
-  height: 8px;
+  display: none;
 }
 
 .productRail::-webkit-scrollbar-thumb,
 .reviewRail::-webkit-scrollbar-thumb {
   border-radius: var(--radius-pill);
   background: rgb(120 82 31 / 0.28);
+}
+
+.carouselShell {
+  position: relative;
+  min-width: 0;
+}
+
+.carouselArrow {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.5);
+  border-radius: 50%;
+  color: white;
+  background: rgb(18 15 12 / 0.2);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  opacity: 1;
+  transform: translateY(-50%);
+  transition:
+    opacity var(--transition-fast),
+    transform var(--transition-base),
+    background var(--transition-base);
+}
+
+.carouselArrow:disabled {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.carouselArrow:not(:disabled):hover {
+  background: rgb(18 15 12 / 0.55);
+}
+
+.carouselArrowPrevious {
+  left: -0.4rem;
+  right: auto;
+}
+
+.carouselArrowPrevious svg {
+  transform: rotate(180deg);
+}
+
+.carouselArrowPrevious:not(:disabled):hover {
+  transform: translate(-2px, calc(-50% - 2px));
+}
+
+.carouselArrowNext {
+  left: auto;
+  right: -0.4rem;
+}
+
+.carouselArrowNext:not(:disabled):hover {
+  transform: translate(2px, calc(-50% - 2px));
 }
 
 .categoryImage {
@@ -956,6 +1022,7 @@
 }
 
 .categorySection {
+  padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
   background: #f2f0ec;
 }
 
@@ -965,11 +1032,13 @@
   gap: clamp(0.7rem, 1.5vw, 1.2rem);
   overflow-x: auto;
   padding-bottom: 1.2rem;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
   scroll-snap-type: x proximity;
 }
 
 .categoryGrid::-webkit-scrollbar {
-  height: 6px;
+  display: none;
 }
 
 .categoryGrid::-webkit-scrollbar-thumb {
@@ -1018,14 +1087,14 @@
 }
 
 .categoryCard small {
-  display: -webkit-box;
+  display: block;
   margin-top: 0.3rem;
   overflow: hidden;
   color: #f2e9dc;
   font-size: 0.72rem;
   line-height: 1.4;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .categoryCard > svg {
@@ -1416,6 +1485,19 @@
     height: 32px;
   }
 
+  .carouselArrow {
+    width: 32px;
+    height: 32px;
+  }
+
+  .carouselArrowPrevious {
+    left: 0.4rem;
+  }
+
+  .carouselArrowNext {
+    right: 0.4rem;
+  }
+
   .sectionHeadingRow,
   .processIntro {
     align-items: flex-start;
@@ -1508,6 +1590,13 @@
     visibility: hidden;
   }
 
+  .productRail,
+  .reviewRail,
+  .categoryGrid {
+    scroll-behavior: auto;
+  }
+
+  .carouselArrow,
   .cardArrow {
     transition: none;
   }

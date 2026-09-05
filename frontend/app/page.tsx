@@ -26,6 +26,7 @@ import type { HomeBlock, HomeData, HomeDeityGroup, ProductCard, ReviewCard, Taxo
 import styles from "./page.module.css";
 
 import { DynamicCategoryTabs } from "./dynamic-category-tabs";
+import { HomeCarouselRail } from "./home-carousel-rail";
 
 export async function generateMetadata(): Promise<Metadata> {
   const page = await getPublishedPage("home");
@@ -163,18 +164,15 @@ function MediaImage({
 }
 
 function SectionHeading({
-  eyebrow,
   title,
   href,
 }: {
-  eyebrow?: string;
   title: string;
   href?: string;
 }) {
   return (
     <div className={styles.sectionHeadingRow}>
       <div>
-        {eyebrow ? <p className={styles.eyebrow}>{eyebrow}</p> : null}
         <div className={styles.sectionTitleLine}>
           <h2 className="font-display">{title}</h2>
           {href ? (
@@ -214,7 +212,6 @@ function HomeApiError({ message }: { message: string }) {
 
 function DynamicTabsSection({
   id,
-  eyebrow,
   title,
   products,
   groups,
@@ -223,7 +220,6 @@ function DynamicTabsSection({
   surface = false,
 }: {
   id?: string;
-  eyebrow?: string;
   title: string;
   products?: ProductCard[];
   groups?: HomeDeityGroup[];
@@ -235,7 +231,7 @@ function DynamicTabsSection({
   return (
     <section className={`${styles.dataSection} ${surface ? styles.surfaceSection : ""}`} id={id}>
       <div className="site-container">
-        <SectionHeading eyebrow={eyebrow} title={title} href={actionHref} />
+        <SectionHeading title={title} href={actionHref} />
         {hasContent ? (
           <DynamicCategoryTabs products={products} groups={groups} groupBy={groupBy} idPrefix={id || "tabs"} />
         ) : (
@@ -248,29 +244,37 @@ function DynamicTabsSection({
 
 function ProductRailSection({
   id,
-  eyebrow,
   title,
   products,
   actionHref,
   surface = false,
+  carousel = false,
 }: {
   id?: string;
-  eyebrow?: string;
   title: string;
   products: ProductCard[];
   actionHref?: string;
   surface?: boolean;
+  carousel?: boolean;
 }) {
+  const productCards = products.map((product, index) => (
+    <CatalogProductCard product={product} priority={index === 0} key={product.uid ?? product.slug ?? `${title}-${index}`} />
+  ));
+
   return (
     <section className={`${styles.dataSection} ${surface ? styles.surfaceSection : ""}`} id={id}>
       <div className="site-container">
-        <SectionHeading eyebrow={eyebrow} title={title} href={actionHref} />
+        <SectionHeading title={title} href={actionHref} />
         {products.length ? (
-          <div className={styles.productRail}>
-            {products.map((product, index) => (
-              <CatalogProductCard product={product} priority={index === 0} key={product.uid ?? product.slug ?? `${title}-${index}`} />
-            ))}
-          </div>
+          carousel ? (
+            <HomeCarouselRail className={styles.productRail} label={title}>
+              {productCards}
+            </HomeCarouselRail>
+          ) : (
+            <div className={styles.productRail}>
+              {productCards}
+            </div>
+          )
         ) : (
           <EmptySection label={`${title} is waiting for backend items`} />
         )}
@@ -305,12 +309,10 @@ function DeityGroupCard({ group, priority = false }: { group: HomeDeityGroup; pr
 }
 
 function DiscoverySection({
-  eyebrow,
   title,
   groups,
   surface = false,
 }: {
-  eyebrow: string;
   title: string;
   groups: HomeDeityGroup[];
   surface?: boolean;
@@ -318,7 +320,7 @@ function DiscoverySection({
   return (
     <section className={`${styles.collectionSection} ${surface ? styles.surfaceSection : ""}`}>
       <div className="site-container">
-        <SectionHeading eyebrow={eyebrow} title={title} href="/shop" />
+        <SectionHeading title={title} href="/shop" />
         {groups.length ? (
           <div className={styles.deityGrid}>
             {groups.map((group, index) => (
@@ -338,12 +340,11 @@ function CategoriesSection({ categories }: { categories: TaxonomyItem[] }) {
     <section className={styles.categorySection}>
       <div className="site-container">
         <SectionHeading
-          eyebrow="Catalogue paths"
           title="Categories"
           href="/shop"
         />
         {categories.length ? (
-          <div className={styles.categoryGrid}>
+          <HomeCarouselRail className={styles.categoryGrid} label="Categories">
             {categories.map((category, index) => (
               <Link className={styles.categoryCard} href={taxonomyHref(category)} key={category.id ?? category.slug ?? category.name}>
                 <span className={styles.categoryImage}>
@@ -361,7 +362,7 @@ function CategoriesSection({ categories }: { categories: TaxonomyItem[] }) {
                 <ArrowRight aria-hidden="true" size={17} />
               </Link>
             ))}
-          </div>
+          </HomeCarouselRail>
         ) : (
           <EmptySection label="Categories are waiting for backend items" />
         )}
@@ -374,7 +375,6 @@ function HomeDecorSection({ products, groups }: { products: ProductCard[]; group
   return (
     <DynamicTabsSection
       id="home-decor"
-      eyebrow="Sacred accents"
       title="Shop by Home Decor"
       products={products}
       groups={groups}
@@ -394,7 +394,6 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
     <section className={styles.reviewsSection}>
       <div className="site-container">
         <SectionHeading
-          eyebrow="Customer voices"
           title="Customer Reviews"
         />
         {reviews.length ? (
@@ -408,7 +407,7 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
               </div>
               <span>{reviews.length} {reviews.length === 1 ? "review" : "reviews"}</span>
             </aside>
-            <div className={styles.reviewRail}>
+            <HomeCarouselRail className={styles.reviewRail} label="Customer Reviews">
               {reviews.map((review) => {
                 const rating = Math.max(0, Math.min(5, Number(review.rating ?? 0)));
                 const date = review.created_at ? new Date(review.created_at) : null;
@@ -438,7 +437,7 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
                   </article>
                 );
               })}
-            </div>
+            </HomeCarouselRail>
           </div>
         ) : (
           <EmptySection label="Customer Reviews are waiting for backend items" />
@@ -514,7 +513,6 @@ function FinalCta() {
     <section className={styles.finalCta}>
       <div className="site-container">
         <Sparkles aria-hidden="true" size={26} strokeWidth={1.35} />
-        <p className={styles.eyebrow}>Find Your Divine Piece</p>
         <h2 className="font-display">Let the right work find its place in your home.</h2>
         <p>Explore the collection or speak with the gallery for help choosing deity, scale, marble and placement.</p>
         <div>
@@ -522,12 +520,12 @@ function FinalCta() {
             Explore collection <ArrowRight aria-hidden="true" size={18} />
           </Link>
           <a
-            className={buttonClassName({ variant: "outline", size: "lg" })}
+            className={`${buttonClassName({ size: "lg" })} ${styles.whatsappCta}`}
             href="https://wa.me/919166138566?text=Namaste%2C%20I%20would%20like%20help%20finding%20a%20divine%20piece."
             target="_blank"
             rel="noreferrer"
           >
-            <MessageCircle aria-hidden="true" size={18} /> Ask the gallery
+            <MessageCircle aria-hidden="true" size={18} /> Connect on WhatsApp
           </a>
         </div>
       </div>
@@ -573,6 +571,7 @@ export default async function Home() {
               title="Popular Mooti"
               products={getProducts(popular)}
               actionHref="/shop"
+              carousel
             />
             <DynamicTabsSection
               id="dream-mooti"
@@ -587,6 +586,7 @@ export default async function Home() {
               title="Shop Dream Temple"
               products={getProducts(dreamTemples)}
               actionHref="/shop?q=temple"
+              carousel
             />
             <HomeDecorSection products={getProducts(homeDecor)} groups={getGroups(homeDecor)} />
             <CategoriesSection categories={categoryItems} />

@@ -263,13 +263,17 @@
 
 .planButton {
   color: white;
-  background: var(--gold-deep);
-  box-shadow: 0 14px 28px rgb(120 82 31 / 0.22);
+  background: #25d366;
+  box-shadow: 0 14px 28px rgb(37 211 102 / 0.22);
 }
 
 .planButton:hover,
 .bookingButton:hover {
   transform: translateY(-1px);
+}
+
+.planButton:hover {
+  background: #25d366;
 }
 
 .bookingButton {
@@ -292,10 +296,6 @@
   color: white;
   background: var(--gold-deep);
   font-size: 0.68rem;
-}
-
-.planTextMobile {
-  display: none;
 }
 
 @media (max-width: 980px) {
@@ -1288,14 +1288,6 @@
   .planButton {
     min-height: 44px;
     padding-inline: 1rem;
-  }
-
-  .planTextDesktop {
-    display: none;
-  }
-
-  .planTextMobile {
-    display: inline;
   }
 
   .newsletterInner {
