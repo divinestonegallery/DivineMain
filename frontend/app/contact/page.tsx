@@ -1,0 +1,110 @@
+// @ts-nocheck
+import type { Metadata } from "next";
+import { ArrowRight, Clock3, MapPin, MessageCircle, Phone, ShieldCheck } from "lucide-react";
+import { CookieConsent } from "@/components/common/cookie-consent";
+import { SiteFooter } from "@/components/common/site-footer";
+import { SiteHeader } from "@/components/common/site-header";
+import { ToastProvider } from "@/components/ui/toast";
+import { brand } from "@/src/config/brand";
+import { ContactForm } from "@/components/Contact/contact-form";
+import styles from "./contact.module.css";
+
+export const metadata: Metadata = { title: "Contact the Gallery", description: "Speak with Divine Stone Gallery for marble murti selection, custom commissions, pricing, packing and delivery guidance.", alternates: { canonical: "/contact" } };
+
+const whatsappHref = "https://wa.me/919166138566?text=Namaste%2C%20I%20would%20like%20assistance%20from%20Divine%20Stone%20Gallery.";
+
+export default function ContactPage() {
+  return (
+    <ToastProvider>
+      <SiteHeader />
+      <main id="main-content" tabIndex={-1}>
+        <section className={styles.contactSection}>
+          <div className={`${styles.contactLayout} site-container`}>
+            <div className={styles.contactIntro}>
+              <p className={styles.eyebrow}>Get in touch</p>
+              <h1 className="font-display">Speak directly with our gallery.</h1>
+              <p className={styles.lede}>
+                Have questions about a murti, custom order, dimensions, pricing or delivery?
+                Our team is here to help you choose with confidence.
+              </p>
+
+              <div className={styles.contactMethods}>
+                <a className={styles.contactCard} href={whatsappHref} target="_blank" rel="noreferrer">
+                  <span className={styles.contactIcon}><MessageCircle aria-hidden="true" size={22} /></span>
+                  <span>
+                    <strong>WhatsApp</strong>
+                    <small>Share photos, dimensions and product links</small>
+                  </span>
+                  <ArrowRight className={styles.cardArrow} aria-hidden="true" size={18} />
+                </a>
+
+                <a className={styles.contactCard} href="tel:+919166138566">
+                  <span className={styles.contactIcon}><Phone aria-hidden="true" size={21} /></span>
+                  <span>
+                    <strong>Phone</strong>
+                    <small>{brand.phone}</small>
+                  </span>
+                  <ArrowRight className={styles.cardArrow} aria-hidden="true" size={18} />
+                </a>
+
+                <div className={styles.contactCard}>
+                  <span className={styles.contactIcon}><MapPin aria-hidden="true" size={21} /></span>
+                  <span>
+                    <strong>Our location</strong>
+                    <small>{brand.location}</small>
+                  </span>
+                </div>
+              </div>
+
+              <div className={styles.galleryNotes}>
+                <span><ShieldCheck aria-hidden="true" size={17} /> {brand.heritage}</span>
+                <span><Clock3 aria-hidden="true" size={17} /> WhatsApp is the easiest way to leave complete details.</span>
+              </div>
+            </div>
+
+            <ContactForm />
+          </div>
+
+          <div className={`${styles.locationLayout} site-container`}>
+            <div className={styles.locationContent}>
+              <div className={styles.locationInfo}>
+                <h2 className={styles.locationHeading}>Our Location</h2>
+                <div className={styles.addressWrapper}>
+                  <div className={styles.pinIcon}>
+                    <MapPin aria-hidden="true" size={24} />
+                  </div>
+                  <div className={styles.addressText}>
+                    <strong>Divine Stone Gallery</strong>
+                    <p>Alwar-Dausa Road, VPO Gola Ka Bas,<br />Patti Beena, Rajasthan 301410, India</p>
+                  </div>
+                </div>
+                <a 
+                  href="https://maps.google.com/maps?q=Divine+Stone+Gallery,+Alwar-Dausa+Road,+VPO+Gola+Ka+Bas,+Patti+Beena,+Rajasthan+301410,+India" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className={styles.directionsBtn}
+                  aria-label="Get directions to Divine Stone Gallery on Google Maps"
+                >
+                  Get Directions
+                </a>
+              </div>
+              <div className={styles.mapWrapper}>
+                <iframe 
+                  src="https://maps.google.com/maps?q=Divine%20Stone%20Gallery,%20Alwar-Dausa%20Road,%20VPO%20Gola%20Ka%20Bas,%20Patti%20Beena,%20Rajasthan%20301410,%20India&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                  width="100%" 
+                  height="100%" 
+                  style={{ border: 0 }} 
+                  allowFullScreen 
+                  loading="lazy" 
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Divine Stone Gallery Location Map"
+                ></iframe>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+      <SiteFooter /><CookieConsent />
+    </ToastProvider>
+  );
+}

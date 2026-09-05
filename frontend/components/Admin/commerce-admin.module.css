@@ -1,0 +1,141 @@
+.managementSection { display: grid; gap: 1.15rem; }
+
+.sectionToolbar,
+.inventoryToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .7rem;
+}
+
+.sectionToolbar > div { display: flex; align-items: baseline; gap: .5rem; }
+.sectionToolbar > div strong { font-family: var(--font-brand-display), serif; font-size: 2rem; font-weight: 400; }
+.sectionToolbar > div span { color: var(--ink-muted); font-size: .75rem; }
+.sectionToolbar > button { margin-left: auto; }
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  padding-inline: .85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: .68rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.primaryButton { border-color: var(--foreground); color: white; background: var(--foreground); }
+.secondaryButton { color: var(--foreground); background: var(--background); }
+.primaryButton:disabled,
+.secondaryButton:disabled { opacity: .5; cursor: wait; }
+
+.structureGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.structureCard { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); }
+.structureCard > header { display: grid; grid-template-columns: auto 1fr auto; gap: .75rem; align-items: start; padding: 1rem; border-bottom: 1px solid var(--border); }
+.structureCard > header > span { display: grid; width: 38px; aspect-ratio: 1; place-items: center; border-radius: 50%; color: var(--gold-deep); background: var(--gold-soft); }
+.structureCard h2 { margin: 0; font-family: var(--font-brand-display), serif; font-size: 1.45rem; font-weight: 400; }
+.structureCard header p { margin: .25rem 0 0; color: var(--ink-muted); font-size: .67rem; line-height: 1.5; }
+.structureCard header button { display: grid; width: 34px; aspect-ratio: 1; place-items: center; border: 1px solid var(--border); border-radius: 50%; background: transparent; cursor: pointer; }
+
+.createStructure { display: grid; gap: .7rem; padding: 1rem; border-bottom: 1px solid var(--border); background: var(--surface); }
+.createStructure label,
+.structureEditor label,
+.inventoryRow > label { display: grid; gap: .35rem; }
+.createStructure label > span,
+.structureEditor label > span,
+.inventoryRow > label > span { color: var(--ink-muted); font-size: .6rem; font-weight: 750; letter-spacing: .04em; }
+.createStructure input,
+.createStructure textarea,
+.structureEditor input,
+.structureEditor textarea,
+.inventoryRow input,
+.inventoryRow select,
+.inventoryToolbar select { width: 100%; min-height: 41px; padding: .65rem .7rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--background); font: inherit; }
+.inventoryRow select,
+.inventoryToolbar select { border-color: var(--dropdown-border); background-color: var(--dropdown-control-bg); box-shadow: var(--dropdown-control-shadow); font-weight: 650; }
+.inventoryRow select:hover,
+.inventoryToolbar select:hover { border-color: rgb(120 82 31 / .36); background-color: #fffdf9; box-shadow: var(--dropdown-control-shadow-hover); }
+.createStructure textarea,
+.structureEditor textarea { resize: vertical; }
+
+.structureList { display: grid; }
+.structureRow { border-bottom: 1px solid var(--border); }
+.structureRow:last-child { border-bottom: 0; }
+.structureRow summary { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; gap: .65rem; align-items: center; padding: .8rem 1rem; cursor: pointer; list-style: none; }
+.structureRow summary::-webkit-details-marker { display: none; }
+.structureRow summary > span:nth-child(2) { display: grid; gap: .2rem; }
+.structureRow summary strong { font-size: .76rem; }
+.structureRow summary small { overflow: hidden; color: var(--ink-muted); font-size: .59rem; text-overflow: ellipsis; white-space: nowrap; }
+.structureRow summary > span:last-child,
+.structureRow summary em { color: var(--ink-muted); font-size: .56rem; font-style: normal; font-weight: 750; }
+.structureRow summary em { grid-column: 2; color: var(--gold-deep); }
+.liveDot,
+.inactiveDot { width: 8px; aspect-ratio: 1; border-radius: 50%; background: var(--success); }
+.inactiveDot { background: var(--ink-muted); }
+.structureEditor { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; padding: 1rem; background: var(--surface); }
+.structureEditor .wideField,
+.structureEditor .checkField,
+.structureEditor .rowActions { grid-column: 1 / -1; }
+.checkField { display: flex !important; min-height: 35px; align-items: center; gap: .5rem; }
+.checkField input { width: 17px; min-height: 17px; padding: 0; }
+.rowActions { display: flex; justify-content: space-between; gap: .5rem; }
+.emptyMessage { margin: 0; padding: 1.5rem; color: var(--ink-muted); font-size: .72rem; text-align: center; }
+
+.summaryGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; }
+.summaryGrid button { display: flex; min-height: 90px; align-items: center; gap: .75rem; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-lg); color: var(--foreground); background: var(--background); text-align: left; cursor: pointer; }
+.summaryGrid button > svg { padding: .55rem; box-sizing: content-box; border-radius: 50%; background: var(--surface-muted); }
+.summaryGrid button span { display: grid; gap: .2rem; }
+.summaryGrid button small { color: var(--ink-muted); font-size: .64rem; font-weight: 700; }
+.summaryGrid button strong { font-family: var(--font-brand-display), serif; font-size: 1.75rem; font-weight: 400; }
+.summaryGrid .success svg { color: var(--success); background: rgb(33 115 72 / .08); }
+.summaryGrid .warning svg { color: #9b6821; background: rgb(179 134 63 / .1); }
+.summaryGrid .danger svg { color: #a53d32; background: rgb(165 61 50 / .08); }
+
+.inventoryToolbar label { display: flex; min-width: min(100%, 320px); min-height: 44px; align-items: center; gap: .55rem; padding-inline: .8rem; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--background); }
+.inventoryToolbar label input { min-height: 0; padding: 0; border: 0; outline: 0; background: transparent; }
+.inventoryToolbar select { width: auto; min-width: 170px; border-radius: var(--radius-pill); }
+.inventoryToolbar > button { margin-left: auto; }
+.inventoryList { display: grid; gap: .7rem; }
+.inventoryRow { display: grid; grid-template-columns: minmax(190px, 1.5fr) auto 70px 70px 100px 115px minmax(110px, auto) auto; gap: .8rem; align-items: center; padding: .9rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); }
+.inventoryIdentity { display: grid; gap: .2rem; }
+.inventoryIdentity strong { font-size: .78rem; }
+.inventoryIdentity span,
+.inventoryIdentity small { color: var(--ink-muted); font-size: .62rem; }
+.stockPill { display: inline-flex; min-height: 27px; align-items: center; padding-inline: .65rem; border-radius: var(--radius-pill); font-size: .58rem; font-weight: 750; white-space: nowrap; }
+.in_stock { color: var(--success); background: rgb(33 115 72 / .08); }
+.low_stock { color: #8a6428; background: rgb(179 134 63 / .12); }
+.out_of_stock { color: #a53d32; background: rgb(165 61 50 / .08); }
+.inactive { color: var(--ink-muted); background: var(--surface-muted); }
+.stockMetric { display: grid; gap: .15rem; text-align: center; }
+.stockMetric small { color: var(--ink-muted); font-size: .56rem; }
+.stockMetric strong { font-family: var(--font-brand-display), serif; font-size: 1.2rem; font-weight: 400; }
+.inventoryRow input { min-height: 39px; }
+.switchField { display: flex !important; align-items: center; gap: .45rem; }
+.switchField input { width: 17px; min-height: 17px; padding: 0; }
+.inventoryActions { display: flex; align-items: center; gap: .45rem; }
+.inventoryActions a { display: grid; width: 38px; aspect-ratio: 1; place-items: center; border: 1px solid var(--border); border-radius: 50%; color: var(--gold-deep); }
+
+@media (max-width: 1200px) {
+  .structureGrid { grid-template-columns: 1fr; }
+  .inventoryRow { grid-template-columns: minmax(180px, 1fr) auto repeat(2, 65px) repeat(2, 100px); }
+  .inventoryRow .switchField,
+  .inventoryActions { grid-column: span 3; }
+  .inventoryActions { justify-content: flex-end; }
+}
+
+@media (max-width: 720px) {
+  .summaryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inventoryToolbar label,
+  .inventoryToolbar select,
+  .inventoryToolbar > button { width: 100%; margin-left: 0; }
+  .inventoryRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inventoryIdentity { grid-column: 1 / -1; }
+  .stockPill { justify-self: start; }
+  .inventoryRow .switchField,
+  .inventoryActions { grid-column: 1 / -1; }
+  .inventoryActions { justify-content: space-between; }
+}

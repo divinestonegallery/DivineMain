@@ -1,0 +1,102 @@
+.hero {
+  padding-block: clamp(3rem, 7vw, 6rem);
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--surface) 0%, var(--background) 72%);
+}
+
+.heroInner {
+  max-width: 850px;
+  padding-top: clamp(2rem, 5vw, 4.5rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.85rem;
+  color: var(--gold-deep);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(3rem, 7vw, 6.8rem);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 0.94;
+}
+
+.heroInner > p:not(.eyebrow) {
+  max-width: 720px;
+  margin: 1.25rem 0 0;
+  color: var(--ink-muted);
+  font-size: clamp(1rem, 1.8vw, 1.2rem);
+  line-height: 1.75;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 720px);
+  gap: clamp(2rem, 7vw, 7rem);
+  padding-block: clamp(3.5rem, 8vw, 7rem);
+}
+
+.updated {
+  align-self: start;
+  padding-top: 0.25rem;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  line-height: 1.6;
+}
+
+.sections {
+  display: grid;
+  gap: 2.5rem;
+}
+
+.sections section {
+  scroll-margin-top: 120px;
+}
+
+.sections h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 400;
+}
+
+.sections p,
+.sections li {
+  color: var(--ink-muted);
+  line-height: 1.75;
+}
+
+.sections p {
+  margin: 0.8rem 0 0;
+}
+
+.sections ul {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.9rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.contactBox {
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.contactBox a {
+  color: var(--gold-deep);
+  font-weight: 650;
+}
+
+@media (max-width: 760px) {
+  .content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding-bottom: 7rem;
+  }
+}

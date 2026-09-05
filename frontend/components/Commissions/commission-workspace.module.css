@@ -1,0 +1,39 @@
+.section { min-height: 420px; padding-block: clamp(3rem, 7vw, 6rem) clamp(7rem, 10vw, 9rem); background: var(--surface); }
+.toolbar { display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-bottom: 1.2rem; }
+.toolbar p { margin: 0; color: var(--ink-muted); font-size: .74rem; }
+.toolbar a, .toolbar button, .actions a, .actions button { display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; padding: .7rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--foreground); background: var(--background); font-size: .69rem; font-weight: 700; cursor: pointer; }
+.grid { display: grid; gap: 1rem; }
+.card, .detailCard, .milestone, .formCard, .empty { padding: clamp(1rem, 3vw, 1.5rem); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); }
+.card { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 1rem; align-items: center; }
+.card span, .eyebrow, .pill { color: var(--gold-deep); font-size: .61rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.card h2, .detailCard h2, .formCard h2 { margin: .35rem 0 0; font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 400; }
+.card p, .detailCard p, .milestone p, .formCard p { margin: .45rem 0 0; color: var(--ink-muted); font-size: .7rem; line-height: 1.6; white-space: pre-line; }
+.pill { padding: .45rem .65rem; border-radius: var(--radius-pill); background: var(--surface-muted); white-space: nowrap; }
+.money { font-size: .8rem; white-space: nowrap; }
+.card a { color: var(--gold-deep); font-size: .7rem; font-weight: 700; }
+.summary { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: .7rem; margin-top: 1rem; }
+.summary div { padding: .8rem; border-radius: var(--radius-md); background: var(--surface-muted); }
+.summary dt { color: var(--ink-muted); font-size: .58rem; }
+.summary dd { margin: .25rem 0 0; font-size: .72rem; font-weight: 700; }
+.milestones { display: grid; gap: .8rem; margin-top: 1.2rem; }
+.milestone header { display: flex; justify-content: space-between; gap: 1rem; }
+.milestone h3 { margin: .3rem 0 0; font-size: 1.35rem; font-weight: 400; }
+.mediaGrid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .6rem; margin-top: .8rem; }
+.mediaGrid a { display: block; }
+.mediaGrid img { width: 100%; height: auto; aspect-ratio: 4/3; object-fit: contain; border-radius: var(--radius-md); background: var(--surface-muted); }
+.actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+.actions .primary { color: white; border-color: var(--foreground); background: var(--foreground); }
+.decision { display: grid; gap: .6rem; margin-top: .8rem; }
+.decision textarea { min-height: 90px; padding: .75rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); resize: vertical; }
+.formCard { display: grid; gap: .8rem; margin-top: 1rem; }
+.formGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .7rem; }
+.formCard label { display: grid; gap: .35rem; color: var(--ink-muted); font-size: .64rem; font-weight: 700; }
+.formCard input, .formCard select, .formCard textarea { min-height: 46px; padding: .7rem; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--foreground); background: var(--surface); }
+.formCard select { border-color: var(--dropdown-border); background-color: var(--dropdown-control-bg); box-shadow: var(--dropdown-control-shadow); font-weight: 650; }
+.formCard select:hover { border-color: rgb(120 82 31 / .36); background-color: #fffdf9; box-shadow: var(--dropdown-control-shadow-hover); }
+.formCard textarea { min-height: 90px; resize: vertical; }
+.formCard button { min-height: 46px; padding: .7rem 1rem; border: 0; border-radius: var(--radius-pill); color: white; background: var(--foreground); cursor: pointer; }
+.empty { display: grid; min-height: 300px; place-items: center; text-align: center; }
+.empty p { max-width: 520px; color: var(--ink-muted); }
+.error { color: #8a2f2f; font-size: .7rem; }
+@media(max-width:800px){.card{grid-template-columns:1fr}.summary{grid-template-columns:repeat(2,1fr)}.formGrid{grid-template-columns:1fr}.mediaGrid{grid-template-columns:repeat(2,1fr)}}

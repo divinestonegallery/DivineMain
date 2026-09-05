@@ -1,0 +1,62 @@
+// @ts-nocheck
+import { Product } from "@/src/types/product";
+
+export const sampleProducts: Product[] = [
+  {
+    id: "dsg-radha-krishna-039",
+    slug: "radha-krishna-39-inch-marble",
+    name: "Radha Krishna Moorti",
+    deity: "Radha Krishna",
+    material: "White Marble",
+    price: 48500,
+    compareAtPrice: 54000,
+    currency: "INR",
+    image: {
+      src: "/catalog/radha-krishna-39.jpg",
+      alt: "Hand-carved 39-inch Radha Krishna marble moorties with delicate gold and pastel detailing",
+    },
+    rating: 4.9,
+    reviewCount: 18,
+    availability: "in-stock",
+    readyToShip: true,
+    customizable: true,
+    dimensions: { height: 39, width: 24, depth: 12, unit: "in" },
+  },
+  {
+    id: "dsg-ganesh-024",
+    slug: "ornate-ganesh-24-inch-marble",
+    name: "Sri Ornate Ganesha",
+    deity: "Ganesha",
+    material: "Makrana Marble",
+    price: 72000,
+    currency: "INR",
+    image: {
+      src: "/catalog/ganesh-24.jpg",
+      alt: "Ornate 24-inch marble Ganesha moorti against a deep charcoal background",
+    },
+    rating: 5,
+    reviewCount: 9,
+    availability: "made-to-order",
+    customizable: true,
+    dimensions: { height: 24, width: 19, depth: 11, unit: "in" },
+  },
+  {
+    id: "dsg-gauri-shankar-018",
+    slug: "gauri-shankar-family-18-inch-marble",
+    name: "Gauri Shankar Family",
+    deity: "Shiva Parivar",
+    material: "Vietnam Marble",
+    price: 128000,
+    compareAtPrice: 145000,
+    currency: "INR",
+    image: {
+      src: "/catalog/gauri-shankar-18.jpg",
+      alt: "Hand-carved 18-inch Gauri Shankar family marble sculpture",
+    },
+    rating: 4.8,
+    reviewCount: 6,
+    availability: "pre-order",
+    customizable: true,
+    dimensions: { height: 18, width: 18, depth: 9, unit: "in" },
+  },
+];

@@ -1,0 +1,550 @@
+.authSection {
+  min-height: 600px;
+  padding-block: clamp(3rem, 7vw, 6rem) clamp(7rem, 10vw, 9rem);
+  background:
+    radial-gradient(circle at 82% 15%, rgb(179 134 63 / 0.13), transparent 30%),
+    var(--surface);
+}
+
+.authLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(340px, 1fr);
+  gap: clamp(2rem, 7vw, 7rem);
+  align-items: start;
+}
+
+.authPromise {
+  padding-top: 1rem;
+}
+
+.authPromise span {
+  color: var(--gold-deep);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.authPromise h2 {
+  max-width: 520px;
+  margin: 0.8rem 0 0;
+  font-size: clamp(2.4rem, 5vw, 4.8rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+.authPromise > p {
+  max-width: 520px;
+  margin: 1rem 0 0;
+  color: var(--ink-muted);
+  line-height: 1.7;
+}
+
+.promiseList {
+  display: grid;
+  gap: 0.8rem;
+  margin: 1.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.promiseList li {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+
+.promiseList svg {
+  flex: 0 0 auto;
+  color: var(--gold-deep);
+}
+
+.authPanel {
+  display: grid;
+  min-height: 520px;
+  place-items: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgb(255 253 249 / 0.82);
+  box-shadow: 0 28px 70px rgb(61 45 21 / 0.08);
+}
+
+.unconfigured {
+  max-width: 500px;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  text-align: center;
+}
+
+.unconfigured > svg {
+  color: var(--gold-deep);
+}
+
+.unconfigured h2 {
+  margin: 1rem 0 0;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.unconfigured p {
+  margin: 1rem 0 0;
+  color: var(--ink-muted);
+  line-height: 1.65;
+}
+
+.securityNote {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin-top: 1.4rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.securityNote svg {
+  flex: 0 0 auto;
+  color: var(--gold-deep);
+}
+
+.clerkRoot,
+.clerkCardBox {
+  width: 100%;
+}
+
+.clerkCard {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.clerkTitle {
+  font-family: var(--font-brand-display), serif;
+  font-size: 2rem;
+  font-weight: 400;
+}
+
+.clerkSubtitle {
+  color: var(--ink-muted);
+}
+
+.clerkPrimaryButton {
+  min-height: 44px;
+  box-shadow: none;
+}
+
+.clerkLink {
+  color: var(--gold-deep);
+}
+
+.clerkSocialButton {
+  min-height: 44px;
+}
+
+.backendAuthForm {
+  display: grid;
+  width: min(100%, 420px);
+  gap: 1rem;
+}
+
+.backendAuthForm h3 {
+  margin: 0 0 0.35rem;
+  color: var(--ink);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 400;
+}
+
+.backendAuthForm label {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.backendAuthForm input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.85rem;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-transform: none;
+}
+
+.backendAuthForm button {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--surface);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.backendAuthForm button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.authError {
+  margin: 0;
+  border: 1px solid rgb(154 56 47 / 0.24);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.85rem;
+  background: rgb(154 56 47 / 0.08);
+  color: #8f2f28;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.authSwitch {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.84rem;
+}
+
+.authSwitch a {
+  color: var(--gold-deep);
+  font-weight: 800;
+}
+
+.userButton {
+  width: 25px;
+  height: 25px;
+  border: 1px solid rgb(138 100 40 / 0.26);
+  border-radius: 50%;
+  background: rgb(138 100 40 / 0.12);
+  color: var(--gold-deep);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+@media (max-width: 800px) {
+  .authLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .authPromise {
+    padding-top: 0;
+  }
+}
+
+/* Auth Modal Styles */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modalBackdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: rgb(25 21 16 / 0.6);
+  backdrop-filter: blur(4px);
+  cursor: default;
+  animation: modalFadeIn 200ms ease both;
+}
+
+.modalContainer {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 850px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lifted), 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  animation: modalSlideIn 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalLayout {
+  display: grid;
+  grid-template-columns: 42% 58%;
+  width: 100%;
+  min-height: 520px;
+}
+
+.modalImageSection {
+  position: relative;
+  background-color: var(--surface-muted);
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+  display: flex;
+}
+
+.modalImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modalImageOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.1) 40%, rgba(0,0,0,0) 100%);
+  display: flex;
+  align-items: flex-start;
+  padding: 2.5rem;
+}
+
+.modalImageText {
+  color: var(--ink, #000);
+  font-family: var(--font-brand-display), serif;
+  font-size: 1.8rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.modalContentSection {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.8rem 1.8rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.modalTitle {
+  margin: 0;
+  font-family: var(--font-brand-display);
+  font-size: 1.8rem;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.modalSubtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+}
+
+.modalCloseButton {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.modalCloseButton:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+.modalBody {
+  padding: 1.8rem;
+}
+
+.modalForm {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.modalForm label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.modalForm label span {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  letter-spacing: 0.05em;
+}
+
+.modalForm input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  color: var(--ink);
+  font-size: 1rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.modalForm input:focus {
+  outline: none;
+  border-color: var(--gold-soft);
+  box-shadow: 0 0 0 3px rgb(179 134 63 / 0.1);
+}
+
+.modalForm input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.passwordInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordInputWrapper input {
+  padding-right: 3rem;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.passwordToggle:hover {
+  color: var(--ink);
+}
+
+.modalSubmit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 0.5rem;
+  border: 1px solid var(--gold-deep);
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--gold-deep);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+}
+
+.modalSubmit:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgb(0 0 0 / 0.1);
+}
+
+.modalSubmit:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.modalError {
+  padding: 0.8rem;
+  border: 1px solid rgb(154 56 47 / 0.2);
+  border-radius: var(--radius-sm);
+  background: rgb(154 56 47 / 0.05);
+  color: #8f2f28;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.modalFooter {
+  text-align: center;
+  margin-top: 0.8rem;
+}
+
+.modalFooter p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+}
+
+.modalFooter button {
+  border: none;
+  background: transparent;
+  color: var(--gold-deep);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 0.2rem;
+}
+
+.modalFooter button:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .modalLayout {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(140px, 20vh) auto;
+  }
+  
+  .modalImageSection {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .modalImageOverlay {
+    padding: 1.2rem;
+  }
+  
+  .modalImageText {
+    font-size: 1.4rem;
+  }
+  
+  .modalContainer {
+    max-width: 100%;
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+}
