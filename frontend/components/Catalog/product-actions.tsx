@@ -1,15 +1,13 @@
 // @ts-nocheck
 "use client";
 
-import { MessageCircle, Phone, Share2, ShoppingBag } from "lucide-react";
+import { MessageCircle, Phone, Share2 } from "lucide-react";
 import { buttonClassName, Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { brand } from "@/src/config/brand";
-import { useEnquiryBag } from "@/components/Customer/device-collections";
 import styles from "@/app/products/[slug]/product-page.module.css";
 
 export function ProductActions({
-  productId,
   name,
   height,
   pricePaise,
@@ -25,8 +23,6 @@ export function ProductActions({
   stockQuantity?: number;
   salesMode?: "direct" | "quote" | "both";
 }) {
-  const enquiryBag = useEnquiryBag();
-  const inBag = enquiryBag.ids.has(productId);
   const { showToast } = useToast();
   const heightDetail = height > 0 ? ` (${height} inch)` : "";
   const message = encodeURIComponent(
@@ -65,18 +61,6 @@ export function ProductActions({
           </a>
         </div>
         <div className={styles.secondaryActions}>
-          <Button
-            variant="ghost"
-            className={styles.secondaryBtn}
-            aria-pressed={inBag}
-            onClick={() => {
-              const added = enquiryBag.toggle(productId);
-              showToast(added ? "Added to your enquiry bag." : "Removed from your enquiry bag.");
-            }}
-          >
-            <ShoppingBag aria-hidden="true" size={17} /> 
-            <span>{inBag ? "In bag" : "Add to bag"}</span>
-          </Button>
           <Button variant="ghost" className={styles.secondaryBtn} onClick={shareProduct}>
             <Share2 aria-hidden="true" size={17} /> 
             <span>Share</span>

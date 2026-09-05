@@ -391,7 +391,7 @@ export function ShopCatalog({
           <div className={styles.catalogLayout}>
             <aside className={styles.filterSidebar} aria-label="Collection filters">
               <div className={styles.filterHeading}>
-                <strong>Refine</strong>
+                <strong>Filters</strong>
                 {activeFilterCount ? <button type="button" onClick={resetFilters}>Clear all</button> : null}
               </div>
               <FilterControls filters={currentFilters} onFilterChange={updateFilter} categories={categories} deities={deities} materials={materials} />

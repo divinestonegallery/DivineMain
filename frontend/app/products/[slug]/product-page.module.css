@@ -72,6 +72,7 @@
 }
 
 .productDetails {
+  position: relative;
   min-width: 0;
 }
 
@@ -91,6 +92,7 @@
 
 .productDetails h1 {
   max-width: 650px;
+  padding-right: 8rem;
   margin: 0;
   font-size: clamp(1.5rem, 2.5vw, 2rem);
   font-weight: 400;
@@ -219,6 +221,9 @@
 }
 
 .secondaryActions {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: flex;
   justify-content: center;
   gap: 1rem;
@@ -437,6 +442,7 @@
   }
 
   .productDetails h1 {
+    padding-right: 7rem;
     font-size: clamp(1.875rem, 8vw, 2.25rem);
   }
 

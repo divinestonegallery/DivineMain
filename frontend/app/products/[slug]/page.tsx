@@ -198,10 +198,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <section className={styles.productHero}>
             <div className={styles.galleryWrap}>
               <ProductGallery images={gallery} />
-              <div className={styles.imagePromise}>
-                <BadgeCheck aria-hidden="true" size={18} />
-                <span>Full sculpture shown without image cropping</span>
-              </div>
             </div>
 
             <div className={styles.productDetails}>
@@ -274,7 +270,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <section className={styles.relatedSection}>
           <div className="site-container">
             <div className={styles.sectionHeading}>
-              <div><p className={styles.eyebrow}>You may also appreciate</p><h2 className="font-display">Related sacred works</h2></div>
+              <div><h2 className="font-display">Related sacred works</h2></div>
               <Link href="/shop">View all works <ArrowRight aria-hidden="true" size={16} /></Link>
             </div>
             <div className={styles.relatedGrid}>
