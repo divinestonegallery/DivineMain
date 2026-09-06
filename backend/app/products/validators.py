@@ -23,6 +23,12 @@ class ProductRequestValidator(serializers.Serializer):
         choices=enum_choices(SalesMode), required=False,
     )
     display_order = serializers.IntegerField(min_value=0, required=False)
+    height = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+    min_weight = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+    max_weight = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+    original_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+    selling_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+    gst = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
 
     def validate(self, attrs):
         if attrs.get('deity') and attrs.get('diety') and attrs['deity'] != attrs['diety']:

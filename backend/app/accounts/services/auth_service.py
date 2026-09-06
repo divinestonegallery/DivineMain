@@ -131,7 +131,7 @@ class AuthService:
         # Included in development/testing for API testing.
         from django.conf import settings
         response_data = {
-            'message': 'If an account exists with this email address, password reset instructions have been generated.',
+            'message': 'If an account exists with this email address, password reset link have been generated.',
         }
         if (getattr(settings, 'DEBUG', False) or getattr(settings, 'IS_TESTING', False)) and reset_token:
             response_data['reset_token'] = reset_token
@@ -201,9 +201,9 @@ class AuthService:
 
     @classmethod
     def update_profile(cls, customer_id, data):
-        customer_dict = CustomerRepository.update_profile(customer_id, data)
-        if not customer_dict:
-            return 'User not found.', None
+        error, customer_dict = CustomerRepository.update_profile(customer_id, data)
+        if error:
+            return error, None
         return None, customer_dict
 
     @classmethod

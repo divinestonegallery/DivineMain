@@ -43,7 +43,7 @@ class SignupValidator(serializers.Serializer):
 
 class LoginValidator(serializers.Serializer):
     email = serializers.EmailField()
-    password = serializers.CharField(max_length=128, write_only=True)
+    password = serializers.CharField(min_length=8, max_length=128, write_only=True)
 
     def validate_email(self, value):
         return value.strip().lower()
@@ -68,12 +68,16 @@ class RefreshTokenValidator(serializers.Serializer):
 class UpdateProfileValidator(serializers.Serializer):
     name = serializers.CharField(max_length=255, required=False, allow_blank=True)
     phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
+    email = serializers.EmailField(max_length=255, required=False)
 
     def validate_name(self, value):
         return value.strip() if value else ''
 
     def validate_phone(self, value):
         return value.strip() if value else ''
+
+    def validate_email(self, value):
+        return value.strip().lower() if value else value
 
     def validate(self, attrs):
         if not attrs:
