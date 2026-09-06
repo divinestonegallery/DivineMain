@@ -333,11 +333,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   }
 
   function handleMyProfileClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (isLoaded && isSignedIn) {
-      setMobileMenuOpen(false);
-      return;
-    }
-
     event.preventDefault();
     setMobileMenuOpen(false);
     window.dispatchEvent(new CustomEvent("dsg:open-auth"));
@@ -651,7 +646,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                 <p className={styles.mobileSectionHeader}>Account</p>
                 {isLoaded && isSignedIn ? (
                   <>
-                    <div className={styles.mobileProfile}>
+                    <Link href="/account" className={styles.mobileProfile} onClick={() => setMobileMenuOpen(false)} aria-label="Open your account">
                       <span className={styles.mobileProfileAvatar} aria-hidden="true">
                         {profileImage(user) ? (
                           <Image src={profileImage(user)} alt="" width={48} height={48} unoptimized />
@@ -661,12 +656,8 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                         <strong>{profileName(user)}</strong>
                         <small>{profileEmail(user)}</small>
                       </span>
-                    </div>
+                    </Link>
                     <div className={styles.mobileSectionList}>
-                      <Link href="/account" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
-                        <span>My Profile</span>
-                        <ChevronRight size={18} strokeWidth={1.5} />
-                      </Link>
                       {isStaffUser ? (
                         <Link href="/admin" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
                           <span>Admin Dashboard</span>

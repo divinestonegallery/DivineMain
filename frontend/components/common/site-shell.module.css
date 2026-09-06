@@ -952,6 +952,15 @@
   gap: 0.85rem;
   padding: 0.75rem 0.82rem 1.1rem;
   border-bottom: 1px solid rgb(217 205 189 / 0.65);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+
+.mobileProfile:hover,
+.mobileProfile:focus-visible {
+  background: var(--dropdown-hover);
+  outline: none;
 }
 
 .mobileProfileAvatar {
