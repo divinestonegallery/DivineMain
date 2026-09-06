@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import React, { createContext, FormEvent, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { ACCESS_TOKEN_KEY, clearAuthSession, getCurrentUser, login, onAuthSessionChange, register } from "@/api/auth";
+import { ACCESS_TOKEN_KEY, clearAuthSession, getCurrentUser, login, logoutCurrentSession, onAuthSessionChange, register } from "@/api/auth";
 import styles from "./auth.module.css";
 
 const AuthContext = createContext({
@@ -87,9 +87,15 @@ export function ClerkProvider({ children, routerPush, afterSignOutUrl = "/" }: {
   }, []);
 
   const signOut = useCallback(async () => {
-    clearAuthSession();
-    setUser(null);
-    routerPush?.(afterSignOutUrl);
+    try {
+      await logoutCurrentSession();
+    } catch {
+      // Local sign-out should still complete if the session has already expired.
+    } finally {
+      clearAuthSession();
+      setUser(null);
+      routerPush?.(afterSignOutUrl);
+    }
   }, [afterSignOutUrl, routerPush]);
 
   useEffect(() => {

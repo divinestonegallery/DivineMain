@@ -625,9 +625,15 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               <div className={styles.mobileSection}>
                 <p className={styles.mobileSectionHeader}>Social Media</p>
                 <div className={styles.mobileSocials}>
-                  <a href="https://www.instagram.com/divinestone_gallery?igsi=MWZwN3U4NnF0cWUwNQ==" target="_blank" rel="noreferrer" className={styles.mobileSocialLinkText}>Instagram</a>
-                  <a href="#" className={styles.mobileSocialLinkText}>Facebook</a>
-                  <a href="https://youtube.com/@divinestonegallery?si=GGX9Xu-UidKMfvBl" target="_blank" rel="noreferrer" className={styles.mobileSocialLinkText}>YouTube</a>
+                  <a href="https://www.instagram.com/divinestone_gallery?igsi=MWZwN3U4NnF0cWUwNQ==" target="_blank" rel="noreferrer" className={styles.mobileSocialLinkText}>
+                    <Image src="/brand/instagram.svg" alt="Instagram" width={24} height={24} />
+                  </a>
+                  <a href="#" className={styles.mobileSocialLinkText}>
+                    <Image src="/brand/facebook.svg" alt="Facebook" width={24} height={24} />
+                  </a>
+                  <a href="https://youtube.com/@divinestonegallery?si=GGX9Xu-UidKMfvBl" target="_blank" rel="noreferrer" className={styles.mobileSocialLinkText}>
+                    <Image src="/brand/youtube.svg" alt="YouTube" width={24} height={24} />
+                  </a>
                 </div>
               </div>
             </div>

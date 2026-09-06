@@ -111,8 +111,6 @@ function FilterControls({
 }
 
 function ProductCard({ item }: { item: CatalogItem }) {
-  const heightDetail = item.height > 0 ? ` (${item.height} inch)` : "";
-  const whatsappText = encodeURIComponent(`Namaste, I would like details about the ${item.name}${heightDetail}.`);
   const fallback = item.salesMode === "direct" || item.salesMode === "both" ? "Price on request" : "Enquire for price";
 
   return (
@@ -131,7 +129,6 @@ function ProductCard({ item }: { item: CatalogItem }) {
         <ProductPrice price={item.price} compact fallback={fallback} />
         <div className={styles.productLinks}>
           <Link href={`/products/${item.slug}`}>View details <ArrowRight aria-hidden="true" size={15} /></Link>
-          <a href={`https://wa.me/919166138566?text=${whatsappText}`} target="_blank" rel="noreferrer">Enquire</a>
         </div>
       </div>
     </article>

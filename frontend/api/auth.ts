@@ -93,3 +93,30 @@ export async function getCurrentUser() {
   const data = await fetchApi<any>("/auth/profile", { requireAuth: true });
   return authData(data);
 }
+
+export async function updateCurrentUserProfile(profile: { name?: string; phone?: string }) {
+  const data = await fetchApi<any>("/auth/profile", {
+    method: "PATCH",
+    requireAuth: true,
+    body: JSON.stringify(profile),
+  });
+  return authData(data);
+}
+
+export async function requestPasswordReset(email: string) {
+  const payload = await fetchApi<any>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+
+  return {
+    message: payload?.data?.message || payload?.message || "If an account exists with this email address, password reset instructions have been generated.",
+  };
+}
+
+export async function logoutCurrentSession() {
+  return fetchApi<any>("/auth/logout", {
+    method: "POST",
+    requireAuth: true,
+  });
+}
