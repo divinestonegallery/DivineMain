@@ -93,7 +93,8 @@ class CurrentProfileView(AuthenticatedAPIView):
             return get_response(ErrorResponse(message='Invalid profile update', err=validator.errors, status_code=400))
         error, data = AuthService.update_profile(request.user.id, validator.validated_data)
         if error:
-            return get_response(ErrorResponse(message=error, status_code=404))
+            code = 409 if 'already associated' in error else 404
+            return get_response(ErrorResponse(message=error, status_code=code))
         return get_response(SuccessResponse(data=data, message='Profile updated successfully'))
 
 
