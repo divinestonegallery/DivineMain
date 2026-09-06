@@ -9,6 +9,13 @@ export interface BackendProductImage {
   height?: number | null;
 }
 
+export interface ProductPrice {
+  original_price: string;
+  selling_price: string;
+  discount_percentage: string;
+  gst_price: string;
+}
+
 export interface ProductDetail {
   id: number | string;
   category?: string | null;
@@ -33,8 +40,7 @@ export interface ProductDetail {
   height?: string | number | null;
   cover_photo?: string | null;
   image_url?: string | null;
-  selling_price?: string | number | null;
-  original_price?: string | number | null;
+  price?: ProductPrice | null;
 }
 
 export interface ProductCard {
@@ -49,8 +55,7 @@ export interface ProductCard {
   size?: string | null;
   images?: BackendProductImage[];
   cover_photo?: string | null;
-  selling_price?: string | number | null;
-  original_price?: string | number | null;
+  price?: ProductPrice | null;
   sales_mode?: "quote_only" | "buy_and_quote" | "direct_purchase" | string | null;
   availability?: "in_stock" | "made_to_order" | "out_of_stock" | string | null;
   is_featured?: boolean;

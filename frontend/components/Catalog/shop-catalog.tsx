@@ -18,6 +18,7 @@ import { Modal } from "@/components/ui/modal";
 import type { PublicCatalogOption } from "@/api/catalog/repository";
 import type { ProductListResult } from "@/api/products";
 import type { CatalogItem } from "./catalog-data";
+import { ProductPrice } from "./product-price";
 import styles from "./shop-catalog.module.css";
 
 type Filters = {
@@ -112,6 +113,7 @@ function FilterControls({
 function ProductCard({ item }: { item: CatalogItem }) {
   const heightDetail = item.height > 0 ? ` (${item.height} inch)` : "";
   const whatsappText = encodeURIComponent(`Namaste, I would like details about the ${item.name}${heightDetail}.`);
+  const fallback = item.salesMode === "direct" || item.salesMode === "both" ? "Price on request" : "Enquire for price";
 
   return (
     <article className={styles.productCard}>
@@ -126,7 +128,8 @@ function ProductCard({ item }: { item: CatalogItem }) {
         <span>{item.category} · {item.deity}</span>
         <h3 className="font-display"><Link href={`/products/${item.slug}`}>{item.name}</Link></h3>
         <p>{item.material} · {item.finish}</p>
-        <div>
+        <ProductPrice price={item.price} compact fallback={fallback} />
+        <div className={styles.productLinks}>
           <Link href={`/products/${item.slug}`}>View details <ArrowRight aria-hidden="true" size={15} /></Link>
           <a href={`https://wa.me/919166138566?text=${whatsappText}`} target="_blank" rel="noreferrer">Enquire</a>
         </div>

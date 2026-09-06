@@ -27,6 +27,7 @@ import {
 import type { CatalogItem } from "@/components/Catalog/catalog-data";
 import { ProductActions } from "@/components/Catalog/product-actions";
 import { ProductGallery } from "@/components/Catalog/product-gallery";
+import { ProductPrice } from "@/components/Catalog/product-price";
 import styles from "./product-page.module.css";
 
 type ProductPageProps = { params: Promise<{ slug: string }> };
@@ -88,6 +89,10 @@ function productStateCopy(error: ProductLoadState | null) {
     title: "Unable to load product",
     description: "Please try again, or return to the shop to continue browsing.",
   };
+}
+
+function priceFallback(product: CatalogItem) {
+  return product.salesMode === "direct" || product.salesMode === "both" ? "Price on request" : "Enquire for price";
 }
 
 function ProductState({ error }: { error: ProductLoadState | null }) {
@@ -228,6 +233,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 productId={product.id}
                 name={cleanProductName(product.name)}
                 height={product.height}
+                price={product.price}
                 pricePaise={product.pricePaise}
                 gstRateBps={product.gstRateBps}
                 stockQuantity={product.stockQuantity}
@@ -283,6 +289,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     <span className={styles.relatedCategory}>{item.category}</span>
                     <h3 className="font-display"><Link href={`/products/${item.slug}`}>{cleanProductName(item.name)}</Link></h3>
                     <p className={styles.relatedMeta}>{item.height > 0 ? `${item.height}" · ` : ""}{item.material} · {item.finish}</p>
+                    <ProductPrice price={item.price} compact fallback={priceFallback(item)} />
                   </div>
                 </article>
               ))}

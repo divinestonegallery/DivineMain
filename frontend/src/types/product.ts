@@ -1,4 +1,6 @@
 // @ts-nocheck
+import type { ProductPrice } from "@/api/products";
+
 export type ProductAvailability = "in-stock" | "made-to-order" | "pre-order" | "sold-out";
 
 export type ProductImage = {
@@ -12,8 +14,7 @@ export type Product = {
   name: string;
   deity: string;
   material: string;
-  price: number;
-  compareAtPrice?: number;
+  price: ProductPrice;
   currency: "INR";
   image: ProductImage;
   gallery?: ProductImage[];

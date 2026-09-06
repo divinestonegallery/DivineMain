@@ -83,6 +83,10 @@ function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function reviewComment(comment: string | null | undefined) {
+  return normalizeText(comment).replace(/\s*\(Review\s+\d+\)\s*$/i, "").trim();
+}
+
 function productTitle(product: ProductCard) {
   return normalizeText(product.title) || normalizeText((product as { name?: string }).name) || "Untitled work";
 }
@@ -412,6 +416,7 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
                 const rating = Math.max(0, Math.min(5, Number(review.rating ?? 0)));
                 const date = review.created_at ? new Date(review.created_at) : null;
                 const validDate = date && !Number.isNaN(date.getTime()) ? date : null;
+                const comment = reviewComment(review.comment);
 
                 return (
                   <article className={styles.reviewCard} key={review.id}>
@@ -429,9 +434,8 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
                         />
                       ))}
                     </div>
-                    {review.comment ? <p>{review.comment}</p> : <p>No written comment was provided.</p>}
+                    {comment ? <p>{comment}</p> : <p>No written comment was provided.</p>}
                     <footer>
-                      <strong>Verified customer</strong>
                       {validDate ? <time dateTime={review.created_at ?? undefined}>{reviewDate.format(validDate)}</time> : null}
                     </footer>
                   </article>

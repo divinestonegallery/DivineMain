@@ -601,14 +601,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                     <span>My Profile</span>
                     <ChevronRight size={18} strokeWidth={1.5} />
                   </Link>
-                  <Link href="/account/wishlist" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
-                    <span>My Wishlist</span>
-                    <ChevronRight size={18} strokeWidth={1.5} />
-                  </Link>
-                  <Link href="/sign-in" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
-                    <span>Login / Sign Up</span>
-                    <ChevronRight size={18} strokeWidth={1.5} />
-                  </Link>
                 </div>
               </div>
 

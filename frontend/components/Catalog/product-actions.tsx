@@ -4,20 +4,20 @@
 import { MessageCircle, Phone, Share2 } from "lucide-react";
 import { buttonClassName, Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import type { ProductPrice } from "@/api/products";
 import { brand } from "@/src/config/brand";
+import { formatDiscountPercentage, formatOptionalCurrency } from "@/src/utils/formatCurrency";
 import styles from "@/app/products/[slug]/product-page.module.css";
 
 export function ProductActions({
   name,
   height,
-  pricePaise,
-  gstRateBps,
-  stockQuantity,
-  salesMode,
+  price: priceInfo,
 }: {
   productId: string;
   name: string;
   height: number;
+  price?: ProductPrice | null;
   pricePaise?: number | null;
   gstRateBps?: number | null;
   stockQuantity?: number;
@@ -29,10 +29,10 @@ export function ProductActions({
     `Namaste, I would like current availability and details for ${name}${heightDetail}.`,
   );
   const whatsappHref = `https://wa.me/919166138566?text=${message}`;
-  const directReady = pricePaise !== null && pricePaise !== undefined && gstRateBps !== null && gstRateBps !== undefined && Boolean(stockQuantity) && salesMode !== "quote";
-  const price = directReady
-    ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(pricePaise / 100)
-    : null;
+  const sellingPrice = formatOptionalCurrency(priceInfo?.selling_price);
+  const originalPrice = formatOptionalCurrency(priceInfo?.original_price);
+  const discount = formatDiscountPercentage(priceInfo?.discount_percentage);
+  const discountLabel = discount ? `-${discount}` : null;
 
   async function shareProduct() {
     if (navigator.share) {
@@ -48,9 +48,22 @@ export function ProductActions({
     <>
       <div className={styles.actionCard}>
         <div className={styles.priceNote}>
-          <span className={styles.availabilityBadge}>{price ? "Price" : "Availability"}</span>
-          <strong className={styles.availabilityTitle}>{price ?? "Available on request"}</strong>
-          <p className={styles.availabilityDesc}>{price ? "Price before GST. Shipping calculated separately." : "Contact our gallery for current availability, pricing and delivery details."}</p>
+          {sellingPrice ? (
+            <div className={styles.detailPrice} aria-label="Product price">
+              <div className={styles.detailPricePrimary}>
+                {discountLabel ? <span className={styles.detailDiscount}>{discountLabel}</span> : null}
+                <strong className={styles.detailSellingPrice}>{sellingPrice}</strong>
+              </div>
+              {originalPrice ? <p className={styles.mrpLine}>M.R.P.: <del>{originalPrice}</del></p> : null}
+              <p className={styles.taxLine}>Inclusive of all taxes</p>
+            </div>
+          ) : (
+            <>
+              <span className={styles.availabilityBadge}>Availability</span>
+              <strong className={styles.availabilityTitle}>Available on request</strong>
+              <p className={styles.availabilityDesc}>Contact our gallery for current availability, pricing and delivery details.</p>
+            </>
+          )}
         </div>
         <div className={styles.primaryActions}>
           <a className={buttonClassName({ size: "md", className: styles.whatsappButton })} href={whatsappHref} target="_blank" rel="noreferrer">

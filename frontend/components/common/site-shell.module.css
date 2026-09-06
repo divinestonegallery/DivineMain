@@ -883,9 +883,9 @@
 
 .mobileSectionHeader {
   margin: 0 0 0.8rem;
-  color: var(--gold-deep);
+  color: rgb(110 102 91 / 0.72);
   font-size: 0.75rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -907,6 +907,7 @@
   color: var(--foreground);
   font-family: var(--font-brand-display);
   font-size: 1.18rem;
+  font-weight: 400;
   transition:
     color var(--transition-fast),
     border-color var(--transition-fast),
@@ -922,7 +923,7 @@
 }
 
 .mobileSectionLink svg {
-  color: var(--ink-muted);
+  color: rgb(110 102 91 / 0.86);
 }
 
 .mobileSocials {
@@ -944,6 +945,7 @@
   background: rgb(255 253 249 / 0.68);
   font-family: var(--font-brand-display);
   font-size: 1rem;
+  font-weight: 400;
   transition:
     color var(--transition-fast),
     border-color var(--transition-fast),

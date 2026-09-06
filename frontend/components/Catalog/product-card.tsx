@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Gem } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Product } from "@/src/types/product";
-import type { BackendProductImage, ProductCard as ApiProductCard } from "@/api/products";
+import type { BackendProductImage, ProductCard as ApiProductCard, ProductPrice as ProductPriceValue } from "@/api/products";
 import { ProductPrice } from "./product-price";
 import { ProductRating } from "./product-rating";
 import styles from "./product.module.css";
@@ -14,8 +14,7 @@ type ProductCardInput = Product | (ApiProductCard & {
   image?: Product["image"];
   image_url?: string | null;
   name?: string | null;
-  price?: number;
-  compareAtPrice?: number;
+  price?: ProductPriceValue | null;
   rating?: number;
   reviewCount?: number;
   readyToShip?: boolean;
@@ -26,10 +25,27 @@ function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function amount(value: unknown) {
+function normalizePriceValue(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  if (typeof value === "number") return Number.isFinite(value) && value > 0 ? String(value) : null;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function isPriceObject(value: unknown): value is ProductPriceValue {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function normalizeProductPrice(value: unknown): ProductPriceValue | null {
+  if (!isPriceObject(value)) return null;
+
+  const price = {
+    selling_price: normalizePriceValue(value.selling_price) ?? "",
+    original_price: normalizePriceValue(value.original_price) ?? "",
+    discount_percentage: normalizePriceValue(value.discount_percentage) ?? "",
+    gst_price: normalizePriceValue(value.gst_price) ?? "",
+  };
+
+  return Object.values(price).some(Boolean) ? price : null;
 }
 
 function productName(product: ProductCardInput) {
@@ -54,12 +70,8 @@ function productImage(product: ProductCardInput, fallbackAlt: string) {
   return src ? { src, alt } : null;
 }
 
-function productPrice(product: ProductCardInput) {
-  return amount((product as Product).price) ?? amount((product as ApiProductCard).selling_price);
-}
-
-function productCompareAtPrice(product: ProductCardInput) {
-  return amount((product as Product).compareAtPrice) ?? amount((product as ApiProductCard).original_price) ?? undefined;
+function productPrice(product: ProductCardInput): ProductPriceValue | null {
+  return normalizeProductPrice((product as { price?: unknown }).price);
 }
 
 function isCustomizable(product: ProductCardInput) {
@@ -77,7 +89,6 @@ export function ProductCard({ product, priority = false, href }: { product: Prod
   const name = productName(product);
   const image = productImage(product, name);
   const price = productPrice(product);
-  const compareAtPrice = productCompareAtPrice(product);
   const productHref = href ?? (product.slug ? `/products/${product.slug}` : "/shop");
   const meta = [text(product.deity), text(product.material || (product as ApiProductCard).category)].filter(Boolean);
 
@@ -115,13 +126,7 @@ export function ProductCard({ product, priority = false, href }: { product: Prod
         ) : null}
         <Link className={styles.productName} href={productHref}>{name}</Link>
         {product.rating ? <ProductRating rating={product.rating} reviewCount={product.reviewCount} /> : null}
-        {price ? (
-          <ProductPrice price={price} compareAtPrice={compareAtPrice} compact />
-        ) : (
-          <div className={`${styles.price} ${styles.priceCompact}`}>
-            <strong>{priceFallback(product)}</strong>
-          </div>
-        )}
+        <ProductPrice price={price} compact fallback={priceFallback(product)} />
       </div>
     </article>
   );

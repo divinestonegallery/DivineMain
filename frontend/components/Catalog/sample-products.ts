@@ -8,8 +8,12 @@ export const sampleProducts: Product[] = [
     name: "Radha Krishna Moorti",
     deity: "Radha Krishna",
     material: "White Marble",
-    price: 48500,
-    compareAtPrice: 54000,
+    price: {
+      selling_price: "",
+      original_price: "",
+      discount_percentage: "",
+      gst_price: "",
+    },
     currency: "INR",
     image: {
       src: "/catalog/radha-krishna-39.jpg",
@@ -28,7 +32,12 @@ export const sampleProducts: Product[] = [
     name: "Sri Ornate Ganesha",
     deity: "Ganesha",
     material: "Makrana Marble",
-    price: 72000,
+    price: {
+      selling_price: "",
+      original_price: "",
+      discount_percentage: "",
+      gst_price: "",
+    },
     currency: "INR",
     image: {
       src: "/catalog/ganesh-24.jpg",
@@ -46,8 +55,12 @@ export const sampleProducts: Product[] = [
     name: "Gauri Shankar Family",
     deity: "Shiva Parivar",
     material: "Vietnam Marble",
-    price: 128000,
-    compareAtPrice: 145000,
+    price: {
+      selling_price: "",
+      original_price: "",
+      discount_percentage: "",
+      gst_price: "",
+    },
     currency: "INR",
     image: {
       src: "/catalog/gauri-shankar-18.jpg",

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import type { CatalogItem } from "@/components/Catalog/catalog-data";
 import { getCategories, getDeities, getMaterials, getProduct, getProductListing } from "@/api/products";
-import type { ProductFilters, ProductListResult, TaxonomyItem } from "@/api/products";
+import type { ProductFilters, ProductListResult, ProductPrice, TaxonomyItem } from "@/api/products";
 
 export type PublicCatalogFacets = {
   categories: PublicCatalogOption[];
@@ -45,6 +45,12 @@ function moneyToPaise(value: unknown) {
   return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * 100) : null;
 }
 
+function priceValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : null;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 function integerValue(value: unknown, fallback: number | null = null) {
   const parsed = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
   return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
@@ -79,6 +85,22 @@ function productGallery(product: any, fallbackAlt: string) {
     }));
 }
 
+function productPrice(product: any): ProductPrice | null {
+  if (!product.price || typeof product.price !== "object" || Array.isArray(product.price)) {
+    return null;
+  }
+
+  const source = product.price;
+  const price = {
+    original_price: priceValue(source.original_price) ?? "",
+    selling_price: priceValue(source.selling_price) ?? "",
+    discount_percentage: priceValue(source.discount_percentage) ?? "",
+    gst_price: priceValue(source.gst_price) ?? "",
+  };
+
+  return Object.values(price).some(Boolean) ? price : null;
+}
+
 function toCatalogItem(product: any, index = 0): CatalogItem {
   const slug = text(product.slug, text(product.uid, `product-${index + 1}`));
   const name = text(product.name, text(product.title, "Marble moorti"));
@@ -88,6 +110,7 @@ function toCatalogItem(product: any, index = 0): CatalogItem {
   const coverImage = rawImages.find((item: any) => item.cover_photo)?.image_url;
   const image = text(product.cover_photo, text(coverImage, gallery[0]?.src ?? "/brand/lotus-mark.jpg"));
   const stockQuantity = integerValue(product.stock_quantity ?? product.stockQuantity, product.availability === "out_of_stock" ? 0 : 1);
+  const price = productPrice(product);
 
   return {
     id: slug,
@@ -105,9 +128,10 @@ function toCatalogItem(product: any, index = 0): CatalogItem {
     gallery: gallery.length ? gallery : [{ src: image, alt: imageAlt }],
     featured: product.is_featured ? index : index + 10,
     description: text(product.description, text(product.short_description, "A hand-carved marble work from Divine Stone Gallery.")),
+    price,
     availability: product.availability ?? null,
     status: product.status ?? null,
-    pricePaise: integerValue(product.pricePaise ?? product.price_paise, moneyToPaise(product.selling_price)),
+    pricePaise: integerValue(product.pricePaise ?? product.price_paise, moneyToPaise(price?.selling_price)),
     gstRateBps: integerValue(product.gstRateBps ?? product.gst_rate_bps),
     stockQuantity,
     salesMode: salesMode(product.sales_mode),

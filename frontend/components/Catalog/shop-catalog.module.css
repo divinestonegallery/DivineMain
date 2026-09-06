@@ -628,7 +628,7 @@
   font-size: 0.7rem;
 }
 
-.productInfo > div {
+.productLinks {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -636,7 +636,7 @@
   margin-top: 0.75rem;
 }
 
-.productInfo > div a {
+.productLinks a {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -645,7 +645,7 @@
   font-size: 0.7rem;
 }
 
-.productInfo > div a:last-child {
+.productLinks a:last-child {
   color: var(--gold-deep);
   font-weight: 650;
 }
@@ -804,13 +804,13 @@
     white-space: nowrap;
   }
 
-  .productInfo > div {
+  .productLinks {
     align-items: flex-start;
     flex-direction: column;
     gap: 0.5rem;
   }
 
-  .productInfo > div a:first-child {
+  .productLinks a:first-child {
     display: none;
   }
 

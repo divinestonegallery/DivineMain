@@ -1,4 +1,6 @@
 // @ts-nocheck
+import type { ProductPrice } from "@/api/products";
+
 export type CatalogCategory = string;
 
 export type CatalogItem = {
@@ -17,6 +19,7 @@ export type CatalogItem = {
   gallery?: Array<{ src: string; alt: string }>;
   featured: number;
   description: string;
+  price?: ProductPrice | null;
   availability?: string | null;
   status?: string | null;
   variantId?: string;
