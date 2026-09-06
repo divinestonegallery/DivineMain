@@ -70,6 +70,22 @@
   transform: translateX(-50%);
 }
 
+.brandLogoAnimated {
+  transform-origin: center;
+  animation: brandLogoFloat 4.8s ease-in-out infinite;
+}
+
+@keyframes brandLogoFloat {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+
+  50% {
+    transform: translateX(-50%) scale(1.035);
+  }
+}
+
 
 .headerCenter {
   display: flex;
@@ -1596,6 +1612,10 @@
 
   .brandLogoMotionFallback {
     display: block;
+  }
+
+  .brandLogoAnimated {
+    animation: none;
   }
 
   .navLink,

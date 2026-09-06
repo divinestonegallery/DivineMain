@@ -7,7 +7,7 @@ import { apiRequest } from "@/api/client";
 import { useToast } from "@/components/ui/toast";
 import styles from "./commerce-admin.module.css";
 
-type Kind = "category" | "material" | "deity";
+export type CatalogStructureKind = "category" | "material" | "deity";
 
 type TaxonomyItem = {
   id: number;
@@ -18,7 +18,7 @@ type TaxonomyItem = {
   is_active?: boolean;
 };
 
-type TaxonomyState = Record<Kind, TaxonomyItem[]>;
+type TaxonomyState = Record<CatalogStructureKind, TaxonomyItem[]>;
 
 const specs = {
   category: { title: "Categories", description: "Customer-facing product groupings", endpoint: "/api/admin/products/categories", icon: FolderTree },
@@ -28,7 +28,7 @@ const specs = {
 
 const initialState: TaxonomyState = { category: [], material: [], deity: [] };
 
-function payloadFor(kind: Kind, form: FormData) {
+function payloadFor(kind: CatalogStructureKind, form: FormData) {
   const base = {
     name: form.get("name")?.toString().trim(),
     is_active: form.get("is_active") === "on",
@@ -44,7 +44,7 @@ function payloadFor(kind: Kind, form: FormData) {
   return base;
 }
 
-function TaxonomyColumn({ kind, items, refresh }: { kind: Kind; items: TaxonomyItem[]; refresh: () => Promise<void> }) {
+function TaxonomyColumn({ kind, items, refresh }: { kind: CatalogStructureKind; items: TaxonomyItem[]; refresh: () => Promise<void> }) {
   const { showToast } = useToast();
   const [creating, setCreating] = useState(false);
   const spec = specs[kind];
@@ -127,43 +127,51 @@ function TaxonomyColumn({ kind, items, refresh }: { kind: Kind; items: TaxonomyI
   );
 }
 
-export function CatalogStructureAdmin() {
+export function CatalogStructureAdmin({ kind }: { kind?: CatalogStructureKind } = {}) {
   const { showToast } = useToast();
   const [state, setState] = useState<TaxonomyState>(initialState);
   const [loading, setLoading] = useState(true);
+  const visibleKinds = useMemo(
+    () => kind ? [kind] : Object.keys(specs) as CatalogStructureKind[],
+    [kind],
+  );
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [categories, materials, deities] = await Promise.all([
-        apiRequest<TaxonomyItem[]>(specs.category.endpoint),
-        apiRequest<TaxonomyItem[]>(specs.material.endpoint),
-        apiRequest<TaxonomyItem[]>(specs.deity.endpoint),
-      ]);
-      setState({ category: categories, material: materials, deity: deities });
+      const entries = await Promise.all(
+        visibleKinds.map(async (key) => [key, await apiRequest<TaxonomyItem[]>(specs[key].endpoint)] as const),
+      );
+      setState(() => {
+        const nextState: TaxonomyState = { ...initialState };
+        entries.forEach(([key, items]) => {
+          nextState[key] = items;
+        });
+        return nextState;
+      });
     } catch {
       showToast("Catalogue structure could not be loaded.");
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, visibleKinds]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  const total = useMemo(() => Object.values(state).reduce((sum, items) => sum + items.length, 0), [state]);
+  const total = useMemo(() => visibleKinds.reduce((sum, key) => sum + state[key].length, 0), [state, visibleKinds]);
 
   return (
     <section className={styles.managementSection}>
       <div className={styles.sectionToolbar}>
-        <div><strong>{total}</strong><span>{loading ? "Loading taxonomy..." : "taxonomy records connected"}</span></div>
+        <div><strong>{total}</strong><span>{loading ? "Loading taxonomy..." : `${kind ? specs[kind].title.toLowerCase() : "taxonomy records"} connected`}</span></div>
         <button className={styles.secondaryButton} type="button" onClick={() => void refresh()} disabled={loading}><RefreshCw size={15} /> Refresh</button>
       </div>
-      <div className={styles.structureGrid}>
-        <TaxonomyColumn kind="category" items={state.category} refresh={refresh} />
-        <TaxonomyColumn kind="material" items={state.material} refresh={refresh} />
-        <TaxonomyColumn kind="deity" items={state.deity} refresh={refresh} />
+      <div className={`${styles.structureGrid} ${kind ? styles.structureGridSingle : ""}`}>
+        {visibleKinds.map((visibleKind) => (
+          <TaxonomyColumn kind={visibleKind} items={state[visibleKind]} refresh={refresh} key={visibleKind} />
+        ))}
       </div>
     </section>
   );

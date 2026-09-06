@@ -20,7 +20,7 @@ export function MediaLibraryAdmin() {
           not expose a separate media-library API. Use Catalogue Manager to attach uploaded product
           image object keys.
         </p>
-        <Link className={styles.primary} href="/admin/catalog">Open catalogue manager</Link>
+        <Link className={styles.primary} href="/admin/product">Open product manager</Link>
       </div>
     </section>
   );

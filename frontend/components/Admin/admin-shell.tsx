@@ -9,9 +9,11 @@ import {
   Boxes,
   ChevronRight,
   CircleHelp,
+  CircleUserRound,
   Gem,
   Hammer,
   LayoutDashboard,
+  LogOut,
   Menu,
   Search,
   ShieldCheck,
@@ -21,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { AccountControl } from "@/components/Auth/account-control";
+import { useAuth } from "@/components/Auth/auth-facade";
 import { ToastProvider } from "@/components/ui/toast";
 import styles from "./admin-shell.module.css";
 
@@ -49,12 +52,14 @@ const groups: Array<{ label: string; items: NavItem[] }> = [
 ];
 
 function currentLabel(pathname: string) {
+  if (pathname === "/admin/overview") return "Overview";
   return groups.flatMap((group) => group.items).find((item) => item.href === pathname)?.label
     ?? (pathname.split("/")[2] ? pathname.split("/")[2].replaceAll("-", " ").replace(/^./, (letter) => letter.toUpperCase()) : "Administration");
 }
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { isSignedIn, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -69,6 +74,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
     setSearchOpen(false);
     setQuery("");
   }, []);
+
+  const handleSignOut = useCallback(async () => {
+    closeNavigation();
+    await signOut();
+  }, [closeNavigation, signOut]);
 
   useEffect(() => {
     if (!searchOpen) return;
@@ -94,19 +104,28 @@ export function AdminShell({ children }: { children: ReactNode }) {
           {groups.map((group) => (
             <div className={styles.navGroup} key={group.label}>
               <p>{group.label}</p>
-              {group.items.map(({ label, href, icon: Icon }) => href ? (
-                <Link className={pathname === href || (href !== "/admin" && pathname.startsWith(href)) ? styles.active : undefined} href={href} key={label} onClick={closeNavigation}>
+              {group.items.map(({ label, href, icon: Icon }) => {
+                const active = href ? (label === "Overview" ? pathname === "/admin" || pathname === "/admin/overview" : pathname === href || (href !== "/admin" && pathname.startsWith(href))) : false;
+                return href ? (
+                <Link className={active ? styles.active : undefined} href={href} key={label} onClick={closeNavigation}>
                   <Icon aria-hidden="true" size={18} /><span>{label}</span>
                 </Link>
               ) : (
                 <span className={styles.upcoming} key={label} title="Scheduled for a later admin build step">
                   <Icon aria-hidden="true" size={18} /><span>{label}</span><small>Soon</small>
                 </span>
-              ))}
+              );
+              })}
             </div>
           ))}
         </nav>
         <Link className={styles.storeLink} href="/" target="_blank"><Store size={17} /><span>View storefront</span><ChevronRight size={15} /></Link>
+        {isSignedIn ? (
+          <div className={styles.sidebarAccount}>
+            <Link href="/account" onClick={closeNavigation}><CircleUserRound size={17} /><span>Profile</span></Link>
+            <button type="button" onClick={() => void handleSignOut()}><LogOut size={17} /><span>Logout</span></button>
+          </div>
+        ) : null}
       </aside>
 
       <div className={styles.workspace}>

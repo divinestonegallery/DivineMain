@@ -1,13 +1,16 @@
-// @ts-nocheck
 "use client";
 
 import { useAuth, useUser } from "@/components/Auth/auth-facade";
 import Link from "next/link";
 import { CircleUserRound, LayoutDashboard } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useAuthConfigured } from "./auth-provider";
-import { apiUrl } from "@/api/client";
 import authStyles from "./auth.module.css";
+
+function profileRole(user: unknown) {
+  const record = user && typeof user === "object" ? user as Record<string, unknown> : {};
+  const nested = record.user && typeof record.user === "object" ? record.user as Record<string, unknown> : {};
+  return String(record.role ?? nested.role ?? "").toLowerCase();
+}
 
 export function AccountControl({ className }: { className?: string }) {
   const configured = useAuthConfigured();
@@ -29,30 +32,9 @@ export function AccountControl({ className }: { className?: string }) {
 }
 
 function ConfiguredAccountControl({ className }: { className?: string }) {
-  const { getToken, isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn) {
-      return;
-    }
-
-    let active = true;
-    void getToken()
-      .then((token) => fetch(apiUrl("/api/admin/staff?page_size=1"), {
-        headers: token ? { authorization: `Bearer ${token}` } : undefined,
-        cache: "no-store",
-      }))
-      .then(async (response) => {
-        if (!response.ok) return false;
-        return true;
-      })
-      .then((authorized) => { if (active) setIsAdmin(authorized); })
-      .catch(() => { if (active) setIsAdmin(false); });
-
-    return () => { active = false; };
-  }, [getToken, isLoaded, isSignedIn]);
+  const isAdmin = ["staff", "admin"].includes(profileRole(user));
 
   if (!isLoaded) return null;
 

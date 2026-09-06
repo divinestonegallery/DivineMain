@@ -47,6 +47,8 @@
 .customerRow select,
 .createForm input,
 .createForm select { width: 100%; min-height: 41px; padding: .6rem .7rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--background); font: inherit; }
+.checkField { display: flex !important; min-height: 41px; align-items: center; gap: .5rem; }
+.checkField input { width: 17px; min-height: 17px; padding: 0; }
 .fieldGrid select,
 .customerRow select,
 .createForm select { border-color: var(--dropdown-border); background-color: var(--dropdown-control-bg); box-shadow: var(--dropdown-control-shadow); font-weight: 650; }

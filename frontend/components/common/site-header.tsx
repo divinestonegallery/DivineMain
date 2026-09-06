@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
+  LayoutDashboard,
   LogOut,
   Menu,
   MessageCircle,
@@ -118,6 +119,11 @@ function profileEmail(user: unknown) {
   return typeof email === "string" ? email : "";
 }
 
+function profileRole(user: unknown) {
+  const role = profileData(user).role;
+  return typeof role === "string" ? role.toLowerCase() : "";
+}
+
 export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const pathname = usePathname();
   const { isLoaded, isSignedIn, signOut } = useAuth();
@@ -146,6 +152,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const searchTitleId = useId();
   const shopMenuId = useId();
   const showDockedSearch = pathname === "/" ? dockedSearchVisible : true;
+  const isStaffUser = ["staff", "admin"].includes(profileRole(user));
 
   function updateSearchQuery(value: string) {
     setSearchQuery(value);
@@ -159,11 +166,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const closeMegaMenu = useCallback(() => {
     if (megaMenuOpen && !megaMenuClosing) setMegaMenuClosing(true);
   }, [megaMenuClosing, megaMenuOpen]);
-
-  const openMegaMenu = useCallback(() => {
-    setMegaMenuClosing(false);
-    setMegaMenuOpen(true);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -192,40 +194,49 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   }, []);
 
   useEffect(() => {
-    if (pathname !== "/") {
-      setDockedSearchVisible(true);
-      return;
-    }
+    if (pathname !== "/") return;
 
     const heroSearch = document.querySelector<HTMLElement>("[data-hero-search]");
     if (!heroSearch) {
-      setDockedSearchVisible(true);
-      return;
+      const frame = window.requestAnimationFrame(() => setDockedSearchVisible(true));
+      return () => window.cancelAnimationFrame(frame);
     }
 
-    const headerOffset = 84;
-    const updateDockedSearch = () => {
-      const rect = heroSearch.getBoundingClientRect();
-      setDockedSearchVisible(rect.bottom <= headerOffset || rect.top >= window.innerHeight);
+    let frame = 0;
+    const scheduleDockedSearchUpdate = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const headerOffset = 84;
+        const rect = heroSearch.getBoundingClientRect();
+        setDockedSearchVisible(rect.bottom <= headerOffset || rect.top >= window.innerHeight);
+      });
     };
 
+    scheduleDockedSearchUpdate();
+
     if (typeof window.IntersectionObserver === "undefined") {
-      updateDockedSearch();
-      window.addEventListener("scroll", updateDockedSearch, { passive: true });
-      window.addEventListener("resize", updateDockedSearch);
+      window.addEventListener("scroll", scheduleDockedSearchUpdate, { passive: true });
+      window.addEventListener("resize", scheduleDockedSearchUpdate);
       return () => {
-        window.removeEventListener("scroll", updateDockedSearch);
-        window.removeEventListener("resize", updateDockedSearch);
+        window.cancelAnimationFrame(frame);
+        window.removeEventListener("scroll", scheduleDockedSearchUpdate);
+        window.removeEventListener("resize", scheduleDockedSearchUpdate);
       };
     }
 
     const observer = new IntersectionObserver(
-      ([entry]) => setDockedSearchVisible(!entry.isIntersecting),
-      { rootMargin: `-${headerOffset}px 0px 0px 0px`, threshold: 0.1 },
+      ([entry]) => {
+        window.cancelAnimationFrame(frame);
+        frame = window.requestAnimationFrame(() => setDockedSearchVisible(!entry.isIntersecting));
+      },
+      { rootMargin: "-84px 0px 0px 0px", threshold: 0.1 },
     );
 
     observer.observe(heroSearch);
-    return () => observer.disconnect();
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [pathname]);
 
   useEffect(() => {
@@ -356,7 +367,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       >
         <div className={`${styles.headerMain} site-container`}>
           <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home">
-            <Image className={styles.brandLogo} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
+            <Image className={`${styles.brandLogo} ${animateLogo ? styles.brandLogoAnimated : ""}`.trim()} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
           </Link>
 
           <div className={styles.headerCenter}>
@@ -624,7 +635,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           <div className={styles.mobileDrawerPanel} ref={mobilePanelRef} tabIndex={-1}>
             <div className={styles.mobileDrawerHeader}>
               <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home" onClick={() => setMobileMenuOpen(false)}>
-                <Image className={styles.brandLogo} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
+                <Image className={`${styles.brandLogo} ${animateLogo ? styles.brandLogoAnimated : ""}`.trim()} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
               </Link>
               <button
                 className={styles.closeButton}
@@ -639,17 +650,31 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               <div className={styles.mobileSection}>
                 <p className={styles.mobileSectionHeader}>Account</p>
                 {isLoaded && isSignedIn ? (
-                  <div className={styles.mobileProfile}>
-                    <span className={styles.mobileProfileAvatar} aria-hidden="true">
-                      {profileImage(user) ? (
-                        <Image src={profileImage(user)} alt="" width={48} height={48} unoptimized />
-                      ) : profileInitial(user)}
-                    </span>
-                    <span className={styles.mobileProfileDetails}>
-                      <strong>{profileName(user)}</strong>
-                      <small>{profileEmail(user)}</small>
-                    </span>
-                  </div>
+                  <>
+                    <div className={styles.mobileProfile}>
+                      <span className={styles.mobileProfileAvatar} aria-hidden="true">
+                        {profileImage(user) ? (
+                          <Image src={profileImage(user)} alt="" width={48} height={48} unoptimized />
+                        ) : profileInitial(user)}
+                      </span>
+                      <span className={styles.mobileProfileDetails}>
+                        <strong>{profileName(user)}</strong>
+                        <small>{profileEmail(user)}</small>
+                      </span>
+                    </div>
+                    <div className={styles.mobileSectionList}>
+                      <Link href="/account" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                        <span>My Profile</span>
+                        <ChevronRight size={18} strokeWidth={1.5} />
+                      </Link>
+                      {isStaffUser ? (
+                        <Link href="/admin" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                          <span>Admin Dashboard</span>
+                          <LayoutDashboard size={18} strokeWidth={1.5} />
+                        </Link>
+                      ) : null}
+                    </div>
+                  </>
                 ) : isLoaded ? (
                   <div className={styles.mobileSectionList}>
                     <Link href="/account" className={styles.mobileSectionLink} onClick={handleMyProfileClick}>

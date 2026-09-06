@@ -34,6 +34,7 @@
 .secondaryButton:disabled { opacity: .5; cursor: wait; }
 
 .structureGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.structureGridSingle { grid-template-columns: minmax(0, 780px); }
 .structureCard { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); }
 .structureCard > header { display: grid; grid-template-columns: auto 1fr auto; gap: .75rem; align-items: start; padding: 1rem; border-bottom: 1px solid var(--border); }
 .structureCard > header > span { display: grid; width: 38px; aspect-ratio: 1; place-items: center; border-radius: 50%; color: var(--gold-deep); background: var(--gold-soft); }
