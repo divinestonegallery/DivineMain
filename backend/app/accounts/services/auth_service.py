@@ -131,7 +131,7 @@ class AuthService:
         # Included in development/testing for API testing.
         from django.conf import settings
         response_data = {
-            'message': 'If an account exists with this email address, password reset instructions have been generated.',
+            'message': 'If an account exists with this email address, password reset link have been generated.',
         }
         if (getattr(settings, 'DEBUG', False) or getattr(settings, 'IS_TESTING', False)) and reset_token:
             response_data['reset_token'] = reset_token
