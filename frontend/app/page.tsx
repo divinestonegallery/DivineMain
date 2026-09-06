@@ -503,10 +503,10 @@ function HeroSection({ quickLinks }: { quickLinks: Array<{ label: string; href: 
             <span><BadgeCheck aria-hidden="true" size={18} /> Fourth-generation atelier</span>
             <span><ShieldCheck aria-hidden="true" size={18} /> Secure delivery</span>
           </div> */}
-          <Link className={styles.heroScrollCue} href="#popular-mooti" aria-label="Scroll to Popular Mooti">
-            <ChevronDown aria-hidden="true" size={21} />
-          </Link>
         </div>
+        <Link className={styles.heroScrollCue} href="#popular-mooti" aria-label="Scroll to Popular Mooti">
+          <ChevronDown aria-hidden="true" size={21} />
+        </Link>
       </div>
     </section>
   );

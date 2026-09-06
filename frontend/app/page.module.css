@@ -67,6 +67,7 @@
   align-self: stretch;
   justify-content: center;
   padding-block: clamp(5.5rem, 12vh, 8rem);
+  transform: translateY(clamp(2.25rem, 4vh, 5rem));
   text-align: center;
   text-shadow: 0 2px 28px rgb(0 0 0 / 0.24);
 }
@@ -125,7 +126,7 @@
   align-items: center;
   gap: 0.9rem;
   align-self: center;
-  margin: auto;
+  margin: 0 auto 1.5rem;
   padding: 0.42rem 0.45rem 0.42rem 1.2rem;
   border: 1px solid rgb(255 255 255 / 0.62);
   border-radius: var(--radius-pill);
@@ -168,7 +169,7 @@
   justify-items: center;
   gap: 0.7rem;
   max-width: min(960px, 100%);
-  margin-bottom: clamp(2.4rem, 6vh, 4.4rem);
+  margin-bottom: 0;
   text-shadow: none;
 }
 
@@ -211,22 +212,26 @@
 }
 
 .heroScrollCue {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
   display: grid;
   width: 44px;
   height: 44px;
   place-items: center;
-  margin-top: clamp(2rem, 4.5vh, 2.75rem);
+  margin: 0;
   border: 1px solid rgb(255 255 255 / 0.5);
   border-radius: 50%;
   color: white;
   background: var(--gold-deep);
   text-shadow: none;
+  transform: translateX(-50%);
   transition: transform var(--transition-fast), background var(--transition-fast);
 }
 
 .heroScrollCue:hover {
   background: var(--foreground);
-  transform: translateY(2px);
+  transform: translate(-50%, 2px);
 }
 
 .heroCopy {
@@ -254,7 +259,7 @@
   max-width: 590px;
   margin: 2rem 0 0;
   color: var(--ink-muted);
-  font-size: clamp(1rem, 1.3vw, 1.16rem);
+  font-size: clamp(1.15rem, 1.6vw, 1.35rem);
   line-height: 1.75;
 }
 
@@ -1283,6 +1288,7 @@
   .videoHero .heroCopy {
     max-width: 100%;
     padding-block: 5.5rem 4.2rem;
+    transform: translateY(clamp(1rem, 3vh, 3.5rem));
   }
 
   .heroVisual {
@@ -1363,6 +1369,7 @@
   .videoHero .heroCopy {
     max-width: 100%;
     padding-block: 4.4rem;
+    transform: translateY(0);
   }
 
   .videoHero .heroCopy h1 {
@@ -1421,7 +1428,7 @@
   }
 
   .heroQuickLinks {
-    margin-bottom: 2rem;
+    margin-bottom: 0;
   }
 
   .heroQuickLinks > div {
