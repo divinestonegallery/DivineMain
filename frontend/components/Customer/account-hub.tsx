@@ -8,11 +8,10 @@ import {
   KeyRound,
   Loader2,
   LogOut,
-  Mail,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
-import { requestPasswordReset, updateCurrentUserProfile } from "@/api/auth";
+import { getCurrentUser, requestPasswordReset, updateCurrentUserProfile } from "@/api/auth";
 import { AccountBootstrap } from "@/components/Auth/account-bootstrap";
 import { useAuth, useUser } from "@/components/Auth/auth-facade";
 import { useAuthConfigured } from "@/components/Auth/auth-provider";
@@ -20,11 +19,10 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import styles from "./customer-page.module.css";
 
-type AccountSection = "profile" | "personal" | "password";
+type AccountSection = "profile" | "password";
 
 const profileSections: Array<{ id: AccountSection; label: string; icon: ReactNode }> = [
   { id: "profile", label: "My Profile", icon: <UserRound aria-hidden="true" size={18} /> },
-  { id: "personal", label: "Personal Information", icon: <Mail aria-hidden="true" size={18} /> },
 ];
 
 const secureSections: Array<{ id: AccountSection; label: string; icon: ReactNode }> = [
@@ -39,29 +37,9 @@ function profileData(user: any) {
   return user?.user ?? user ?? {};
 }
 
-function splitName(name: unknown) {
-  const parts = cleanText(name).split(/\s+/).filter(Boolean);
-  return {
-    firstName: parts[0] || "",
-    lastName: parts.slice(1).join(" "),
-  };
-}
-
-function combineName(firstName: string, lastName: string) {
-  return [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
-}
-
 function displayValue(value: unknown, fallback = "Not provided") {
   const text = cleanText(value);
   return text || fallback;
-}
-
-function displayDate(value: unknown) {
-  const text = cleanText(value);
-  if (!text) return "Not available";
-  const date = new Date(text);
-  if (Number.isNaN(date.getTime())) return text;
-  return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(date);
 }
 
 function profileInitial(user: any) {
@@ -98,74 +76,49 @@ function AccountNavButton({
   );
 }
 
-function MyProfilePanel({ user, loading }: { user: any; loading: boolean }) {
-  const profile = profileData(user);
-  const name = displayValue(profile.name, "Gallery customer");
-  const email = displayValue(profile.email);
-  const phone = displayValue(profile.phone);
-
-  return (
-    <article className={styles.accountPanel}>
-      <header className={styles.accountPanelHeader}>
-        <div>
-          <p className={styles.eyebrow}>My Profile</p>
-          <h2 className="font-display">{loading ? "Loading profile..." : `Namaste, ${name}.`}</h2>
-          <p>Your profile details are loaded from the existing Divine Stone Gallery customer API.</p>
-        </div>
-        <span className={styles.accountAvatar}>{loading ? "..." : profileInitial(profile)}</span>
-      </header>
-
-      <div className={styles.profileSummaryGrid} aria-busy={loading}>
-        <div>
-          <small>Name</small>
-          <strong>{loading ? "Loading..." : name}</strong>
-        </div>
-        <div>
-          <small>Email Address</small>
-          <strong>{loading ? "Loading..." : email}</strong>
-        </div>
-        <div>
-          <small>Phone Number</small>
-          <strong>{loading ? "Loading..." : phone}</strong>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function PersonalInformationPanel({
-  user,
-  loading,
-  onProfileSaved,
-  onRefresh,
-}: {
-  user: any;
-  loading: boolean;
-  onProfileSaved: (profile: any) => void;
-  onRefresh: () => Promise<void>;
-}) {
-  const profile = profileData(user);
+function MyProfilePanel({ enabled = true, onProfileLoaded }: { enabled?: boolean; onProfileLoaded: (profile: any) => void }) {
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
   const { showToast } = useToast();
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "" });
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
-    const parts = splitName(profile.name);
-    setForm({
-      firstName: parts.firstName,
-      lastName: parts.lastName,
-      email: cleanText(profile.email),
-      phone: cleanText(profile.phone),
-    });
-  }, [profile.email, profile.name, profile.phone]);
+    if (!enabled) return;
+
+    let mounted = true;
+
+    void getCurrentUser()
+      .then((currentProfile) => {
+        if (!mounted) return;
+        setProfile(currentProfile);
+        setForm({
+          name: cleanText(currentProfile?.name),
+          email: cleanText(currentProfile?.email),
+          phone: cleanText(currentProfile?.phone),
+        });
+        onProfileLoaded(currentProfile);
+      })
+      .catch((reason) => {
+        if (mounted) setFeedback({ type: "error", message: reason instanceof Error ? reason.message : "Unable to load your profile." });
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [enabled, onProfileLoaded]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     setFeedback(null);
 
-    const nextName = combineName(form.firstName, form.lastName);
+    const nextName = cleanText(form.name);
     const nextPhone = cleanText(form.phone);
     const patch: Record<string, string> = {};
 
@@ -173,24 +126,24 @@ function PersonalInformationPanel({
     if (nextPhone !== cleanText(profile.phone)) patch.phone = nextPhone;
 
     if (!Object.keys(patch).length) {
-      setFeedback({ type: "success", message: "Your personal information is already up to date." });
+      setEditing(false);
+      setFeedback({ type: "success", message: "Profile is already up to date." });
       setSaving(false);
       return;
     }
 
     try {
       const updated = await updateCurrentUserProfile(patch);
-      onProfileSaved(updated);
-      const parts = splitName(updated?.name ?? nextName);
+      setProfile(updated);
       setForm({
-        firstName: parts.firstName,
-        lastName: parts.lastName,
+        name: cleanText(updated?.name) || nextName,
         email: cleanText(updated?.email) || form.email,
         phone: cleanText(updated?.phone) || nextPhone,
       });
-      setFeedback({ type: "success", message: "Your profile has been updated." });
-      showToast("Profile information saved.");
-      await onRefresh().catch(() => {});
+      onProfileLoaded(updated);
+      setEditing(false);
+      setFeedback({ type: "success", message: "Profile updated successfully." });
+      showToast("Profile updated successfully.");
     } catch (reason) {
       setFeedback({ type: "error", message: reason instanceof Error ? reason.message : "Unable to update your profile." });
     } finally {
@@ -202,61 +155,48 @@ function PersonalInformationPanel({
     <article className={styles.accountPanel}>
       <header className={styles.accountPanelHeader}>
         <div>
-          <p className={styles.eyebrow}>Personal Information</p>
-          <h2 className="font-display">Update Personal Information</h2>
-          <p>Only name and phone are editable because those are the fields supported by the current profile update API.</p>
+          <p className={styles.eyebrow}>My Profile</p>
+          <h2 className="font-display">{loading ? "Loading profile..." : profile ? `Namaste, ${displayValue(profile.name)}.` : "Profile unavailable"}</h2>
+          <p>Manage the profile details connected to your Divine Stone Gallery account.</p>
         </div>
+        <span className={styles.accountAvatar}>{loading ? "..." : profile ? profileInitial(profile) : "-"}</span>
       </header>
 
-      <form className={styles.accountForm} onSubmit={handleSubmit} aria-busy={saving || loading}>
-        <div className={styles.accountFormGrid}>
+      {loading ? <div className={styles.profileSummaryGrid} aria-busy="true"><div><strong>Loading profile...</strong></div></div> : null}
+      {!loading && profile && !editing ? (
+        <>
+          <div className={styles.profileSummaryGrid}>
+            <div><small>Name</small><strong>{displayValue(profile.name)}</strong></div>
+            <div><small>Email Address</small><strong>{displayValue(profile.email)}</strong></div>
+            <div><small>Phone Number</small><strong>{displayValue(profile.phone)}</strong></div>
+          </div>
+          {feedback ? <FeedbackMessage type={feedback.type}>{feedback.message}</FeedbackMessage> : null}
+          <Button type="button" size="md" onClick={() => { setFeedback(null); setEditing(true); }}>Edit</Button>
+        </>
+      ) : null}
+      {!loading && profile && editing ? (
+        <form className={styles.accountForm} onSubmit={handleSubmit} aria-busy={saving}>
           <label>
-            <span>First Name</span>
-            <input
-              value={form.firstName}
-              autoComplete="given-name"
-              maxLength={120}
-              disabled={saving || loading}
-              onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))}
-            />
+            <span>Name</span>
+            <input value={form.name} autoComplete="name" maxLength={120} disabled={saving} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
           </label>
           <label>
-            <span>Last Name</span>
-            <input
-              value={form.lastName}
-              autoComplete="family-name"
-              maxLength={120}
-              disabled={saving || loading}
-              onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))}
-            />
+            <span>Email Address</span>
+            <input value={form.email} type="email" autoComplete="email" readOnly aria-describedby="account-email-note" />
+            <small id="account-email-note">Email is managed by the existing sign-in profile and cannot be edited here.</small>
           </label>
-        </div>
-
-        <label>
-          <span>Email Address</span>
-          <input value={form.email} type="email" autoComplete="email" readOnly aria-describedby="account-email-note" />
-          <small id="account-email-note">Email is managed by the existing sign-in profile and is not editable from this endpoint.</small>
-        </label>
-
-        <label>
-          <span>Phone Number</span>
-          <input
-            value={form.phone}
-            type="tel"
-            autoComplete="tel"
-            maxLength={30}
-            disabled={saving || loading}
-            onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-          />
-        </label>
-
-        {feedback ? <FeedbackMessage type={feedback.type}>{feedback.message}</FeedbackMessage> : null}
-
-        <Button type="submit" size="md" disabled={saving || loading}>
-          {saving ? <Loader2 className={styles.spinIcon} aria-hidden="true" size={17} /> : null}
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
-      </form>
+          <label>
+            <span>Phone Number</span>
+            <input value={form.phone} type="tel" autoComplete="tel" maxLength={30} disabled={saving} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} />
+          </label>
+          {feedback ? <FeedbackMessage type={feedback.type}>{feedback.message}</FeedbackMessage> : null}
+          <Button type="submit" size="md" disabled={saving}>
+            {saving ? <Loader2 className={styles.spinIcon} aria-hidden="true" size={17} /> : null}
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+        </form>
+      ) : null}
+      {!loading && !profile && feedback ? <FeedbackMessage type={feedback.type}>{feedback.message}</FeedbackMessage> : null}
     </article>
   );
 }
@@ -314,15 +254,11 @@ function ChangePasswordPanel({ user }: { user: any }) {
 
 function ConnectedAccountHub() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const { refresh, signOut } = useAuth();
+  const { signOut } = useAuth();
   const [activeSection, setActiveSection] = useState<AccountSection>("profile");
   const [loggingOut, setLoggingOut] = useState(false);
   const [savedProfile, setSavedProfile] = useState<any>(null);
-  const effectiveUser = savedProfile ? { ...profileData(user), ...savedProfile } : user;
-
-  useEffect(() => {
-    setSavedProfile(null);
-  }, [user?.id, user?.updated_at]);
+  const effectiveUser = useMemo(() => (savedProfile ? { ...profileData(user), ...savedProfile } : user), [savedProfile, user]);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -331,7 +267,7 @@ function ConnectedAccountHub() {
   }, [isLoaded, isSignedIn]);
 
   const panel = useMemo(() => {
-    if (!isLoaded) return <MyProfilePanel user={effectiveUser} loading />;
+    if (!isLoaded) return <MyProfilePanel enabled={false} onProfileLoaded={setSavedProfile} />;
     if (!isSignedIn) {
       return (
         <article className={styles.accountPanel}>
@@ -347,19 +283,9 @@ function ConnectedAccountHub() {
       );
     }
 
-    if (activeSection === "personal") {
-      return (
-        <PersonalInformationPanel
-          user={effectiveUser}
-          loading={!isLoaded}
-          onProfileSaved={setSavedProfile}
-          onRefresh={refresh}
-        />
-      );
-    }
     if (activeSection === "password") return <ChangePasswordPanel user={effectiveUser} />;
-    return <MyProfilePanel user={effectiveUser} loading={!isLoaded} />;
-  }, [activeSection, effectiveUser, isLoaded, isSignedIn, refresh]);
+    return <MyProfilePanel onProfileLoaded={setSavedProfile} />;
+  }, [activeSection, effectiveUser, isLoaded, isSignedIn]);
 
   async function handleLogout() {
     setLoggingOut(true);

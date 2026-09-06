@@ -1,11 +1,23 @@
-// @ts-nocheck
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDown, ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search } from "lucide-react";
+import { FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
+import { ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search } from "lucide-react";
 import { apiRequest } from "@/api/client";
+import {
+  AdminCheckboxField,
+  AdminEntityModal,
+  AdminFieldGrid,
+  type AdminFieldErrors,
+  AdminModalField,
+  AdminModalForm,
+  AdminModalSection,
+  adminEntityModalStyles,
+  getFieldError,
+  parseAdminFormError,
+} from "@/components/Admin/admin-entity-modal";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import styles from "./catalog-admin.module.css";
 
@@ -19,7 +31,9 @@ type Taxonomy = {
 type ProductImage = {
   id: number;
   image_url?: string;
+  object_key?: string;
   alt_text?: string;
+  display_order?: number;
   cover_photo?: boolean;
 };
 
@@ -31,9 +45,15 @@ type AdminProduct = {
   name: string;
   slug: string;
   uid?: string;
-  short_description?: string;
-  description?: string;
-  keywords?: string;
+  short_description?: string | null;
+  description?: string | null;
+  keywords?: string | null;
+  height?: string | number | null;
+  min_weight?: string | number | null;
+  max_weight?: string | number | null;
+  original_price?: string | number | null;
+  selling_price?: string | number | null;
+  gst?: string | number | null;
   is_featured?: boolean;
   availability: "in_stock" | "made_to_order" | "out_of_stock";
   status: "draft" | "active" | "archived";
@@ -43,7 +63,7 @@ type AdminProduct = {
 };
 
 type ProductList = {
-  items: AdminProduct[];
+  items?: AdminProduct[];
   pagination?: { total_items?: number };
 };
 
@@ -53,10 +73,16 @@ type Lookups = {
   deities: Taxonomy[];
 };
 
+type ProductModalState = { mode: "create" } | { mode: "edit"; product: AdminProduct };
+
 const emptyLookups: Lookups = { categories: [], materials: [], deities: [] };
-const availabilityOptions = ["in_stock", "made_to_order", "out_of_stock"];
-const statusOptions = ["draft", "active", "archived"];
-const salesModeOptions = ["quote_only", "buy_and_quote", "direct_purchase"];
+const availabilityOptions: AdminProduct["availability"][] = ["in_stock", "made_to_order", "out_of_stock"];
+const statusOptions: AdminProduct["status"][] = ["draft", "active", "archived"];
+const salesModeOptions: AdminProduct["sales_mode"][] = ["quote_only", "buy_and_quote", "direct_purchase"];
+
+function text(value: FormDataEntryValue | null | undefined) {
+  return value?.toString().trim() ?? "";
+}
 
 function label(value?: string) {
   return (value || "not set").replaceAll("_", " ");
@@ -77,106 +103,311 @@ function completion(product: AdminProduct) {
   return "incomplete";
 }
 
-function ProductEditor({ product, lookups, refresh }: { product: AdminProduct; lookups: Lookups; refresh: () => Promise<void> }) {
+function productValue(product: AdminProduct | undefined, key: keyof AdminProduct) {
+  const value = product?.[key];
+  return value == null ? "" : String(value);
+}
+
+function numericId(form: FormData, key: string) {
+  const value = Number(form.get(key));
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function addOptionalText(payload: Record<string, unknown>, form: FormData, key: string) {
+  const value = text(form.get(key));
+  if (value) payload[key] = value;
+}
+
+function validateProduct(form: FormData) {
+  const fieldErrors: AdminFieldErrors = {};
+  if (!text(form.get("name"))) fieldErrors.name = "Product name is required.";
+  if (!numericId(form, "category")) fieldErrors.category = "Choose a category.";
+  if (!numericId(form, "material")) fieldErrors.material = "Choose a material.";
+  if (!numericId(form, "deity")) fieldErrors.deity = "Choose a deity.";
+  return fieldErrors;
+}
+
+function productPayload(form: FormData) {
+  const payload: Record<string, unknown> = {
+    name: text(form.get("name")),
+    category: numericId(form, "category"),
+    material: numericId(form, "material"),
+    deity: numericId(form, "deity"),
+    short_description: text(form.get("short_description")),
+    description: text(form.get("description")),
+    keywords: text(form.get("keywords")),
+    is_featured: form.get("is_featured") === "on",
+    availability: text(form.get("availability")),
+    status: text(form.get("status")),
+    sales_mode: text(form.get("sales_mode")),
+    display_order: Number(form.get("display_order") || 999),
+  };
+
+  ["height", "min_weight", "max_weight", "original_price", "selling_price", "gst"].forEach((key) => {
+    addOptionalText(payload, form, key);
+  });
+
+  return payload;
+}
+
+function upsertProduct(items: AdminProduct[], saved: AdminProduct, mode: ProductModalState["mode"]) {
+  if (mode === "create") return [saved, ...items.filter((item) => item.id !== saved.id)];
+  return items.map((item) => item.id === saved.id ? saved : item);
+}
+
+function upsertImage(images: ProductImage[] | undefined, saved: ProductImage) {
+  const nextImages = (images ?? [])
+    .filter((image) => image.id !== saved.id)
+    .map((image) => saved.cover_photo ? { ...image, cover_photo: false } : image);
+  return [...nextImages, saved].sort((first, second) => Number(first.display_order ?? 0) - Number(second.display_order ?? 0));
+}
+
+function TaxonomySelect({
+  name,
+  label: selectLabel,
+  items,
+  currentId,
+  createMode,
+  error,
+}: {
+  name: "category" | "material" | "deity";
+  label: string;
+  items: Taxonomy[];
+  currentId?: number;
+  createMode: boolean;
+  error?: string;
+}) {
+  const options = createMode ? items.filter((item) => item.is_active !== false) : items;
+  return (
+    <AdminModalField label={selectLabel} required error={error}>
+      <select name={name} defaultValue={currentId ?? ""} aria-invalid={Boolean(error)}>
+        <option value="">Choose {selectLabel.toLowerCase()}</option>
+        {options.map((item) => (
+          <option value={item.id} key={item.id}>
+            {item.name}{item.is_active === false ? " (inactive)" : ""}
+          </option>
+        ))}
+      </select>
+    </AdminModalField>
+  );
+}
+
+function ProductImageAttachment({
+  product,
+  onAttached,
+}: {
+  product: AdminProduct;
+  onAttached: (productId: number, image: ProductImage) => void;
+}) {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
-  const imageUrl = coverImage(product);
-
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    setSaving(true);
-
-    try {
-      await apiRequest<AdminProduct>(`/api/admin/products/${product.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          name: form.get("name"),
-          category: Number(form.get("category")),
-          material: Number(form.get("material")),
-          deity: Number(form.get("deity")),
-          short_description: form.get("short_description"),
-          description: form.get("description"),
-          keywords: form.get("keywords"),
-          is_featured: form.get("is_featured") === "on",
-          availability: form.get("availability"),
-          status: form.get("status"),
-          sales_mode: form.get("sales_mode"),
-          display_order: Number(form.get("display_order") || 999),
-        }),
-      });
-      showToast("Product saved.");
-      await refresh();
-    } catch (reason) {
-      showToast(reason instanceof Error ? reason.message : "Product could not be saved.");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
 
   async function attachImage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const objectKey = form.get("object_key")?.toString().trim();
-    if (!objectKey) return;
-    setSaving(true);
+    const objectKey = text(form.get("object_key"));
+    setError(null);
+    setFieldErrors({});
 
+    if (!objectKey) {
+      setFieldErrors({ object_key: "Product image object key is required." });
+      return;
+    }
+
+    setSaving(true);
     try {
-      await apiRequest<ProductImage>(`/api/admin/products/${product.id}/images`, {
+      const image = await apiRequest<ProductImage>(`/api/admin/products/${product.id}/images`, {
         method: "POST",
         body: JSON.stringify({
           object_key: objectKey,
-          alt_text: form.get("alt_text")?.toString().trim() || product.name,
+          alt_text: text(form.get("alt_text")) || product.name,
           cover_photo: form.get("cover_photo") === "on",
           display_order: Number(form.get("display_order") || 0),
         }),
       });
-      showToast("Image attached.");
       event.currentTarget.reset();
-      await refresh();
+      onAttached(product.id, image);
+      showToast("Image attached.");
     } catch (reason) {
-      showToast(reason instanceof Error ? reason.message : "Image could not be attached.");
+      const nextError = parseAdminFormError(reason, "Image could not be attached.");
+      setError(nextError.message);
+      setFieldErrors(nextError.fieldErrors);
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <>
-      <form className={styles.editorGrid} onSubmit={save}>
-        <label><span>Name</span><input name="name" defaultValue={product.name} required /></label>
-        <label><span>Category</span><select name="category" defaultValue={product.category} required>{lookups.categories.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-        <label><span>Material</span><select name="material" defaultValue={product.material} required>{lookups.materials.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-        <label><span>Deity</span><select name="deity" defaultValue={product.deity} required>{lookups.deities.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-        <label><span>Status</span><select name="status" defaultValue={product.status}>{statusOptions.map((item) => <option value={item} key={item}>{label(item)}</option>)}</select></label>
-        <label><span>Availability</span><select name="availability" defaultValue={product.availability}>{availabilityOptions.map((item) => <option value={item} key={item}>{label(item)}</option>)}</select></label>
-        <label><span>Sales mode</span><select name="sales_mode" defaultValue={product.sales_mode}>{salesModeOptions.map((item) => <option value={item} key={item}>{label(item)}</option>)}</select></label>
-        <label><span>Display order</span><input name="display_order" type="number" min="0" defaultValue={product.display_order ?? 999} /></label>
-        <label className={styles.checkbox}><input name="is_featured" type="checkbox" defaultChecked={Boolean(product.is_featured)} /><span>Featured on home</span></label>
-        <label><span>Short description</span><textarea name="short_description" defaultValue={product.short_description || ""} maxLength={500} /></label>
-        <label><span>Keywords</span><textarea name="keywords" defaultValue={product.keywords || ""} /></label>
-        <label><span>Description</span><textarea name="description" defaultValue={product.description || ""} /></label>
-        <div className={styles.editorActions}>
-          <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save product"}</button>
-          {product.slug ? <Link href={`/products/${product.slug}`} target="_blank">Open product <ExternalLink size={14} /></Link> : null}
-        </div>
+    <div className={adminEntityModalStyles.imagePanel}>
+      <h3>Images</h3>
+      <p className={adminEntityModalStyles.imageMeta}>
+        {product.images?.length ? `${product.images.length} image${product.images.length === 1 ? "" : "s"} attached.` : "No images attached yet."}
+      </p>
+      {error ? <p className={adminEntityModalStyles.fieldError} role="alert">{error}</p> : null}
+      <form onSubmit={attachImage} noValidate>
+        <AdminModalField label="Presigned object key" required error={getFieldError(fieldErrors, "object_key")}>
+          <input name="object_key" placeholder="product-images/..." aria-invalid={Boolean(getFieldError(fieldErrors, "object_key"))} />
+        </AdminModalField>
+        <AdminModalField label="Alt text" error={getFieldError(fieldErrors, "alt_text")}>
+          <input name="alt_text" defaultValue={product.name} aria-invalid={Boolean(getFieldError(fieldErrors, "alt_text"))} />
+        </AdminModalField>
+        <AdminModalField label="Image order" error={getFieldError(fieldErrors, "display_order")}>
+          <input name="display_order" type="number" min="0" defaultValue={product.images?.length ?? 0} aria-invalid={Boolean(getFieldError(fieldErrors, "display_order"))} />
+        </AdminModalField>
+        <AdminCheckboxField label="Cover" error={getFieldError(fieldErrors, "cover_photo")}>
+          <input name="cover_photo" type="checkbox" defaultChecked={!product.images?.length} />
+        </AdminCheckboxField>
+        <Button type="submit" disabled={saving}>{saving ? "Attaching..." : "Attach image"}</Button>
       </form>
-      <form className={styles.editorGrid} onSubmit={attachImage}>
-        <label><span>Presigned object key</span><input name="object_key" placeholder="product-images/..." /></label>
-        <label><span>Alt text</span><input name="alt_text" defaultValue={product.name} /></label>
-        <label><span>Image order</span><input name="display_order" type="number" min="0" defaultValue={product.images?.length ?? 0} /></label>
-        <label className={styles.checkbox}><input name="cover_photo" type="checkbox" defaultChecked={!product.images?.length} /><span>Use as cover</span></label>
-        <div className={styles.editorActions}>
-          <button type="submit" disabled={saving}>Attach uploaded image</button>
-          <small>Upload files through the backend presigned upload flow, then paste the returned object key here.</small>
-        </div>
-      </form>
-      {product.images?.length ? (
-        <div className={styles.editorActions}>
-          <small>{product.images.length} image{product.images.length === 1 ? "" : "s"} attached. Cover: {imageUrl ? "ready" : "not selected"}.</small>
-        </div>
+    </div>
+  );
+}
+
+function ProductModal({
+  state,
+  lookups,
+  onClose,
+  onSaved,
+  onImageAttached,
+}: {
+  state: ProductModalState;
+  lookups: Lookups;
+  onClose: () => void;
+  onSaved: (product: AdminProduct, mode: ProductModalState["mode"]) => void;
+  onImageAttached: (productId: number, image: ProductImage) => void;
+}) {
+  const { showToast } = useToast();
+  const formId = useId();
+  const product = state.mode === "edit" ? state.product : undefined;
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const validation = validateProduct(form);
+    setError(null);
+    setFieldErrors(validation);
+    if (Object.keys(validation).length) return;
+
+    setSubmitting(true);
+    try {
+      const saved = await apiRequest<AdminProduct>(
+        state.mode === "create" ? "/api/admin/products" : `/api/admin/products/${product?.id}`,
+        {
+          method: state.mode === "create" ? "POST" : "PATCH",
+          body: JSON.stringify(productPayload(form)),
+        },
+      );
+      onSaved(saved, state.mode);
+      showToast(`Product ${state.mode === "create" ? "created" : "updated"}.`);
+      onClose();
+    } catch (reason) {
+      const nextError = parseAdminFormError(reason, "Product could not be saved.");
+      setError(nextError.message);
+      setFieldErrors(nextError.fieldErrors);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <AdminEntityModal
+      open
+      mode={state.mode}
+      entityLabel="Product"
+      formId={formId}
+      onClose={onClose}
+      submitting={submitting}
+      error={error}
+      size="wide"
+    >
+      <AdminModalForm id={formId} onSubmit={submit}>
+        <AdminModalSection title="Basic information">
+          <AdminFieldGrid>
+            <AdminModalField label="Name" required wide error={getFieldError(fieldErrors, "name")}>
+              <input name="name" defaultValue={product?.name ?? ""} aria-invalid={Boolean(getFieldError(fieldErrors, "name"))} />
+            </AdminModalField>
+            <AdminModalField label="Short description" wide error={getFieldError(fieldErrors, "short_description")}>
+              <textarea name="short_description" defaultValue={product?.short_description ?? ""} maxLength={500} aria-invalid={Boolean(getFieldError(fieldErrors, "short_description"))} />
+            </AdminModalField>
+            <AdminModalField label="Description" wide error={getFieldError(fieldErrors, "description")}>
+              <textarea name="description" defaultValue={product?.description ?? ""} aria-invalid={Boolean(getFieldError(fieldErrors, "description"))} />
+            </AdminModalField>
+            <AdminModalField label="Keywords" wide error={getFieldError(fieldErrors, "keywords")}>
+              <textarea name="keywords" defaultValue={product?.keywords ?? ""} aria-invalid={Boolean(getFieldError(fieldErrors, "keywords"))} />
+            </AdminModalField>
+          </AdminFieldGrid>
+        </AdminModalSection>
+
+        <AdminModalSection title="Classification">
+          <AdminFieldGrid>
+            <TaxonomySelect name="category" label="Category" items={lookups.categories} currentId={product?.category} createMode={state.mode === "create"} error={getFieldError(fieldErrors, "category")} />
+            <TaxonomySelect name="material" label="Material" items={lookups.materials} currentId={product?.material} createMode={state.mode === "create"} error={getFieldError(fieldErrors, "material")} />
+            <TaxonomySelect name="deity" label="Deity" items={lookups.deities} currentId={product?.deity} createMode={state.mode === "create"} error={getFieldError(fieldErrors, "deity", "diety")} />
+          </AdminFieldGrid>
+        </AdminModalSection>
+
+        <AdminModalSection title="Publishing">
+          <AdminFieldGrid>
+            <AdminModalField label="Status" error={getFieldError(fieldErrors, "status")}>
+              <select name="status" defaultValue={product?.status ?? "draft"} aria-invalid={Boolean(getFieldError(fieldErrors, "status"))}>
+                {statusOptions.map((item) => <option value={item} key={item}>{label(item)}</option>)}
+              </select>
+            </AdminModalField>
+            <AdminModalField label="Availability" error={getFieldError(fieldErrors, "availability")}>
+              <select name="availability" defaultValue={product?.availability ?? "made_to_order"} aria-invalid={Boolean(getFieldError(fieldErrors, "availability"))}>
+                {availabilityOptions.map((item) => <option value={item} key={item}>{label(item)}</option>)}
+              </select>
+            </AdminModalField>
+            <AdminModalField label="Sales mode" error={getFieldError(fieldErrors, "sales_mode")}>
+              <select name="sales_mode" defaultValue={product?.sales_mode ?? "quote_only"} aria-invalid={Boolean(getFieldError(fieldErrors, "sales_mode"))}>
+                {salesModeOptions.map((item) => <option value={item} key={item}>{label(item)}</option>)}
+              </select>
+            </AdminModalField>
+            <AdminModalField label="Display order" error={getFieldError(fieldErrors, "display_order")}>
+              <input name="display_order" type="number" min="0" defaultValue={product?.display_order ?? 999} aria-invalid={Boolean(getFieldError(fieldErrors, "display_order"))} />
+            </AdminModalField>
+            <AdminCheckboxField label="Featured on home" error={getFieldError(fieldErrors, "is_featured")}>
+              <input name="is_featured" type="checkbox" defaultChecked={Boolean(product?.is_featured)} />
+            </AdminCheckboxField>
+          </AdminFieldGrid>
+        </AdminModalSection>
+
+        <AdminModalSection title="Selling and measurements">
+          <AdminFieldGrid>
+            <AdminModalField label="Height" error={getFieldError(fieldErrors, "height")}>
+              <input name="height" defaultValue={productValue(product, "height")} aria-invalid={Boolean(getFieldError(fieldErrors, "height"))} />
+            </AdminModalField>
+            <AdminModalField label="Minimum weight" error={getFieldError(fieldErrors, "min_weight")}>
+              <input name="min_weight" defaultValue={productValue(product, "min_weight")} aria-invalid={Boolean(getFieldError(fieldErrors, "min_weight"))} />
+            </AdminModalField>
+            <AdminModalField label="Maximum weight" error={getFieldError(fieldErrors, "max_weight")}>
+              <input name="max_weight" defaultValue={productValue(product, "max_weight")} aria-invalid={Boolean(getFieldError(fieldErrors, "max_weight"))} />
+            </AdminModalField>
+            <AdminModalField label="Original price" error={getFieldError(fieldErrors, "original_price")}>
+              <input name="original_price" type="number" min="0" step="0.01" defaultValue={productValue(product, "original_price")} aria-invalid={Boolean(getFieldError(fieldErrors, "original_price"))} />
+            </AdminModalField>
+            <AdminModalField label="Selling price" error={getFieldError(fieldErrors, "selling_price")}>
+              <input name="selling_price" type="number" min="0" step="0.01" defaultValue={productValue(product, "selling_price")} aria-invalid={Boolean(getFieldError(fieldErrors, "selling_price"))} />
+            </AdminModalField>
+            <AdminModalField label="GST" error={getFieldError(fieldErrors, "gst")} hint="Blank optional fields are not sent to the backend.">
+              <input name="gst" type="number" min="0" step="0.01" defaultValue={productValue(product, "gst")} aria-invalid={Boolean(getFieldError(fieldErrors, "gst"))} />
+            </AdminModalField>
+          </AdminFieldGrid>
+        </AdminModalSection>
+      </AdminModalForm>
+
+      {product ? (
+        <>
+          <ProductImageAttachment product={product} onAttached={onImageAttached} />
+          {product.slug ? <Link className={styles.modalProductLink} href={`/products/${product.slug}`} target="_blank">Open product page <ExternalLink size={14} /></Link> : null}
+        </>
       ) : null}
-    </>
+    </AdminEntityModal>
   );
 }
 
@@ -185,7 +416,7 @@ export function CatalogAdmin() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [lookups, setLookups] = useState<Lookups>(emptyLookups);
   const [query, setQuery] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
+  const [modal, setModal] = useState<ProductModalState | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -207,7 +438,8 @@ export function CatalogAdmin() {
   }, [showToast]);
 
   useEffect(() => {
-    void load();
+    const task = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(task);
   }, [load]);
 
   const filteredProducts = useMemo(() => {
@@ -216,53 +448,27 @@ export function CatalogAdmin() {
     return products.filter((product) => `${product.name} ${product.slug} ${product.uid}`.toLowerCase().includes(needle));
   }, [products, query]);
 
-  async function createProduct(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    try {
-      await apiRequest<AdminProduct>("/api/admin/products", {
-        method: "POST",
-        body: JSON.stringify({
-          name: form.get("name"),
-          category: Number(form.get("category")),
-          material: Number(form.get("material")),
-          deity: Number(form.get("deity")),
-          short_description: form.get("short_description"),
-          availability: "made_to_order",
-          status: "draft",
-          sales_mode: "quote_only",
-          display_order: Number(form.get("display_order") || 999),
-        }),
-      });
-      event.currentTarget.reset();
-      setShowCreate(false);
-      showToast("Draft product created.");
-      await load();
-    } catch (reason) {
-      showToast(reason instanceof Error ? reason.message : "Draft product could not be created.");
-    }
-  }
+  const saveProduct = useCallback((product: AdminProduct, mode: ProductModalState["mode"]) => {
+    setProducts((current) => upsertProduct(current, product, mode));
+  }, []);
+
+  const attachProductImage = useCallback((productId: number, image: ProductImage) => {
+    setProducts((current) => current.map((product) => (
+      product.id === productId ? { ...product, images: upsertImage(product.images, image) } : product
+    )));
+    setModal((current) => {
+      if (!current || current.mode !== "edit" || current.product.id !== productId) return current;
+      return { mode: "edit", product: { ...current.product, images: upsertImage(current.product.images, image) } };
+    });
+  }, []);
 
   return (
     <section className={styles.adminSection}>
       <div className={styles.toolbar}>
         <label><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products" /></label>
         <button type="button" onClick={() => void load()} disabled={loading}><RefreshCw size={15} /> Refresh</button>
-        <button className={styles.primaryAction} type="button" onClick={() => setShowCreate((value) => !value)}><Plus size={15} /> New draft</button>
+        <button className={styles.primaryAction} type="button" onClick={() => setModal({ mode: "create" })}><Plus size={15} /> Add Product</button>
       </div>
-
-      {showCreate ? (
-        <form className={styles.createForm} onSubmit={createProduct}>
-          <h2 className="font-display">Create draft product</h2>
-          <label><span>Name</span><input name="name" required /></label>
-          <label><span>Category</span><select name="category" required><option value="">Choose</option>{lookups.categories.filter((item) => item.is_active !== false).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-          <label><span>Material</span><select name="material" required><option value="">Choose</option>{lookups.materials.filter((item) => item.is_active !== false).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-          <label><span>Deity</span><select name="deity" required><option value="">Choose</option>{lookups.deities.filter((item) => item.is_active !== false).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-          <label><span>Order</span><input name="display_order" type="number" min="0" defaultValue="999" /></label>
-          <label><span>Short description</span><input name="short_description" maxLength={500} /></label>
-          <button type="submit">Create</button>
-        </form>
-      ) : null}
 
       <div className={styles.summary}>
         <strong>{filteredProducts.length}</strong>
@@ -274,8 +480,8 @@ export function CatalogAdmin() {
         {filteredProducts.map((product) => {
           const imageUrl = coverImage(product);
           return (
-            <details className={styles.productRow} key={product.id}>
-              <summary>
+            <article className={styles.productRow} key={product.id}>
+              <div className={styles.productSummary}>
                 <span className={styles.productThumb}>
                   {imageUrl ? <Image unoptimized src={imageUrl} alt={product.name} fill sizes="64px" /> : <ImageIcon size={20} />}
                 </span>
@@ -285,14 +491,27 @@ export function CatalogAdmin() {
                 </span>
                 <span className={`${styles.statusPill} ${styles[product.status]}`}>{label(product.status)}</span>
                 <span className={styles[completion(product)]}>{label(completion(product))}</span>
-                <ChevronDown className={styles.chevron} size={18} />
-              </summary>
-              <ProductEditor product={product} lookups={lookups} refresh={load} />
-            </details>
+                <span className={styles.productActions}>
+                  {product.slug ? <Link href={`/products/${product.slug}`} target="_blank" aria-label={`Open ${product.name}`}><ExternalLink size={15} /></Link> : null}
+                  <button type="button" onClick={() => setModal({ mode: "edit", product })}>Edit</button>
+                </span>
+              </div>
+            </article>
           );
         })}
-        {!loading && !filteredProducts.length ? <div className={styles.stateCard}><h2 className="font-display">No products found.</h2><p>Create a draft product after adding active category, material and deity records.</p></div> : null}
+        {!loading && !filteredProducts.length ? <div className={styles.stateCard}><h2 className="font-display">No products found.</h2><p>Create a product after adding active category, material and deity records.</p></div> : null}
       </div>
+
+      {modal ? (
+        <ProductModal
+          key={`${modal.mode}-${modal.mode === "edit" ? modal.product.id : "new"}`}
+          state={modal}
+          lookups={lookups}
+          onClose={() => setModal(null)}
+          onSaved={saveProduct}
+          onImageAttached={attachProductImage}
+        />
+      ) : null}
     </section>
   );
 }

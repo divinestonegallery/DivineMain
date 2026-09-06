@@ -64,6 +64,13 @@
 .structureEditor textarea { resize: vertical; }
 
 .structureList { display: grid; }
+.structureItemRow { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto auto; gap: .65rem; align-items: center; padding: .8rem 1rem; border-bottom: 1px solid var(--border); }
+.structureItemRow:last-child { border-bottom: 0; }
+.structureIdentity { display: grid; min-width: 0; gap: .2rem; }
+.structureIdentity strong { font-size: .76rem; }
+.structureIdentity small { overflow: hidden; color: var(--ink-muted); font-size: .59rem; text-overflow: ellipsis; white-space: nowrap; }
+.structureStatus { color: var(--ink-muted); font-size: .56rem; font-weight: 750; }
+.structureItemRow .secondaryButton { min-height: 34px; padding-inline: .7rem; }
 .structureRow { border-bottom: 1px solid var(--border); }
 .structureRow:last-child { border-bottom: 0; }
 .structureRow summary { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; gap: .65rem; align-items: center; padding: .8rem 1rem; cursor: pointer; list-style: none; }
@@ -130,6 +137,8 @@
 
 @media (max-width: 720px) {
   .summaryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .structureItemRow { grid-template-columns: 8px minmax(0, 1fr) auto; }
+  .structureStatus { display: none; }
   .inventoryToolbar label,
   .inventoryToolbar select,
   .inventoryToolbar > button { width: 100%; margin-left: 0; }
