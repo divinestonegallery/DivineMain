@@ -1,19 +1,14 @@
 // @ts-nocheck
 "use client";
 
-import Link from "next/link";
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
-  ExternalLink,
-  Hammer,
   KeyRound,
   Loader2,
   LogOut,
   Mail,
-  MapPin,
-  MessageCircle,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -25,17 +20,15 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import styles from "./customer-page.module.css";
 
-type AccountSection = "profile" | "personal" | "address" | "password" | "security";
+type AccountSection = "profile" | "personal" | "password";
 
 const profileSections: Array<{ id: AccountSection; label: string; icon: ReactNode }> = [
   { id: "profile", label: "My Profile", icon: <UserRound aria-hidden="true" size={18} /> },
   { id: "personal", label: "Personal Information", icon: <Mail aria-hidden="true" size={18} /> },
-  { id: "address", label: "Address", icon: <MapPin aria-hidden="true" size={18} /> },
 ];
 
 const secureSections: Array<{ id: AccountSection; label: string; icon: ReactNode }> = [
   { id: "password", label: "Change Password", icon: <KeyRound aria-hidden="true" size={18} /> },
-  { id: "security", label: "Account Security", icon: <ShieldCheck aria-hidden="true" size={18} /> },
 ];
 
 function cleanText(value: unknown) {
@@ -272,49 +265,6 @@ function PersonalInformationPanel({
   );
 }
 
-function AddressPanel({ user }: { user: any }) {
-  const profile = profileData(user);
-  const knownAddress = [
-    ["Address", profile.address || profile.address_line1 || profile.street_address],
-    ["City", profile.city],
-    ["State", profile.state],
-    ["Postal Code", profile.postal_code || profile.pincode || profile.zip],
-    ["Country", profile.country],
-  ].filter(([, value]) => cleanText(value));
-
-  return (
-    <article className={styles.accountPanel}>
-      <header className={styles.accountPanelHeader}>
-        <div>
-          <p className={styles.eyebrow}>Address</p>
-          <h2 className="font-display">Address details</h2>
-          <p>Saved address fields are shown here when they are returned by the existing profile API.</p>
-        </div>
-      </header>
-
-      {knownAddress.length ? (
-        <div className={styles.profileSummaryGrid}>
-          {knownAddress.map(([label, value]) => (
-            <div key={label}>
-              <small>{label}</small>
-              <strong>{displayValue(value)}</strong>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className={styles.accountNotice}>
-          <MapPin aria-hidden="true" size={21} />
-          <div>
-            <h3 className="font-display">No saved address fields are available yet.</h3>
-            <p>The current backend customer profile returns name, email, phone, role and account status. It does not expose an address save/update endpoint.</p>
-            <Link className={buttonClassName({ variant: "outline", size: "md" })} href="/contact">Share address with the gallery</Link>
-          </div>
-        </div>
-      )}
-    </article>
-  );
-}
-
 function ChangePasswordPanel({ user }: { user: any }) {
   const profile = profileData(user);
   const email = cleanText(profile.email);
@@ -366,42 +316,6 @@ function ChangePasswordPanel({ user }: { user: any }) {
   );
 }
 
-function AccountSecurityPanel({ user }: { user: any }) {
-  const profile = profileData(user);
-  const active = profile.is_active !== false;
-
-  return (
-    <article className={styles.accountPanel}>
-      <header className={styles.accountPanelHeader}>
-        <div>
-          <p className={styles.eyebrow}>Account Security</p>
-          <h2 className="font-display">Security status</h2>
-          <p>Security information is limited to the fields exposed by the existing authenticated profile endpoint.</p>
-        </div>
-      </header>
-
-      <div className={styles.profileSummaryGrid}>
-        <div>
-          <small>Profile Status</small>
-          <strong>{active ? "Active" : "Inactive"}</strong>
-        </div>
-        <div>
-          <small>Role</small>
-          <strong>{displayValue(profile.role, "Customer")}</strong>
-        </div>
-        <div>
-          <small>Created</small>
-          <strong>{displayDate(profile.created_at)}</strong>
-        </div>
-        <div>
-          <small>Last Updated</small>
-          <strong>{displayDate(profile.updated_at)}</strong>
-        </div>
-      </div>
-    </article>
-  );
-}
-
 function ConnectedAccountHub() {
   const { isLoaded, isSignedIn, user } = useUser();
   const { refresh, signOut } = useAuth();
@@ -447,9 +361,7 @@ function ConnectedAccountHub() {
         />
       );
     }
-    if (activeSection === "address") return <AddressPanel user={effectiveUser} />;
     if (activeSection === "password") return <ChangePasswordPanel user={effectiveUser} />;
-    if (activeSection === "security") return <AccountSecurityPanel user={effectiveUser} />;
     return <MyProfilePanel user={effectiveUser} loading={!isLoaded} />;
   }, [activeSection, effectiveUser, isLoaded, isSignedIn, refresh]);
 
@@ -484,16 +396,6 @@ function ConnectedAccountHub() {
                   {item.label}
                 </AccountNavButton>
               ))}
-              <Link className={styles.accountNavItem} href="/custom-murti">
-                <Hammer aria-hidden="true" size={18} />
-                <span>Custom Commissions</span>
-                <ExternalLink aria-hidden="true" size={15} />
-              </Link>
-              <Link className={styles.accountNavItem} href="/contact">
-                <MessageCircle aria-hidden="true" size={18} />
-                <span>Communication</span>
-                <ExternalLink aria-hidden="true" size={15} />
-              </Link>
               {secureSections.map((item) => (
                 <AccountNavButton
                   key={item.id}
