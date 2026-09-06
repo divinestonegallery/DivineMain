@@ -1,10 +1,13 @@
 // @ts-nocheck
 const rawBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "https://api.divinestonegallery.com";
 
+export const ACCESS_TOKEN_STORAGE_KEY = "dsg_access_token";
+export const REFRESH_TOKEN_STORAGE_KEY = "dsg_refresh_token";
+
 export const API_BASE_URL = rawBaseUrl
   .trim()
   .replace(/\/+$/, "")
-  .replace(/\/api\/v1$/i, "");
+  .replace(/\/api(?:\/v1)?$/i, "");
 
 export interface ApiEnvelope<T> {
   success: boolean;
@@ -31,7 +34,7 @@ export function apiUrl(path: string) {
 
 export function getStoredAccessToken() {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem("dsg_access_token");
+  return window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
 }
 
 export function apiHeaders(headers?: HeadersInit, hasBody = false) {

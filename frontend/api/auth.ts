@@ -1,8 +1,22 @@
 // @ts-nocheck
 import { fetchApi } from "@/api/services/api";
+import { ACCESS_TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY } from "@/api/client";
 
-export const ACCESS_TOKEN_KEY = "dsg_access_token";
-export const REFRESH_TOKEN_KEY = "dsg_refresh_token";
+export const ACCESS_TOKEN_KEY = ACCESS_TOKEN_STORAGE_KEY;
+export const REFRESH_TOKEN_KEY = REFRESH_TOKEN_STORAGE_KEY;
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function normalizeAuthEmail(value: unknown) {
+  return String(value || "").trim().toLowerCase();
+}
+
+export function getAuthEmailError(value: unknown) {
+  const email = normalizeAuthEmail(value);
+  if (!email) return "Please enter your registered email address.";
+  if (!EMAIL_PATTERN.test(email)) return "Please enter a valid email address.";
+  return "";
+}
 
 function authData(payload: any) {
   return payload?.data ?? payload;
@@ -69,7 +83,7 @@ export async function login(credentials: any) {
   try {
     const data = await fetchApi<any>("/auth/login", {
       method: "POST",
-      body: JSON.stringify(credentials),
+      body: JSON.stringify({ ...credentials, email: normalizeAuthEmail(credentials?.email) }),
     });
     return persistAuthSession(data);
   } catch (error: any) {
@@ -81,7 +95,7 @@ export async function register(userData: any) {
   try {
     const data = await fetchApi<any>("/auth/signup", {
       method: "POST",
-      body: JSON.stringify(userData),
+      body: JSON.stringify({ ...userData, email: normalizeAuthEmail(userData?.email) }),
     });
     return persistAuthSession(data);
   } catch (error: any) {
@@ -104,9 +118,10 @@ export async function updateCurrentUserProfile(profile: { name?: string; phone?:
 }
 
 export async function requestPasswordReset(email: string) {
+  const normalizedEmail = normalizeAuthEmail(email);
   const payload = await fetchApi<any>("/auth/forgot-password", {
     method: "POST",
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email: normalizedEmail }),
   });
 
   return {
@@ -130,5 +145,6 @@ export async function logoutCurrentSession() {
   return fetchApi<any>("/auth/logout", {
     method: "POST",
     requireAuth: true,
+    body: JSON.stringify({}),
   });
 }

@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import React, { createContext, FormEvent, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { ACCESS_TOKEN_KEY, clearAuthSession, getCurrentUser, login, logoutCurrentSession, onAuthSessionChange, register, requestPasswordReset } from "@/api/auth";
+import { ACCESS_TOKEN_KEY, clearAuthSession, getAuthEmailError, getCurrentUser, login, logoutCurrentSession, onAuthSessionChange, register, requestPasswordReset } from "@/api/auth";
 import styles from "./auth.module.css";
 
 const AuthContext = createContext({
@@ -146,9 +146,10 @@ export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account
     setSuccess("");
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email") || "").trim();
+    const emailError = getAuthEmailError(email);
 
-    if (!email) {
-      setError("Please enter your registered email address.");
+    if (emailError) {
+      setError(emailError);
       setSubmitting(false);
       return;
     }
@@ -170,12 +171,12 @@ export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account
         <p className={styles.authHelpText}>Enter your registered email address and we&apos;ll help you reset your password.</p>
         <label>
           <span>Email</span>
-          <input name="email" type="email" autoComplete="email" required />
+          <input name="email" type="email" autoComplete="email" required disabled={submitting} />
         </label>
         {error ? <p className={styles.authError}>{error}</p> : null}
         {success ? <p className={styles.authSuccess}>{success}</p> : null}
         <button type="submit" disabled={submitting}>{submitting ? "Sending..." : "Send reset link"}</button>
-        <p className={styles.authSwitch}>Remembered it? <button className={styles.inlineAuthAction} type="button" onClick={() => { setForgotMode(false); setError(""); setSuccess(""); }}>Back to Login</button></p>
+        <p className={styles.authSwitch}>Remembered it? <button className={styles.inlineAuthAction} type="button" disabled={submitting} onClick={() => { setForgotMode(false); setError(""); setSuccess(""); }}>Back to Login</button></p>
       </form>
     );
   }

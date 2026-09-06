@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
-import { login, register, requestPasswordReset } from "@/api/auth";
+import { getAuthEmailError, login, register, requestPasswordReset } from "@/api/auth";
 import { useAuth } from "@/components/Auth/auth-facade";
 import styles from "./auth.module.css";
 
@@ -126,9 +126,10 @@ export function AuthModal() {
     setSuccess("");
     const form = new FormData(e.currentTarget);
     const email = String(form.get("email") || "").trim();
+    const emailError = getAuthEmailError(email);
 
-    if (!email) {
-      setError("Please enter your registered email address.");
+    if (emailError) {
+      setError(emailError);
       setLoading(false);
       return;
     }
