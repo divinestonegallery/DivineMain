@@ -1,7 +1,6 @@
 // @ts-nocheck
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { resetPasswordWithToken } from "@/api/auth";
@@ -103,7 +102,11 @@ export function ResetPasswordForm({ token }: { token?: string }) {
       {success ? <p className={styles.authSuccess}>{success}</p> : null}
 
       <button type="submit" disabled={submitting || !token}>{submitting ? "Resetting..." : "Reset Password"}</button>
-      <p className={styles.authSwitch}><Link href="/sign-in">Back to Login</Link></p>
+      <p className={styles.authSwitch}>
+        <button className={styles.inlineAuthAction} type="button" onClick={() => window.dispatchEvent(new CustomEvent("dsg:open-auth"))}>
+          Back to Login
+        </button>
+      </p>
     </form>
   );
 }

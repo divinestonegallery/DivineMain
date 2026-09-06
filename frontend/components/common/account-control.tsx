@@ -22,8 +22,16 @@ export function AccountControl({ className }: { className?: string }) {
     return () => { active = false; };
   }, []);
 
+  if (!isSignedIn) {
+    return (
+      <button className={className} type="button" onClick={() => window.dispatchEvent(new CustomEvent("dsg:open-auth"))} aria-label="Sign in to your account">
+        <CircleUserRound aria-hidden="true" size={21} strokeWidth={1.6} />
+      </button>
+    );
+  }
+
   return (
-    <Link className={className} href={isSignedIn ? "/account" : "/sign-in"} aria-label="Customer account">
+    <Link className={className} href="/account" aria-label="Customer account">
       <CircleUserRound aria-hidden="true" size={21} strokeWidth={1.6} />
     </Link>
   );

@@ -1,4 +1,5 @@
 // @ts-nocheck
+"use client";
 import Link from "next/link";
 import { KeyRound, ShieldAlert } from "lucide-react";
 import { buttonClassName } from "@/components/ui/button";
@@ -19,7 +20,11 @@ export function AdminState({ reason }: { reason: "auth-unconfigured" | "forbidde
           <Icon aria-hidden="true" size={30} />
           <h2 className="font-display">{content.title}</h2>
           <p>{content.body}</p>
-          <Link className={buttonClassName({ size: "lg" })} href={reason === "forbidden" ? "/account" : "/sign-in"}>Continue</Link>
+          {reason === "forbidden" ? (
+            <Link className={buttonClassName({ size: "lg" })} href="/account">Continue</Link>
+          ) : (
+            <button className={buttonClassName({ size: "lg" })} type="button" onClick={() => window.dispatchEvent(new CustomEvent("dsg:open-auth"))}>Open login</button>
+          )}
         </div>
       </div>
     </section>

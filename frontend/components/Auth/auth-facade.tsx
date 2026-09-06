@@ -203,7 +203,7 @@ export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account
   );
 }
 
-export function SignUp({ signInUrl = "/sign-in", fallbackRedirectUrl = "/account" }: any) {
+export function SignUp({ signInUrl = "/", fallbackRedirectUrl = "/account" }: any) {
   const { refresh } = useContext(AuthContext);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);

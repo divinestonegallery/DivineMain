@@ -24,10 +24,6 @@ export function GalleryAuthProvider({
   return (
     <AuthConfigurationContext.Provider value>
       <ClerkProvider
-        signInUrl="/sign-in"
-        signUpUrl="/sign-up"
-        signInFallbackRedirectUrl="/account"
-        signUpFallbackRedirectUrl="/account"
         afterSignOutUrl="/"
         routerPush={(to) => router.push(to)}
         routerReplace={(to) => router.replace(to)}

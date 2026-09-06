@@ -1,8 +1,6 @@
 // @ts-nocheck
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
-import { getGallerySession, isGalleryAuthConfigured } from "@/api/auth/server";
 import { AccountHub } from "@/components/Customer/account-hub";
 import { CustomerPageShell } from "@/components/Customer/customer-page-shell";
 
@@ -16,11 +14,6 @@ export const metadata: Metadata = {
 };
 
 export default async function AccountPage() {
-  const authConfigured = isGalleryAuthConfigured();
-  const session = authConfigured ? await getGallerySession() : null;
-
-  if (authConfigured && !session) redirect("/sign-in");
-
   return (
     <CustomerPageShell
       title="Your gallery account"
@@ -31,9 +24,7 @@ export default async function AccountPage() {
         <>
           <ShieldCheck aria-hidden="true" size={18} />
           <span>
-            {authConfigured
-              ? "Your identity is verified by Clerk; passwords and OTP codes are never stored by Divine Stone Gallery."
-              : "Clerk is integrated. Registration opens as soon as the private application keys are added."}
+            "Your identity is verified by the gallery account service; passwords and OTP codes are never stored by Divine Stone Gallery."
           </span>
         </>
       }

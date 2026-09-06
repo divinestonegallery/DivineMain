@@ -2,7 +2,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { ArrowRight, Hammer, MessageCircle, ShieldCheck } from "lucide-react";
+import { useAuth } from "@/components/Auth/auth-facade";
 import styles from "./commission-workspace.module.css";
 
 function CommissionNotice({ detail }: { detail?: string }) {
@@ -32,9 +34,17 @@ function CommissionNotice({ detail }: { detail?: string }) {
 }
 
 export function CustomerCommissions() {
+  const { isLoaded, isSignedIn } = useAuth();
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) window.dispatchEvent(new CustomEvent("dsg:open-auth"));
+  }, [isLoaded, isSignedIn]);
   return <CommissionNotice />;
 }
 
 export function CustomerCommissionDetail({ commissionNumber }: { commissionNumber: string }) {
+  const { isLoaded, isSignedIn } = useAuth();
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) window.dispatchEvent(new CustomEvent("dsg:open-auth"));
+  }, [isLoaded, isSignedIn]);
   return <CommissionNotice detail={commissionNumber} />;
 }

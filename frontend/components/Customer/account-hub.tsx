@@ -414,6 +414,12 @@ function ConnectedAccountHub() {
     setSavedProfile(null);
   }, [user?.id, user?.updated_at]);
 
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      window.dispatchEvent(new CustomEvent("dsg:open-auth"));
+    }
+  }, [isLoaded, isSignedIn]);
+
   const panel = useMemo(() => {
     if (!isLoaded) return <MyProfilePanel user={effectiveUser} loading />;
     if (!isSignedIn) {
@@ -424,7 +430,7 @@ function ConnectedAccountHub() {
             <div>
               <h3 className="font-display">Please sign in to view your account.</h3>
               <p>Your private profile opens after authentication is confirmed.</p>
-              <Link className={buttonClassName({ size: "md" })} href="/sign-in">Sign in</Link>
+              <button className={buttonClassName({ size: "md" })} type="button" onClick={() => window.dispatchEvent(new CustomEvent("dsg:open-auth"))}>Sign in</button>
             </div>
           </div>
         </article>
@@ -526,7 +532,7 @@ export function AccountHub() {
             <div>
               <h3 className="font-display">Secure sign-in is ready for its private keys.</h3>
               <p>The account system is connected in the website. Add the authentication keys to open registration.</p>
-              <Link className={buttonClassName({ size: "md" })} href="/sign-in">View sign-in</Link>
+              <button className={buttonClassName({ size: "md" })} type="button" onClick={() => window.dispatchEvent(new CustomEvent("dsg:open-auth"))}>Open login</button>
             </div>
           </div>
         </article>
