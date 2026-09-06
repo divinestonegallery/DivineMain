@@ -158,6 +158,16 @@ class ProductRepository:
         data['material_id'] = data.pop('material')
         data['diety_id'] = data.pop('diety')
         data['is_active'] = data.get('status', ProductStatus.DRAFT.value) != ProductStatus.ARCHIVED.value
+
+        original_price = data.get('original_price')
+        selling_price = data.get('selling_price')
+        if original_price and selling_price:
+            from decimal import Decimal
+            try:
+                data['discount_percentage'] = ((Decimal(original_price) - Decimal(selling_price)) / Decimal(original_price) * 100).quantize(Decimal('0.01'))
+            except Exception:
+                pass
+
         try:
             with transaction.atomic():
                 product = Product.objects.create(**data)
@@ -175,6 +185,16 @@ class ProductRepository:
             setattr(product, f'{key}_id' if key in relation_fields else key, value)
         if 'status' in data:
             product.is_active = data['status'] != ProductStatus.ARCHIVED.value
+        
+        if product.original_price and product.selling_price:
+            from decimal import Decimal
+            try:
+                product.discount_percentage = ((Decimal(product.original_price) - Decimal(product.selling_price)) / Decimal(product.original_price) * 100).quantize(Decimal('0.01'))
+            except Exception:
+                product.discount_percentage = None
+        else:
+            product.discount_percentage = None
+
         try:
             with transaction.atomic():
                 product.save()
