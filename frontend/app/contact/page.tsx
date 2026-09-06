@@ -1,6 +1,6 @@
 // @ts-nocheck
 import type { Metadata } from "next";
-import { ArrowRight, Clock3, MapPin, MessageCircle, Phone, ShieldCheck } from "lucide-react";
+import { ArrowRight, MapPin, MessageCircle, Phone } from "lucide-react";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
@@ -56,10 +56,6 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              <div className={styles.galleryNotes}>
-                <span><ShieldCheck aria-hidden="true" size={17} /> {brand.heritage}</span>
-                <span><Clock3 aria-hidden="true" size={17} /> WhatsApp is the easiest way to leave complete details.</span>
-              </div>
             </div>
 
             <ContactForm />

@@ -3,15 +3,24 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
-import { login, register } from "@/api/auth";
+import { login, register, requestPasswordReset } from "@/api/auth";
 import { useAuth } from "@/components/Auth/auth-facade";
 import styles from "./auth.module.css";
 
+type AuthModalMode = "login" | "signup" | "forgot";
+
+const modalCopy: Record<AuthModalMode, { title: string; subtitle: string }> = {
+  login: { title: "Welcome Back", subtitle: "Sign in to continue" },
+  signup: { title: "Create Account", subtitle: "Join us and start shopping" },
+  forgot: { title: "Forgot Password", subtitle: "Enter your registered email address and we'll help you reset your password." },
+};
+
 export function AuthModal() {
   const [isOpen, setIsOpen] = useState(false);
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<AuthModalMode>("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const { refresh, isSignedIn } = useAuth();
@@ -23,6 +32,8 @@ export function AuthModal() {
         setIsOpen(true);
         setMode("login");
         setError("");
+        setSuccess("");
+        setShowPassword(false);
       }
     };
 
@@ -52,10 +63,18 @@ export function AuthModal() {
 
   if (!isOpen) return null;
 
+  function switchMode(nextMode: AuthModalMode) {
+    setMode(nextMode);
+    setError("");
+    setSuccess("");
+    setShowPassword(false);
+  }
+
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
     const form = new FormData(e.currentTarget);
 
     try {
@@ -73,6 +92,7 @@ export function AuthModal() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
     const form = new FormData(e.currentTarget);
 
     const password = form.get("password") as string;
@@ -98,6 +118,32 @@ export function AuthModal() {
       setLoading(false);
     }
   }
+
+  async function handleForgotPassword(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    const form = new FormData(e.currentTarget);
+    const email = String(form.get("email") || "").trim();
+
+    if (!email) {
+      setError("Please enter your registered email address.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const result = await requestPasswordReset(email);
+      setSuccess(result.message || "If an account exists with this email address, password reset instructions have been generated.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Password reset request failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const copy = modalCopy[mode];
 
   return (
     <div className={styles.modalOverlay} role="dialog" aria-modal="true">
@@ -127,10 +173,8 @@ export function AuthModal() {
           <div className={styles.modalContentSection}>
             <div className={styles.modalHeader}>
               <div>
-                <h2 className={styles.modalTitle}>{mode === "login" ? "Welcome Back" : "Create Account"}</h2>
-                <p className={styles.modalSubtitle}>
-                  {mode === "login" ? "Sign in to continue" : "Join us and start shopping"}
-                </p>
+                <h2 className={styles.modalTitle}>{copy.title}</h2>
+                <p className={styles.modalSubtitle}>{copy.subtitle}</p>
               </div>
               <button
                 type="button"
@@ -169,18 +213,22 @@ export function AuthModal() {
                       </button>
                     </div>
                   </label>
+                  <button type="button" className={styles.forgotPasswordButton} disabled={loading} onClick={() => switchMode("forgot")}>
+                    Forgot Password?
+                  </button>
 
                   {error && <div className={styles.modalError}>{error}</div>}
+                  {success && <div className={styles.modalSuccess}>{success}</div>}
 
                   <button type="submit" className={styles.modalSubmit} disabled={loading}>
                     {loading ? "Signing in..." : "LOGIN"}
                   </button>
 
                   <div className={styles.modalFooter}>
-                    <p>Don&apos;t have an account? <button type="button" onClick={() => { setMode("signup"); setError(""); setShowPassword(false); }}>Sign Up</button></p>
+                    <p>Don&apos;t have an account? <button type="button" onClick={() => switchMode("signup")}>Sign Up</button></p>
                   </div>
                 </form>
-              ) : (
+              ) : mode === "signup" ? (
                 <form className={styles.modalForm} onSubmit={handleSignup}>
                   <label>
                     <span>Name</span>
@@ -224,13 +272,32 @@ export function AuthModal() {
                   </label>
 
                   {error && <div className={styles.modalError}>{error}</div>}
+                  {success && <div className={styles.modalSuccess}>{success}</div>}
 
                   <button type="submit" className={styles.modalSubmit} disabled={loading}>
                     {loading ? "Creating account..." : "CREATE ACCOUNT"}
                   </button>
 
                   <div className={styles.modalFooter}>
-                    <p>Already have an account? <button type="button" onClick={() => { setMode("login"); setError(""); setShowPassword(false); }}>Login</button></p>
+                    <p>Already have an account? <button type="button" onClick={() => switchMode("login")}>Login</button></p>
+                  </div>
+                </form>
+              ) : (
+                <form className={styles.modalForm} onSubmit={handleForgotPassword}>
+                  <label>
+                    <span>Email Address</span>
+                    <input name="email" type="email" required autoComplete="email" disabled={loading} />
+                  </label>
+
+                  {error && <div className={styles.modalError}>{error}</div>}
+                  {success && <div className={styles.modalSuccess}>{success}</div>}
+
+                  <button type="submit" className={styles.modalSubmit} disabled={loading}>
+                    {loading ? "Sending..." : "SEND RESET LINK"}
+                  </button>
+
+                  <div className={styles.modalFooter}>
+                    <p>Remembered your password? <button type="button" onClick={() => switchMode("login")}>Back to Login</button></p>
                   </div>
                 </form>
               )}

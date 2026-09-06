@@ -383,6 +383,314 @@
   line-height: 1.5;
 }
 
+.accountLayout {
+  display: grid;
+  grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+  gap: clamp(1rem, 3vw, 2rem);
+  align-items: start;
+}
+
+.accountSidebar,
+.accountPanel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+}
+
+.accountSidebar {
+  position: sticky;
+  top: 110px;
+  padding: 0.85rem;
+}
+
+.accountSidebarHeader {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.4rem 0.35rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.accountSidebarHeader > div {
+  min-width: 0;
+}
+
+.accountSidebarHeader strong,
+.accountSidebarHeader small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountSidebarHeader strong {
+  font-size: 0.95rem;
+}
+
+.accountSidebarHeader small {
+  margin-top: 0.18rem;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+}
+
+.accountAvatar {
+  display: grid;
+  flex: 0 0 auto;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--gold-deep);
+  background: var(--surface-muted);
+  font-family: var(--font-brand-display);
+  font-size: 1.7rem;
+  font-weight: 400;
+}
+
+.accountNav {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.9rem;
+}
+
+.accountNavItem {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--ink-muted);
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.accountNavItem span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.accountNavItem:hover,
+.accountNavItem:focus-visible,
+.accountNavItem[aria-current="page"] {
+  border-color: var(--border);
+  color: var(--foreground);
+  background: var(--surface-muted);
+  outline: none;
+}
+
+.accountNavItem[aria-current="page"] {
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+
+.accountLogout {
+  color: var(--danger);
+}
+
+.accountLogout:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.accountContent {
+  min-width: 0;
+}
+
+.accountPanel {
+  min-height: 520px;
+  padding: clamp(1.1rem, 3vw, 2rem);
+}
+
+.accountPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: clamp(1.2rem, 2.5vw, 2rem);
+}
+
+.accountPanelHeader h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.accountPanelHeader p:not(.eyebrow) {
+  max-width: 700px;
+  margin: 0.75rem 0 0;
+  color: var(--ink-muted);
+  line-height: 1.65;
+}
+
+.profileSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.profileSummaryGrid > div {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.profileSummaryGrid small {
+  display: block;
+  color: var(--gold-deep);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.profileSummaryGrid strong {
+  display: block;
+  margin-top: 0.4rem;
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.accountForm {
+  display: grid;
+  max-width: 760px;
+  gap: 1rem;
+}
+
+.accountFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.accountForm label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.accountForm label > span {
+  color: var(--foreground);
+}
+
+.accountForm input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.78rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--foreground);
+  background: var(--surface);
+  font: inherit;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.accountForm input:focus {
+  border-color: var(--gold);
+  box-shadow: var(--dropdown-focus-ring);
+}
+
+.accountForm input[readonly] {
+  color: var(--ink-muted);
+  background: var(--surface-muted);
+}
+
+.accountForm small {
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.accountForm button {
+  justify-self: start;
+}
+
+.accountFeedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.accountFeedback svg {
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+}
+
+.accountFeedbackSuccess {
+  border-color: #bfd2c1;
+  color: #28452d;
+  background: #f0f7f1;
+}
+
+.accountFeedbackError {
+  border-color: #e0b6af;
+  color: #7d332b;
+  background: #f8ebe8;
+}
+
+.accountNotice {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.accountNotice > svg {
+  flex: 0 0 auto;
+  color: var(--gold-deep);
+}
+
+.accountNotice h3 {
+  margin: 0;
+  font-size: 1.7rem;
+  font-weight: 400;
+}
+
+.accountNotice p {
+  max-width: 680px;
+  margin: 0.5rem 0 0;
+  color: var(--ink-muted);
+  line-height: 1.65;
+}
+
+.accountNotice a,
+.accountNotice button {
+  margin-top: 1rem;
+}
+
+.spinIcon {
+  animation: accountSpin 0.8s linear infinite;
+}
+
+@keyframes accountSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .orderLayout {
   display: grid;
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
@@ -434,6 +742,18 @@
     grid-row: auto;
   }
 
+  .accountLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .accountSidebar {
+    position: static;
+  }
+
+  .accountNav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .preferenceCard {
     grid-column: 1 / -1;
   }
@@ -456,6 +776,31 @@
 
   .preferenceCard {
     grid-column: auto;
+  }
+
+  .accountSidebarHeader,
+  .accountPanelHeader,
+  .accountNotice {
+    align-items: flex-start;
+  }
+
+  .accountNav,
+  .accountFormGrid,
+  .profileSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .accountPanel {
+    min-height: auto;
+    padding: 1rem;
+  }
+
+  .accountPanelHeader {
+    flex-direction: column;
+  }
+
+  .accountNotice {
+    flex-direction: column;
   }
 
   .sectionHeading {

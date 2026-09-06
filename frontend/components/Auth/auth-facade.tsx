@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import React, { createContext, FormEvent, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { ACCESS_TOKEN_KEY, clearAuthSession, getCurrentUser, login, logoutCurrentSession, onAuthSessionChange, register } from "@/api/auth";
+import { ACCESS_TOKEN_KEY, clearAuthSession, getCurrentUser, login, logoutCurrentSession, onAuthSessionChange, register, requestPasswordReset } from "@/api/auth";
 import styles from "./auth.module.css";
 
 const AuthContext = createContext({
@@ -117,12 +117,15 @@ function authRedirect(fallback?: string) {
 export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account" }: any) {
   const { refresh } = useContext(AuthContext);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError("");
+    setSuccess("");
     const form = new FormData(event.currentTarget);
 
     try {
@@ -136,6 +139,47 @@ export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account
     }
   }
 
+  async function submitForgotPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    setSuccess("");
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") || "").trim();
+
+    if (!email) {
+      setError("Please enter your registered email address.");
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const result = await requestPasswordReset(email);
+      setSuccess(result.message);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Password reset request failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (forgotMode) {
+    return (
+      <form className={styles.backendAuthForm} onSubmit={submitForgotPassword}>
+        <h3 className="font-display">Forgot Password</h3>
+        <p className={styles.authHelpText}>Enter your registered email address and we&apos;ll help you reset your password.</p>
+        <label>
+          <span>Email</span>
+          <input name="email" type="email" autoComplete="email" required />
+        </label>
+        {error ? <p className={styles.authError}>{error}</p> : null}
+        {success ? <p className={styles.authSuccess}>{success}</p> : null}
+        <button type="submit" disabled={submitting}>{submitting ? "Sending..." : "Send reset link"}</button>
+        <p className={styles.authSwitch}>Remembered it? <button className={styles.inlineAuthAction} type="button" onClick={() => { setForgotMode(false); setError(""); setSuccess(""); }}>Back to Login</button></p>
+      </form>
+    );
+  }
+
   return (
     <form className={styles.backendAuthForm} onSubmit={submit}>
       <h3 className="font-display">Sign in</h3>
@@ -147,7 +191,11 @@ export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account
         <span>Password</span>
         <input name="password" type="password" autoComplete="current-password" required />
       </label>
+      <button className={styles.inlineAuthAction} type="button" onClick={() => { setForgotMode(true); setError(""); setSuccess(""); }}>
+        Forgot Password?
+      </button>
       {error ? <p className={styles.authError}>{error}</p> : null}
+      {success ? <p className={styles.authSuccess}>{success}</p> : null}
       <button type="submit" disabled={submitting}>{submitting ? "Signing in..." : "Sign in"}</button>
       <p className={styles.authSwitch}>New here? <Link href={signUpUrl}>Create an account</Link></p>
     </form>

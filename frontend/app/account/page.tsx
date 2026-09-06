@@ -9,8 +9,8 @@ import { CustomerPageShell } from "@/components/Customer/customer-page-shell";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Gallery Account",
-  description: "Your private Divine Stone Gallery account, orders and commissions.",
+  title: "My Account",
+  description: "Manage your Divine Stone Gallery profile and communication details.",
   alternates: { canonical: "/account" },
   robots: { index: false, follow: false },
 };
@@ -26,7 +26,7 @@ export default async function AccountPage() {
       title="Your gallery account"
       eyebrow="Personal gallery space"
       hideBreadcrumb
-      intro="One secure place for addresses, orders and custom-moorti approvals."
+      intro="Manage your profile, contact details and gallery communication from one private place."
       note={
         <>
           <ShieldCheck aria-hidden="true" size={18} />

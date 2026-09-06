@@ -111,6 +111,18 @@ export async function requestPasswordReset(email: string) {
 
   return {
     message: payload?.data?.message || payload?.message || "If an account exists with this email address, password reset instructions have been generated.",
+    resetToken: payload?.data?.reset_token || null,
+  };
+}
+
+export async function resetPasswordWithToken({ token, newPassword }: { token: string; newPassword: string }) {
+  const payload = await fetchApi<any>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+
+  return {
+    message: payload?.data?.message || payload?.message || "Password reset successfully.",
   };
 }
 
