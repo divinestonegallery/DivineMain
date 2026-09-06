@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import Image from "next/image";
@@ -7,25 +6,18 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  BellRing,
   Boxes,
   ChevronRight,
-  CircleDollarSign,
-  FileText,
-  GalleryVerticalEnd,
+  CircleHelp,
+  Gem,
   Hammer,
-  Images,
   LayoutDashboard,
   Menu,
-  PackageSearch,
   Search,
-  Settings,
   ShieldCheck,
-  ShoppingBag,
+  Star,
   Store,
   Tags,
-  Truck,
-  UsersRound,
   X,
 } from "lucide-react";
 import { AccountControl } from "@/components/Auth/account-control";
@@ -44,37 +36,14 @@ const groups: Array<{ label: string; items: NavItem[] }> = [
     label: "Workspace",
     items: [
       { label: "Overview", href: "/admin", icon: LayoutDashboard, description: "Store health and quick actions" },
-      { label: "Products", href: "/admin/products", icon: Boxes, description: "Catalogue, pricing and inventory" },
-      { label: "Catalogue", href: "/admin/catalog", icon: Tags, description: "Categories, deities and collections" },
-      { label: "Inventory", href: "/admin/inventory", icon: PackageSearch, description: "Stock, reservations and low-stock alerts" },
-      { label: "Commissions", href: "/admin/commissions", icon: Hammer, description: "Quotes, milestones and approvals" },
-      { label: "Notifications", href: "/admin/notifications", icon: BellRing, description: "Email, SMS and WhatsApp queue" },
-    ],
-  },
-  {
-    label: "Commerce",
-    items: [
-      { label: "Orders", href: "/admin/orders", icon: ShoppingBag, description: "Orders, payments and fulfilment" },
-      { label: "Customers", href: "/admin/customers", icon: UsersRound, description: "Customer accounts and activity" },
-      { label: "Shipping", href: "/admin/shipping", icon: Truck, description: "Shiprocket rates and tracking" },
-      { label: "Payments", href: "/admin/payments", icon: CircleDollarSign, description: "Online, bank transfer and COD" },
-      { label: "Returns", href: "/admin/returns", icon: PackageSearch, description: "Damage reports and resolutions" },
-    ],
-  },
-  {
-    label: "Website",
-    items: [
-      { label: "Pages & sections", href: "/admin/pages", icon: GalleryVerticalEnd, description: "Block-based website builder" },
-      { label: "Media library", href: "/admin/media", icon: Images, description: "ImageKit assets and folders" },
-      { label: "Navigation", icon: Tags, description: "Menus, collections and links" },
-      { label: "Content & SEO", icon: FileText, description: "Copy, metadata and redirects" },
-    ],
-  },
-  {
-    label: "System",
-    items: [
-      { label: "Settings", href: "/admin/settings", icon: Settings, description: "Business and integration settings" },
-      { label: "Staff & security", href: "/admin/staff", icon: ShieldCheck, description: "Permissions and audit history" },
+      { label: "Category", href: "/admin/category", icon: Tags, description: "Manage product categories" },
+      { label: "Deity", href: "/admin/deity", icon: Gem, description: "Manage product deities" },
+      { label: "Material", href: "/admin/material", icon: Gem, description: "Manage product materials" },
+      { label: "Product", href: "/admin/product", icon: Boxes, description: "Manage products and images" },
+      { label: "Review", href: "/admin/review", icon: Star, description: "Moderate customer reviews" },
+      { label: "FAQs", href: "/admin/faqs", icon: CircleHelp, description: "Manage frequently asked questions" },
+      { label: "Customer Requests", href: "/admin/customer-requests", icon: Hammer, description: "Review customization requests" },
+      { label: "Staff", href: "/admin/staff", icon: ShieldCheck, description: "Manage staff and administrators" },
     ],
   },
 ];
