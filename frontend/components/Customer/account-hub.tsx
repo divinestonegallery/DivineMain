@@ -128,10 +128,6 @@ function MyProfilePanel({ user, loading }: { user: any; loading: boolean }) {
           <small>Phone Number</small>
           <strong>{loading ? "Loading..." : phone}</strong>
         </div>
-        <div>
-          <small>Account Role</small>
-          <strong>{loading ? "Loading..." : displayValue(profile.role, "Customer")}</strong>
-        </div>
       </div>
     </article>
   );
