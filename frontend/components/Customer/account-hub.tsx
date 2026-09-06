@@ -171,7 +171,7 @@ function MyProfilePanel({ enabled = true, onProfileLoaded }: { enabled?: boolean
             <div><small>Phone Number</small><strong>{displayValue(profile.phone)}</strong></div>
           </div>
           {feedback ? <FeedbackMessage type={feedback.type}>{feedback.message}</FeedbackMessage> : null}
-          <Button type="button" size="md" onClick={() => { setFeedback(null); setEditing(true); }}>Edit</Button>
+          <Button className={styles.profileEditButton} type="button" size="md" onClick={() => { setFeedback(null); setEditing(true); }}>Edit</Button>
         </>
       ) : null}
       {!loading && profile && editing ? (

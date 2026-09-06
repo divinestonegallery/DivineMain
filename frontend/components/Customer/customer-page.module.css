@@ -562,6 +562,10 @@
   line-height: 1.45;
 }
 
+.profileEditButton {
+  margin-top: clamp(0.65rem, 1.5vw, 1rem);
+}
+
 .accountForm {
   display: grid;
   max-width: 760px;

@@ -17,6 +17,7 @@ import {
   parseAdminFormError,
   type AdminEntityMode,
 } from "@/components/Admin/admin-entity-modal";
+import { AdminImageUpload, uploadPendingAdminImages, type AdminSelectedImage } from "@/components/Admin/admin-image-upload";
 import { useToast } from "@/components/ui/toast";
 import styles from "./commerce-admin.module.css";
 
@@ -64,18 +65,19 @@ function upsertTaxonomyItem(items: TaxonomyItem[], saved: TaxonomyItem) {
   return sortTaxonomy(exists ? items.map((item) => item.id === saved.id ? saved : item) : [saved, ...items]);
 }
 
-function payloadFor(kind: CatalogStructureKind, form: FormData): TaxonomyPayload {
+function payloadFor(kind: CatalogStructureKind, form: FormData, imageUrl?: string): TaxonomyPayload {
   const base: TaxonomyPayload = {
     name: text(form.get("name")),
     is_active: form.get("is_active") === "on",
   };
 
   if (kind === "category") {
-    return {
+    const payload: TaxonomyPayload = {
       ...base,
       description: text(form.get("description")),
-      image_url: text(form.get("image_url")),
     };
+    if (imageUrl) payload.image_url = imageUrl;
+    return payload;
   }
 
   if (kind === "deity") {
@@ -113,6 +115,7 @@ function TaxonomyModal({
   const formId = useId();
   const spec = specs[kind];
   const selectedCategories = new Set((state.item?.categories ?? []).map(Number));
+  const [selectedImages, setSelectedImages] = useState<AdminSelectedImage[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
@@ -127,11 +130,18 @@ function TaxonomyModal({
 
     setSubmitting(true);
     try {
+      let imageUrl: string | undefined;
+      if (kind === "category" && selectedImages.length) {
+        const [upload] = await uploadPendingAdminImages(selectedImages, setSelectedImages);
+        if (!upload.upload.public_url) throw new Error("Upload completed, but the API did not return an image URL.");
+        imageUrl = upload.upload.public_url;
+      }
+
       const saved = await apiRequest<TaxonomyItem>(
         state.mode === "create" ? spec.endpoint : `${spec.endpoint}/${state.item?.id}`,
         {
           method: state.mode === "create" ? "POST" : "PATCH",
-          body: JSON.stringify(payloadFor(kind, form)),
+          body: JSON.stringify(payloadFor(kind, form, imageUrl)),
         },
       );
       onSaved(kind, saved);
@@ -164,12 +174,18 @@ function TaxonomyModal({
 
           {kind === "category" ? (
             <>
-              <AdminModalField label="Image URL" error={getFieldError(fieldErrors, "image_url")}>
-                <input name="image_url" type="url" defaultValue={state.item?.image_url ?? ""} aria-invalid={Boolean(getFieldError(fieldErrors, "image_url"))} />
-              </AdminModalField>
               <AdminModalField label="Description" wide error={getFieldError(fieldErrors, "description")}>
                 <textarea name="description" defaultValue={state.item?.description ?? ""} aria-invalid={Boolean(getFieldError(fieldErrors, "description"))} />
               </AdminModalField>
+              <AdminImageUpload
+                label="Category Image"
+                description="Upload or drag & drop a JPG, PNG, or WEBP image."
+                selectedImages={selectedImages}
+                onSelectedImagesChange={setSelectedImages}
+                existingImages={state.item?.image_url ? [{ id: state.item.id, image_url: state.item.image_url, alt_text: state.item.name }] : []}
+                maxFiles={1}
+                disabled={submitting}
+              />
             </>
           ) : null}
 

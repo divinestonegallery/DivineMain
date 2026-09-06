@@ -6,6 +6,13 @@ import { FormEvent, useCallback, useEffect, useId, useMemo, useState } from "rea
 import { ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search } from "lucide-react";
 import { apiRequest } from "@/api/client";
 import {
+  AdminImageUpload,
+  uploadPendingAdminImages,
+  type AdminExistingImage,
+  type AdminSelectedImage,
+  type UploadedAdminSelection,
+} from "@/components/Admin/admin-image-upload";
+import {
   AdminCheckboxField,
   AdminEntityModal,
   AdminFieldGrid,
@@ -13,11 +20,9 @@ import {
   AdminModalField,
   AdminModalForm,
   AdminModalSection,
-  adminEntityModalStyles,
   getFieldError,
   parseAdminFormError,
 } from "@/components/Admin/admin-entity-modal";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import styles from "./catalog-admin.module.css";
 
@@ -79,6 +84,7 @@ const emptyLookups: Lookups = { categories: [], materials: [], deities: [] };
 const availabilityOptions: AdminProduct["availability"][] = ["in_stock", "made_to_order", "out_of_stock"];
 const statusOptions: AdminProduct["status"][] = ["draft", "active", "archived"];
 const salesModeOptions: AdminProduct["sales_mode"][] = ["quote_only", "buy_and_quote", "direct_purchase"];
+const maxProductImages = 12;
 
 function text(value: FormDataEntryValue | null | undefined) {
   return value?.toString().trim() ?? "";
@@ -162,6 +168,30 @@ function upsertImage(images: ProductImage[] | undefined, saved: ProductImage) {
   return [...nextImages, saved].sort((first, second) => Number(first.display_order ?? 0) - Number(second.display_order ?? 0));
 }
 
+function removeImage(images: ProductImage[] | undefined, imageId: number) {
+  return (images ?? []).filter((image) => image.id !== imageId);
+}
+
+async function attachUploadedProductImages(product: AdminProduct, uploads: UploadedAdminSelection[]) {
+  let nextProduct = product;
+
+  for (const upload of uploads) {
+    const currentImageCount = nextProduct.images?.length ?? 0;
+    const image = await apiRequest<ProductImage>(`/api/admin/products/${product.id}/images`, {
+      method: "POST",
+      body: JSON.stringify({
+        object_key: upload.upload.object_key,
+        alt_text: upload.selection.file.name || product.name,
+        cover_photo: currentImageCount === 0,
+        display_order: currentImageCount,
+      }),
+    });
+    nextProduct = { ...nextProduct, images: upsertImage(nextProduct.images, image) };
+  }
+
+  return nextProduct;
+}
+
 function TaxonomySelect({
   name,
   label: selectLabel,
@@ -192,98 +222,74 @@ function TaxonomySelect({
   );
 }
 
-function ProductImageAttachment({
-  product,
-  onAttached,
-}: {
-  product: AdminProduct;
-  onAttached: (productId: number, image: ProductImage) => void;
-}) {
-  const { showToast } = useToast();
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
-
-  async function attachImage(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const objectKey = text(form.get("object_key"));
-    setError(null);
-    setFieldErrors({});
-
-    if (!objectKey) {
-      setFieldErrors({ object_key: "Product image object key is required." });
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const image = await apiRequest<ProductImage>(`/api/admin/products/${product.id}/images`, {
-        method: "POST",
-        body: JSON.stringify({
-          object_key: objectKey,
-          alt_text: text(form.get("alt_text")) || product.name,
-          cover_photo: form.get("cover_photo") === "on",
-          display_order: Number(form.get("display_order") || 0),
-        }),
-      });
-      event.currentTarget.reset();
-      onAttached(product.id, image);
-      showToast("Image attached.");
-    } catch (reason) {
-      const nextError = parseAdminFormError(reason, "Image could not be attached.");
-      setError(nextError.message);
-      setFieldErrors(nextError.fieldErrors);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className={adminEntityModalStyles.imagePanel}>
-      <h3>Images</h3>
-      <p className={adminEntityModalStyles.imageMeta}>
-        {product.images?.length ? `${product.images.length} image${product.images.length === 1 ? "" : "s"} attached.` : "No images attached yet."}
-      </p>
-      {error ? <p className={adminEntityModalStyles.fieldError} role="alert">{error}</p> : null}
-      <form onSubmit={attachImage} noValidate>
-        <AdminModalField label="Presigned object key" required error={getFieldError(fieldErrors, "object_key")}>
-          <input name="object_key" placeholder="product-images/..." aria-invalid={Boolean(getFieldError(fieldErrors, "object_key"))} />
-        </AdminModalField>
-        <AdminModalField label="Alt text" error={getFieldError(fieldErrors, "alt_text")}>
-          <input name="alt_text" defaultValue={product.name} aria-invalid={Boolean(getFieldError(fieldErrors, "alt_text"))} />
-        </AdminModalField>
-        <AdminModalField label="Image order" error={getFieldError(fieldErrors, "display_order")}>
-          <input name="display_order" type="number" min="0" defaultValue={product.images?.length ?? 0} aria-invalid={Boolean(getFieldError(fieldErrors, "display_order"))} />
-        </AdminModalField>
-        <AdminCheckboxField label="Cover" error={getFieldError(fieldErrors, "cover_photo")}>
-          <input name="cover_photo" type="checkbox" defaultChecked={!product.images?.length} />
-        </AdminCheckboxField>
-        <Button type="submit" disabled={saving}>{saving ? "Attaching..." : "Attach image"}</Button>
-      </form>
-    </div>
-  );
-}
-
 function ProductModal({
   state,
   lookups,
   onClose,
   onSaved,
-  onImageAttached,
+  onImageRemoved,
+  onImageUpdated,
 }: {
   state: ProductModalState;
   lookups: Lookups;
   onClose: () => void;
   onSaved: (product: AdminProduct, mode: ProductModalState["mode"]) => void;
-  onImageAttached: (productId: number, image: ProductImage) => void;
+  onImageRemoved: (productId: number, imageId: number) => void;
+  onImageUpdated: (productId: number, image: ProductImage) => void;
 }) {
   const { showToast } = useToast();
   const formId = useId();
-  const product = state.mode === "edit" ? state.product : undefined;
+  const [currentProduct, setCurrentProduct] = useState<AdminProduct | undefined>(state.mode === "edit" ? state.product : undefined);
+  const product = state.mode === "edit" ? currentProduct : undefined;
+  const [selectedImages, setSelectedImages] = useState<AdminSelectedImage[]>([]);
+  const [imageActionId, setImageActionId] = useState<string | number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
+
+  async function removeExistingImage(image: AdminExistingImage) {
+    if (!product) return;
+    const imageId = Number(image.id);
+    if (!Number.isFinite(imageId)) return;
+    if (!window.confirm("Remove this product image?")) return;
+
+    setImageActionId(image.id);
+    setError(null);
+    try {
+      await apiRequest(`/api/admin/products/${product.id}/images/${imageId}`, { method: "DELETE" });
+      setCurrentProduct((current) => current ? { ...current, images: removeImage(current.images, imageId) } : current);
+      onImageRemoved(product.id, imageId);
+      showToast("Product image removed.");
+    } catch (reason) {
+      const nextError = parseAdminFormError(reason, "Product image could not be removed.");
+      setError(nextError.message);
+    } finally {
+      setImageActionId(null);
+    }
+  }
+
+  async function setCoverImage(image: AdminExistingImage) {
+    if (!product) return;
+    const imageId = Number(image.id);
+    if (!Number.isFinite(imageId)) return;
+
+    setImageActionId(image.id);
+    setError(null);
+    try {
+      const savedImage = await apiRequest<ProductImage>(`/api/admin/products/${product.id}/images/${imageId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ cover_photo: true }),
+      });
+      setCurrentProduct((current) => current ? { ...current, images: upsertImage(current.images, savedImage) } : current);
+      onImageUpdated(product.id, savedImage);
+      showToast("Cover image updated.");
+    } catch (reason) {
+      const nextError = parseAdminFormError(reason, "Cover image could not be updated.");
+      setError(nextError.message);
+    } finally {
+      setImageActionId(null);
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -295,6 +301,7 @@ function ProductModal({
 
     setSubmitting(true);
     try {
+      const uploadedImages = selectedImages.length ? await uploadPendingAdminImages(selectedImages, setSelectedImages) : [];
       const saved = await apiRequest<AdminProduct>(
         state.mode === "create" ? "/api/admin/products" : `/api/admin/products/${product?.id}`,
         {
@@ -302,7 +309,10 @@ function ProductModal({
           body: JSON.stringify(productPayload(form)),
         },
       );
-      onSaved(saved, state.mode);
+      const savedWithImages = await attachUploadedProductImages(saved, uploadedImages);
+      setSelectedImages([]);
+      setCurrentProduct(savedWithImages);
+      onSaved(savedWithImages, state.mode);
       showToast(`Product ${state.mode === "create" ? "created" : "updated"}.`);
       onClose();
     } catch (reason) {
@@ -399,13 +409,25 @@ function ProductModal({
             </AdminModalField>
           </AdminFieldGrid>
         </AdminModalSection>
+
+        <AdminModalSection title="Images">
+          <AdminImageUpload
+            label="Product Images"
+            description="Upload or drag & drop JPG, PNG, or WEBP images."
+            selectedImages={selectedImages}
+            onSelectedImagesChange={setSelectedImages}
+            existingImages={product?.images ?? []}
+            multiple
+            maxFiles={maxProductImages}
+            disabled={submitting || Boolean(imageActionId)}
+            onRemoveExisting={product ? removeExistingImage : undefined}
+            onSetCoverExisting={product ? setCoverImage : undefined}
+          />
+        </AdminModalSection>
       </AdminModalForm>
 
       {product ? (
-        <>
-          <ProductImageAttachment product={product} onAttached={onImageAttached} />
-          {product.slug ? <Link className={styles.modalProductLink} href={`/products/${product.slug}`} target="_blank">Open product page <ExternalLink size={14} /></Link> : null}
-        </>
+        product.slug ? <Link className={styles.modalProductLink} href={`/products/${product.slug}`} target="_blank">Open product page <ExternalLink size={14} /></Link> : null
       ) : null}
     </AdminEntityModal>
   );
@@ -452,13 +474,23 @@ export function CatalogAdmin() {
     setProducts((current) => upsertProduct(current, product, mode));
   }, []);
 
-  const attachProductImage = useCallback((productId: number, image: ProductImage) => {
+  const updateProductImage = useCallback((productId: number, image: ProductImage) => {
     setProducts((current) => current.map((product) => (
       product.id === productId ? { ...product, images: upsertImage(product.images, image) } : product
     )));
     setModal((current) => {
       if (!current || current.mode !== "edit" || current.product.id !== productId) return current;
       return { mode: "edit", product: { ...current.product, images: upsertImage(current.product.images, image) } };
+    });
+  }, []);
+
+  const removeProductImageFromState = useCallback((productId: number, imageId: number) => {
+    setProducts((current) => current.map((product) => (
+      product.id === productId ? { ...product, images: removeImage(product.images, imageId) } : product
+    )));
+    setModal((current) => {
+      if (!current || current.mode !== "edit" || current.product.id !== productId) return current;
+      return { mode: "edit", product: { ...current.product, images: removeImage(current.product.images, imageId) } };
     });
   }, []);
 
@@ -509,7 +541,8 @@ export function CatalogAdmin() {
           lookups={lookups}
           onClose={() => setModal(null)}
           onSaved={saveProduct}
-          onImageAttached={attachProductImage}
+          onImageRemoved={removeProductImageFromState}
+          onImageUpdated={updateProductImage}
         />
       ) : null}
     </section>
