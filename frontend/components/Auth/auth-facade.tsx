@@ -11,6 +11,8 @@ const AuthContext = createContext({
   isSignedIn: false,
   user: null as any,
   refresh: async () => {},
+  signIn: async (_credentials: any) => null,
+  signUp: async (_credentials: any) => null,
   signOut: async () => {},
 });
 
@@ -21,6 +23,8 @@ export function useAuth() {
     isSignedIn: context.isSignedIn,
     userId: context.user?.id || null,
     getToken: async () => (typeof window === "undefined" ? null : window.localStorage.getItem(ACCESS_TOKEN_KEY)),
+    signIn: context.signIn,
+    signUp: context.signUp,
     signOut: context.signOut,
     refresh: context.refresh,
   };
@@ -86,7 +90,31 @@ export function ClerkProvider({ children, routerPush, afterSignOutUrl = "/" }: {
     }
   }, []);
 
+  const setUserFromAuthResponse = useCallback((payload: any) => {
+    const data = payload?.data ?? payload;
+    const nextUser = data?.user ?? data?.customer ?? null;
+    if (!nextUser) return false;
+
+    setUser(nextUser);
+    setIsLoaded(true);
+    return true;
+  }, []);
+
+  const signIn = useCallback(async (credentials: any) => {
+    const data = await login(credentials);
+    if (!setUserFromAuthResponse(data)) await refresh();
+    return data;
+  }, [refresh, setUserFromAuthResponse]);
+
+  const signUp = useCallback(async (credentials: any) => {
+    const data = await register(credentials);
+    if (!setUserFromAuthResponse(data)) await refresh();
+    return data;
+  }, [refresh, setUserFromAuthResponse]);
+
   const signOut = useCallback(async () => {
+    setUser(null);
+    setIsLoaded(true);
     try {
       await logoutCurrentSession();
     } catch {
@@ -103,7 +131,7 @@ export function ClerkProvider({ children, routerPush, afterSignOutUrl = "/" }: {
     return onAuthSessionChange(() => void refresh());
   }, [refresh]);
 
-  const value = useMemo(() => ({ isLoaded, isSignedIn: Boolean(user), user, refresh, signOut }), [isLoaded, refresh, signOut, user]);
+  const value = useMemo(() => ({ isLoaded, isSignedIn: Boolean(user), user, refresh, signIn, signUp, signOut }), [isLoaded, refresh, signIn, signOut, signUp, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -115,7 +143,7 @@ function authRedirect(fallback?: string) {
 }
 
 export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account" }: any) {
-  const { refresh } = useContext(AuthContext);
+  const { signIn } = useContext(AuthContext);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -129,8 +157,7 @@ export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account
     const form = new FormData(event.currentTarget);
 
     try {
-      await login({ email: form.get("email"), password: form.get("password") });
-      await refresh();
+      await signIn({ email: form.get("email"), password: form.get("password") });
       window.location.href = authRedirect(fallbackRedirectUrl);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Sign in failed.");
@@ -204,7 +231,7 @@ export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account
 }
 
 export function SignUp({ signInUrl = "/", fallbackRedirectUrl = "/account" }: any) {
-  const { refresh } = useContext(AuthContext);
+  const { signUp } = useContext(AuthContext);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -215,7 +242,7 @@ export function SignUp({ signInUrl = "/", fallbackRedirectUrl = "/account" }: an
     const form = new FormData(event.currentTarget);
 
     try {
-      await register({
+      await signUp({
         name: form.get("name"),
         email: form.get("email"),
         phone: form.get("phone"),

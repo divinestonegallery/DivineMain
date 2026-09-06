@@ -845,6 +845,8 @@
 .mobileDrawerPanel {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
   width: min(92vw, 430px);
   height: 100%;
   margin-left: auto;
@@ -869,6 +871,7 @@
 
 .mobileDrawerSections {
   display: flex;
+  flex: 1;
   flex-direction: column;
 }
 
@@ -924,6 +927,96 @@
 
 .mobileSectionLink svg {
   color: rgb(110 102 91 / 0.86);
+}
+
+.mobileProfile {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 0.82rem 1.1rem;
+  border-bottom: 1px solid rgb(217 205 189 / 0.65);
+}
+
+.mobileProfileAvatar {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgb(120 82 31 / 0.2);
+  border-radius: 50%;
+  color: white;
+  background: var(--gold-deep);
+  font-family: var(--font-brand-display);
+  font-size: 1.35rem;
+}
+
+.mobileProfileAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mobileProfileDetails {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.mobileProfileDetails strong,
+.mobileProfileDetails small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobileProfileDetails strong {
+  color: var(--foreground);
+  font-family: var(--font-brand-display);
+  font-size: 1.15rem;
+  font-weight: 400;
+}
+
+.mobileProfileDetails small {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+
+.mobileProfileLoading {
+  min-height: 56px;
+  padding: 0.72rem 0.82rem;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.mobileLogoutSection {
+  margin-top: auto;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgb(217 205 189 / 0.8);
+}
+
+.mobileLogout {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.72rem 0.82rem;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  color: var(--danger);
+  background: transparent;
+  font-family: var(--font-brand-display);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.mobileLogout:hover {
+  border-color: rgb(164 74 58 / 0.18);
+  background: rgb(164 74 58 / 0.07);
 }
 
 .mobileSocials {

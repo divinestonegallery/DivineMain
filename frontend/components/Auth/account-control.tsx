@@ -1,12 +1,13 @@
 // @ts-nocheck
 "use client";
 
-import { Show, UserButton, useAuth } from "@/components/Auth/auth-facade";
+import { useAuth, useUser } from "@/components/Auth/auth-facade";
 import Link from "next/link";
 import { CircleUserRound, LayoutDashboard } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuthConfigured } from "./auth-provider";
 import { apiUrl } from "@/api/client";
+import authStyles from "./auth.module.css";
 
 export function AccountControl({ className }: { className?: string }) {
   const configured = useAuthConfigured();
@@ -29,6 +30,7 @@ export function AccountControl({ className }: { className?: string }) {
 
 function ConfiguredAccountControl({ className }: { className?: string }) {
   const { getToken, isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -52,34 +54,32 @@ function ConfiguredAccountControl({ className }: { className?: string }) {
     return () => { active = false; };
   }, [getToken, isLoaded, isSignedIn]);
 
+  if (!isLoaded) return null;
+
   return (
-    <>
-      <Show when="signed-out">
-        <button 
-          type="button"
-          className={className} 
-          onClick={() => window.dispatchEvent(new CustomEvent("dsg:open-auth"))}
-          aria-label="Sign in to your account"
-        >
-          <CircleUserRound aria-hidden="true" size={21} strokeWidth={1.6} />
-        </button>
-      </Show>
-      <Show when="signed-in">
-        <>
-          {isAdmin ? (
-            <Link className={className} href="/admin" aria-label="Open admin dashboard" title="Admin dashboard">
-              <LayoutDashboard aria-hidden="true" size={21} strokeWidth={1.6} />
-            </Link>
-          ) : null}
-          <span className={className} aria-label="Open customer account menu">
-            <UserButton
-              userProfileMode="modal"
-              appearance={{ elements: { avatarBox: { width: "25px", height: "25px" } } }}
-            />
+    isSignedIn ? (
+      <>
+        {isAdmin ? (
+          <Link className={className} href="/admin" aria-label="Open admin dashboard" title="Admin dashboard">
+            <LayoutDashboard aria-hidden="true" size={21} strokeWidth={1.6} />
+          </Link>
+        ) : null}
+        <Link className={className} href="/account" aria-label="Open customer account" title="My Account">
+          <span className={authStyles.userButton} aria-hidden="true">
+            {String(user?.name || user?.email || "Account").slice(0, 1).toUpperCase()}
           </span>
-        </>
-      </Show>
-    </>
+        </Link>
+      </>
+    ) : (
+      <button
+        type="button"
+        className={className}
+        onClick={() => window.dispatchEvent(new CustomEvent("dsg:open-auth"))}
+        aria-label="Sign in to your account"
+      >
+        <CircleUserRound aria-hidden="true" size={21} strokeWidth={1.6} />
+      </button>
+    )
   );
 }
 
@@ -104,8 +104,10 @@ export function MobileAccountControl({ activeClassName, defaultClassName }: { ac
 
 function ConfiguredMobileAccountControl({ activeClassName, defaultClassName }: { activeClassName?: string; defaultClassName?: string }) {
   const { isSignedIn, isLoaded } = useAuth();
-  
-  if (!isLoaded || !isSignedIn) {
+
+  if (!isLoaded) return null;
+
+  if (!isSignedIn) {
     return (
       <button 
         type="button" 

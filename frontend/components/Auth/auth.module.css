@@ -294,14 +294,18 @@
 }
 
 .userButton {
+  display: flex;
   width: 25px;
   height: 25px;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgb(138 100 40 / 0.26);
   border-radius: 50%;
   background: rgb(138 100 40 / 0.12);
   color: var(--gold-deep);
   font-size: 0.78rem;
   font-weight: 800;
+  line-height: 1;
   cursor: pointer;
 }
 

@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
-import { getAuthEmailError, login, register, requestPasswordReset } from "@/api/auth";
+import { getAuthEmailError, requestPasswordReset } from "@/api/auth";
 import { useAuth } from "@/components/Auth/auth-facade";
 import styles from "./auth.module.css";
 
@@ -23,7 +23,7 @@ export function AuthModal() {
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const { refresh, isSignedIn } = useAuth();
+  const { isSignedIn, refresh, signIn, signUp } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,8 +78,7 @@ export function AuthModal() {
     const form = new FormData(e.currentTarget);
 
     try {
-      await login({ email: form.get("email"), password: form.get("password") });
-      await refresh();
+      await signIn({ email: form.get("email"), password: form.get("password") });
       setIsOpen(false);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Email or password is incorrect.");
@@ -105,7 +104,7 @@ export function AuthModal() {
     }
 
     try {
-      await register({
+      await signUp({
         name: form.get("name"),
         email: form.get("email"),
         password: password,

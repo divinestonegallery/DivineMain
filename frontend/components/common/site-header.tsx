@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  CircleUserRound,
   Home,
+  LogOut,
   Menu,
   MessageCircle,
   Search,
@@ -17,7 +17,7 @@ import {
 import { FormEvent, MouseEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { AccountControl, MobileAccountControl } from "@/components/Auth/account-control";
 import { AuthModal } from "@/components/Auth/auth-modal";
-import { useAuth } from "@/components/Auth/auth-facade";
+import { useAuth, useUser } from "@/components/Auth/auth-facade";
 import { useEnquiryBag } from "@/components/Customer/device-collections";
 import { getDeities, searchApplication } from "@/api/products";
 import type { BackendProductImage } from "@/api/products";
@@ -82,9 +82,46 @@ function searchDeities(results: { deities?: Array<{ id?: number; name: string; s
   return results?.deities ?? results?.dieties ?? [];
 }
 
+type ProfileRecord = Record<string, unknown>;
+
+function profileData(user: unknown): ProfileRecord {
+  if (!user || typeof user !== "object") return {};
+  const record = user as ProfileRecord;
+  return record.user && typeof record.user === "object" ? record.user as ProfileRecord : record;
+}
+
+function profileName(user: unknown) {
+  const profile = profileData(user);
+  const name = typeof profile.name === "string" ? profile.name.trim() : "";
+  const firstName = typeof profile.first_name === "string" ? profile.first_name : "";
+  const lastName = typeof profile.last_name === "string" ? profile.last_name : "";
+  const username = typeof profile.username === "string" ? profile.username.trim() : "";
+  return name
+    || [firstName, lastName].filter(Boolean).join(" ").trim()
+    || username
+    || "Account";
+}
+
+function profileInitial(user: unknown) {
+  return profileName(user).slice(0, 1).toUpperCase();
+}
+
+function profileImage(user: unknown) {
+  const profile = profileData(user);
+  const profileImageUrl = typeof profile.profile_image === "string" ? profile.profile_image.trim() : "";
+  const avatarUrl = typeof profile.avatar === "string" ? profile.avatar.trim() : "";
+  return profileImageUrl || avatarUrl;
+}
+
+function profileEmail(user: unknown) {
+  const email = profileData(user).email;
+  return typeof email === "string" ? email : "";
+}
+
 export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const pathname = usePathname();
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, signOut } = useAuth();
+  const { user } = useUser();
   const enquiryBag = useEnquiryBag();
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   const [megaMenuClosing, setMegaMenuClosing] = useState(false);
@@ -293,6 +330,11 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
     event.preventDefault();
     setMobileMenuOpen(false);
     window.dispatchEvent(new CustomEvent("dsg:open-auth"));
+  }
+
+  async function handleLogout() {
+    setMobileMenuOpen(false);
+    await signOut();
   }
 
   return (
@@ -596,12 +638,28 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
             <div className={styles.mobileDrawerSections}>
               <div className={styles.mobileSection}>
                 <p className={styles.mobileSectionHeader}>Account</p>
-                <div className={styles.mobileSectionList}>
-                  <Link href="/account" className={styles.mobileSectionLink} onClick={handleMyProfileClick}>
-                    <span>My Profile</span>
-                    <ChevronRight size={18} strokeWidth={1.5} />
-                  </Link>
-                </div>
+                {isLoaded && isSignedIn ? (
+                  <div className={styles.mobileProfile}>
+                    <span className={styles.mobileProfileAvatar} aria-hidden="true">
+                      {profileImage(user) ? (
+                        <Image src={profileImage(user)} alt="" width={48} height={48} unoptimized />
+                      ) : profileInitial(user)}
+                    </span>
+                    <span className={styles.mobileProfileDetails}>
+                      <strong>{profileName(user)}</strong>
+                      <small>{profileEmail(user)}</small>
+                    </span>
+                  </div>
+                ) : isLoaded ? (
+                  <div className={styles.mobileSectionList}>
+                    <Link href="/account" className={styles.mobileSectionLink} onClick={handleMyProfileClick}>
+                      <span>My Profile</span>
+                      <ChevronRight size={18} strokeWidth={1.5} />
+                    </Link>
+                  </div>
+                ) : (
+                  <div className={styles.mobileProfileLoading} aria-busy="true">Loading account...</div>
+                )}
               </div>
 
               <div className={styles.mobileSection}>
@@ -636,6 +694,15 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                   </a>
                 </div>
               </div>
+
+              {isLoaded && isSignedIn ? (
+                <div className={styles.mobileLogoutSection}>
+                  <button className={styles.mobileLogout} type="button" onClick={() => void handleLogout()}>
+                    <span>Logout</span>
+                    <LogOut aria-hidden="true" size={18} strokeWidth={1.6} />
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
