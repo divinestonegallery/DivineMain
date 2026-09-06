@@ -43,6 +43,8 @@ class ClerkAuthentication(authentication.BaseAuthentication):
             return customer, token
         except exceptions.AuthenticationFailed:
             raise
+        except ValueError as exc:
+            raise exceptions.AuthenticationFailed(str(exc)) from exc
         except jwt.ExpiredSignatureError as exc:
             raise exceptions.AuthenticationFailed("Token has expired.") from exc
         except jwt.PyJWTError as exc:

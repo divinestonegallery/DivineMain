@@ -91,13 +91,38 @@ class CustomerRepository:
     @staticmethod
     def get_or_create_authenticated_customer(clerk_id, email=None, name=None):
         customer = Customer.objects.filter(clerk_user_id=clerk_id).first()
-        if customer and not email:
+        if customer:
+            # Customer already exists – only update name/email from the JWT
+            # if they differ, but never touch phone or other fields not present
+            # in the token payload (to avoid overwriting user-saved data).
+            update_fields = []
+            if email:
+                normalized_email = email.strip().lower()
+                if customer.email != normalized_email:
+                    # Ensure the new email is not already owned by a different account
+                    email_taken = Customer.objects.filter(
+                        email=normalized_email
+                    ).exclude(id=customer.id).exists()
+                    if not email_taken:
+                        customer.email = normalized_email
+                        update_fields.append('email')
+                    else:
+                        raise ValueError('This email address is already associated with another account.')
+                # Promote to admin if email is in the allowlist
+                if normalized_email in settings.ADMIN_EMAILS and customer.role != Customer.Role.ADMIN:
+                    customer.role = Customer.Role.ADMIN
+                    if 'role' not in update_fields:
+                        update_fields.append('role')
+            if name and customer.name != name:
+                customer.name = name
+                update_fields.append('name')
+            if update_fields:
+                update_fields.append('updated_at')
+                customer.save(update_fields=update_fields)
             return customer
 
-        # Clerk session templates can include verified profile claims. When an
-        # email is present, run the same upsert used by the signed webhook so
-        # an allowlisted owner is promoted even if their first token did not
-        # contain an email address.
+        # Customer does not exist yet – create them. Phone is not available
+        # from the JWT so we intentionally leave it as None here.
         safe_email = email or f"{clerk_id}@users.invalid"
         customer, _ = CustomerRepository.create_or_update_customer(
             clerk_id=clerk_id,
@@ -151,11 +176,26 @@ class CustomerRepository:
     def update_profile(customer_id, data):
         customer = Customer.objects.filter(id=customer_id).first()
         if not customer:
-            return None
+            return 'User not found.', None
+
+        if 'email' in data:
+            new_email = data['email'].strip().lower()
+            if new_email != customer.email:
+                email_taken = Customer.objects.filter(
+                    email=new_email
+                ).exclude(id=customer.id).exists()
+                if email_taken:
+                    return 'This email address is already associated with another account.', None
+                customer.email = new_email
+
         allowed = ('name', 'phone')
         for key in allowed:
             if key in data:
                 setattr(customer, key, data[key])
-        update_fields = [k for k in allowed if k in data] + ['updated_at']
+
+        update_fields = ([k for k in allowed if k in data]
+                         + (['email'] if 'email' in data else [])
+                         + ['updated_at'])
         customer.save(update_fields=update_fields)
-        return CustomerSerializer(customer).data
+        return None, CustomerSerializer(customer).data
+

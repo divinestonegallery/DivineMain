@@ -201,9 +201,9 @@ class AuthService:
 
     @classmethod
     def update_profile(cls, customer_id, data):
-        customer_dict = CustomerRepository.update_profile(customer_id, data)
-        if not customer_dict:
-            return 'User not found.', None
+        error, customer_dict = CustomerRepository.update_profile(customer_id, data)
+        if error:
+            return error, None
         return None, customer_dict
 
     @classmethod
