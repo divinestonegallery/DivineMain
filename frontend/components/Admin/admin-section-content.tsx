@@ -97,44 +97,36 @@ type CustomizeRequestRecord = CustomerRequestBase & {
 
 type CustomerRequestRecord = ContactRequestRecord | CustomizeRequestRecord;
 
-const sectionDetails: Record<Exclude<AdminSectionSlug, "overview">, { eyebrow: string; title: string; description: string }> = {
+const sectionDetails: Record<Exclude<AdminSectionSlug, "overview">, { title: string; description: string }> = {
   category: {
-    eyebrow: "Catalogue structure",
     title: "Category",
     description: "Create and update product categories using the existing Django category API.",
   },
   deity: {
-    eyebrow: "Catalogue structure",
     title: "Deity",
     description: "Create and update deity filters and product identity records.",
   },
   material: {
-    eyebrow: "Catalogue structure",
     title: "Material",
     description: "Create and update stone and finish material records.",
   },
   product: {
-    eyebrow: "Catalogue management",
     title: "Product",
     description: "Manage products, taxonomy assignment, publishing status, images, and catalogue metadata.",
   },
   review: {
-    eyebrow: "Customer voice",
     title: "Review",
     description: "Moderate submitted reviews with the backend approval workflow.",
   },
   faqs: {
-    eyebrow: "Content management",
     title: "FAQs",
     description: "Create, update, order, publish, and deactivate frequently asked questions.",
   },
   "customer-requests": {
-    eyebrow: "Customer conversations",
     title: "Customer Requests",
     description: "Review contact messages and custom moorti enquiries from the existing request APIs.",
   },
   staff: {
-    eyebrow: "Access control",
     title: "Staff",
     description: "Invite staff, manage admin access, and review security activity.",
   },
@@ -669,7 +661,7 @@ export function AdminSectionPage({ section }: { section: Exclude<AdminSectionSlu
   return (
     <AdminAccess section={section}>
       <AdminShell>
-        <AdminPageHeader eyebrow={details.eyebrow} title={details.title} description={details.description} />
+        <AdminPageHeader title={details.title} description={details.description} />
         <SectionBody section={section} />
       </AdminShell>
     </AdminAccess>

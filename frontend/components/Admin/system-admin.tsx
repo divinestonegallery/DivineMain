@@ -119,7 +119,6 @@ export function StaffSecurityAdmin() {
       {tab === "staff" ? (
         <section className={styles.panel}>
           <header><div><small>Account security</small><h2>Admin and staff access</h2></div><ShieldCheck size={19} /></header>
-          <p className={styles.note}>Staff management uses the existing Django `/api/admin/staff` route and preserves backend authorization rules.</p>
           <form className={styles.settingGrid} onSubmit={invite}>
             <label><span>Email</span><input name="email" type="email" required /></label>
             <label><span>Role</span><select name="role" defaultValue="staff"><option value="staff">Staff</option><option value="admin">Admin</option></select></label>
