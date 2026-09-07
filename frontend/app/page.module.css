@@ -1357,18 +1357,26 @@
 }
 
 @media (max-width: 680px) {
+  .videoHero,
+  .dataSection,
+  .categorySection,
+  .reviewsSection,
+  .finalCta {
+    overflow-x: clip;
+  }
+
   .hero {
     padding-top: 2rem;
   }
 
   .videoHero {
-    min-height: min(760px, calc(100svh - 76px));
+    min-height: min(680px, calc(100svh - 60px));
     padding-top: 0;
   }
 
   .videoHero .heroCopy {
     max-width: 100%;
-    padding-block: 4.4rem;
+    padding-block: 4.6rem 3.35rem;
     transform: translateY(0);
   }
 
@@ -1378,8 +1386,8 @@
   }
 
   .videoHero .heroLead {
-    max-width: 95%;
-    line-height: 1.62;
+    max-width: 100%;
+    line-height: 1.52;
   }
 
   .videoHero .heroVideo {
@@ -1395,22 +1403,29 @@
   }
 
   .heroLead {
-    margin-top: 1.4rem;
+    margin-top: 0.95rem;
+    font-size: 0.98rem;
   }
 
   .heroActions {
     display: grid;
     width: 100%;
+    gap: 0.55rem;
+    margin-top: 1.15rem;
   }
 
   .heroActions a {
     width: 100%;
+    min-height: 44px;
+    justify-content: center;
   }
 
   .heroSearch {
+    width: 100%;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.5rem;
-    padding-left: 1rem;
+    margin-bottom: 0.78rem;
+    padding: 0.35rem 0.38rem 0.35rem 0.85rem;
   }
 
   .heroSearch > svg {
@@ -1418,32 +1433,55 @@
   }
 
   .heroSearch input {
-    height: 46px;
+    height: 44px;
     font-size: 0.86rem;
   }
 
   .heroSearch button {
-    width: 46px;
-    height: 46px;
+    width: 44px;
+    height: 44px;
   }
 
   .heroQuickLinks {
+    width: 100%;
+    gap: 0.45rem;
     margin-bottom: 0;
+  }
+
+  .heroQuickLinks > span {
+    font-size: 0.76rem;
   }
 
   .heroQuickLinks > div {
     display: grid;
     width: 100%;
+    max-width: 100%;
     grid-auto-flow: column;
     grid-auto-columns: max-content;
     justify-content: start;
     overflow-x: auto;
     padding: 0 0 0.25rem;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
     scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .heroQuickLinks > div::-webkit-scrollbar {
+    display: none;
   }
 
   .heroQuickLinks a {
+    min-height: 36px;
+    padding-inline: 0.78rem;
+    font-size: 0.75rem;
     scroll-snap-align: start;
+  }
+
+  .heroScrollCue {
+    bottom: 0.72rem;
+    width: 38px;
+    height: 38px;
   }
 
   .heroVisual {
@@ -1497,8 +1535,8 @@
   }
 
   .carouselArrow {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
   }
 
   .carouselArrowPrevious {
@@ -1513,6 +1551,15 @@
   .processIntro {
     align-items: flex-start;
     flex-direction: column;
+    gap: 0.85rem;
+    margin-bottom: 1.15rem;
+  }
+
+  .dataSection .sectionHeadingRow h2,
+  .collectionSection .sectionHeadingRow h2,
+  .categorySection .sectionHeadingRow h2,
+  .reviewsSection .sectionHeadingRow h2 {
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
   }
 
   .sectionHeadingAside {
@@ -1521,23 +1568,49 @@
 
   .productRail,
   .reviewRail {
-    grid-auto-columns: minmax(235px, 82%);
+    grid-auto-columns: minmax(220px, 78%);
+    gap: 0.75rem;
     margin-inline: calc(var(--page-gutter) * -1);
     padding-inline: var(--page-gutter);
+    padding-bottom: 0.65rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .reviewRail {
+    grid-auto-columns: minmax(238px, 84%);
   }
 
   .categoryGrid {
+    gap: 0.65rem;
     margin-inline: calc(var(--page-gutter) * -1);
     padding-inline: var(--page-gutter);
+    padding-bottom: 0.65rem;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .categoryCard {
-    width: clamp(140px, 45vw, 200px);
+    width: clamp(132px, 43vw, 176px);
     aspect-ratio: 0.9;
   }
 
+  .categoryCard > span:last-of-type {
+    right: 0.72rem;
+    bottom: 0.68rem;
+    left: 0.72rem;
+  }
+
+  .categoryCard strong {
+    font-size: clamp(1rem, 5vw, 1.22rem);
+  }
+
   .reviewCard {
-    min-height: 235px;
+    min-height: 220px;
+    padding: 1rem;
+  }
+
+  .reviewSummary {
+    padding: 1rem;
   }
 
   .featuredGrid {
@@ -1593,6 +1666,50 @@
   .finalCta > div > div:last-child {
     display: grid;
     width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .videoHero .heroCopy {
+    padding-block: 4.2rem 3rem;
+  }
+
+  .heroSearch input {
+    font-size: 0.8rem;
+  }
+
+  .heroLead {
+    font-size: 0.92rem;
+  }
+
+  .productRail {
+    grid-auto-columns: minmax(208px, 76%);
+  }
+
+  .reviewRail {
+    grid-auto-columns: minmax(224px, 84%);
+  }
+
+  .categoryCard {
+    width: clamp(126px, 44vw, 160px);
+  }
+}
+
+@media (max-width: 340px) {
+  .heroSearch {
+    padding-left: 0.72rem;
+  }
+
+  .heroSearch input {
+    font-size: 0.76rem;
+  }
+
+  .heroQuickLinks > span {
+    font-size: 0.7rem;
+  }
+
+  .productRail {
+    grid-auto-columns: minmax(196px, 74%);
   }
 }
 

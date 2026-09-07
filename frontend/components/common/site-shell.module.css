@@ -864,9 +864,10 @@
   display: flex;
   flex-direction: column;
   width: min(92vw, 430px);
+  max-width: calc(100% - 0.5rem);
   height: 100%;
   margin-left: auto;
-  padding: 1.1rem 1.25rem 2rem;
+  padding: 1.1rem clamp(0.9rem, 3vw, 1.25rem) 2rem;
   overflow-y: auto;
   border-left: 1px solid var(--dropdown-border);
   border-radius: 26px 0 0 26px;
@@ -912,13 +913,15 @@
 .mobileSectionList {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.45rem;
 }
 
 .mobileSectionLink {
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
+  gap: 0.8rem;
   min-height: 56px;
   padding: 0.72rem 0.82rem;
   border: 1px solid transparent;
@@ -934,6 +937,13 @@
     transform var(--transition-fast);
 }
 
+.mobileSectionLink > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mobileSectionLink:hover {
   border-color: rgb(120 82 31 / 0.18);
   color: var(--gold-deep);
@@ -942,7 +952,57 @@
 }
 
 .mobileSectionLink svg {
+  flex: none;
   color: rgb(110 102 91 / 0.86);
+}
+
+.mobileCustomMoortiLink {
+  min-height: 64px;
+  border-color: rgb(216 189 138 / 0.62);
+  color: #fffaf1;
+  background:
+    linear-gradient(135deg, rgb(120 82 31 / 0.96), rgb(161 118 51 / 0.96) 58%, rgb(216 189 138 / 0.92));
+  box-shadow: 0 14px 32px rgb(120 82 31 / 0.18);
+}
+
+.mobileCustomMoortiLink:hover {
+  border-color: rgb(216 189 138 / 0.9);
+  color: white;
+  background:
+    linear-gradient(135deg, rgb(91 61 22 / 0.98), rgb(144 99 34 / 0.98) 58%, rgb(216 189 138 / 0.95));
+}
+
+.mobileCustomMoortiLink svg {
+  color: #fff7e6;
+  filter: drop-shadow(0 3px 8px rgb(47 37 24 / 0.18));
+}
+
+.mobileCustomMoortiText {
+  display: grid;
+  min-width: 0;
+  gap: 0.16rem;
+}
+
+.mobileCustomMoortiText strong,
+.mobileCustomMoortiText small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobileCustomMoortiText strong {
+  font-family: var(--font-brand-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+  line-height: 1.12;
+}
+
+.mobileCustomMoortiText small {
+  color: rgb(255 250 241 / 0.82);
+  font-family: var(--font-geist-sans);
+  font-size: 0.69rem;
+  font-weight: 650;
+  line-height: 1.25;
 }
 
 .mobileProfile {
@@ -950,15 +1010,20 @@
   min-width: 0;
   align-items: center;
   gap: 0.85rem;
-  padding: 0.75rem 0.82rem 1.1rem;
-  border-bottom: 1px solid rgb(217 205 189 / 0.65);
+  min-height: 74px;
+  margin-bottom: 0.55rem;
+  padding: 0.72rem;
+  border: 1px solid rgb(217 205 189 / 0.65);
+  border-radius: 18px;
+  background: rgb(255 253 249 / 0.62);
   cursor: pointer;
   text-decoration: none;
-  transition: background var(--transition-fast);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
 .mobileProfile:hover,
 .mobileProfile:focus-visible {
+  border-color: rgb(120 82 31 / 0.24);
   background: var(--dropdown-hover);
   outline: none;
 }
@@ -1017,24 +1082,25 @@
 }
 
 .mobileLogoutSection {
-  margin-top: auto;
-  padding-top: 1.25rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
   border-top: 1px solid rgb(217 205 189 / 0.8);
 }
 
 .mobileLogout {
   display: flex;
   width: 100%;
-  min-height: 52px;
+  min-height: 50px;
   align-items: center;
   justify-content: space-between;
+  gap: 0.8rem;
   padding: 0.72rem 0.82rem;
   border: 1px solid transparent;
   border-radius: 16px;
   color: var(--danger);
   background: transparent;
   font-family: var(--font-brand-display);
-  font-size: 1.1rem;
+  font-size: 1.04rem;
   cursor: pointer;
   transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
 }
@@ -1445,6 +1511,7 @@
 
   .headerMain {
     min-height: 64px;
+    gap: 0.45rem;
   }
 
   .brandLink {
@@ -1466,6 +1533,7 @@
 
   .headerActions {
     gap: 0;
+    min-width: 44px;
   }
 
   .headerCenter {
@@ -1500,17 +1568,137 @@
   }
 
   .searchPanel {
-    padding-top: 1.5rem;
+    max-height: 100dvh;
+    overflow-y: auto;
+    padding-block: 1.15rem 1.35rem;
+    border-radius: 0 0 22px 22px;
+  }
+
+  .overlayHeading {
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .overlayHeading p {
+    margin-bottom: 0.2rem;
+    font-size: 0.64rem;
+  }
+
+  .overlayHeading h2 {
+    font-size: clamp(1.45rem, 7vw, 1.85rem);
+    line-height: 1.05;
   }
 
   .searchForm {
     grid-template-columns: auto 1fr;
-    border-radius: var(--radius-md);
+    gap: 0.6rem;
+    margin-top: 1rem;
+    padding: 0.35rem 0.4rem 0.35rem 0.85rem;
+    border-radius: 18px;
+  }
+
+  .searchForm input {
+    padding-block: 0.65rem;
+    font-size: 0.9rem;
   }
 
   .searchForm button {
     grid-column: 1 / -1;
     width: 100%;
+    min-height: 42px;
+  }
+
+  .quickSearches {
+    gap: 0.45rem;
+    margin-top: 0.8rem;
+    font-size: 0.78rem;
+  }
+
+  .quickSearches span {
+    width: 100%;
+  }
+
+  .quickSearches a {
+    min-height: 34px;
+    padding-inline: 0.72rem;
+    font-size: 0.76rem;
+  }
+
+  .searchResults {
+    gap: 0.85rem;
+    margin-top: 1rem;
+  }
+
+  .mobileDrawerPanel {
+    width: min(94vw, 390px);
+    max-width: calc(100% - 0.4rem);
+    padding: 0.85rem 0.85rem calc(1.25rem + env(safe-area-inset-bottom));
+    border-radius: 20px 0 0 20px;
+  }
+
+  .mobileDrawerHeader {
+    gap: 0.65rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .mobileDrawerHeader .brandLink {
+    width: 132px;
+    height: 70px;
+  }
+
+  .mobileDrawerHeader .brandLogo {
+    top: -35px;
+    width: 132px;
+    height: 132px;
+  }
+
+  .mobileSection {
+    padding-block: 1rem 0.7rem;
+  }
+
+  .mobileSectionHeader {
+    margin-bottom: 0.58rem;
+    font-size: 0.68rem;
+  }
+
+  .mobileSectionLink {
+    min-height: 50px;
+    padding: 0.65rem 0.72rem;
+    border-radius: 14px;
+    font-size: 1.04rem;
+  }
+
+  .mobileCustomMoortiLink {
+    min-height: 58px;
+  }
+
+  .mobileCustomMoortiText strong {
+    font-size: 1rem;
+  }
+
+  .mobileCustomMoortiText small {
+    font-size: 0.64rem;
+  }
+
+  .mobileProfile {
+    min-height: 66px;
+    gap: 0.68rem;
+    padding: 0.62rem;
+    border-radius: 16px;
+  }
+
+  .mobileProfileAvatar {
+    width: 42px;
+    height: 42px;
+    font-size: 1.15rem;
+  }
+
+  .mobileProfileDetails strong {
+    font-size: 1.02rem;
+  }
+
+  .mobileProfileDetails small {
+    font-size: 0.7rem;
   }
 
   .searchProductGrid,
@@ -1538,14 +1726,27 @@
     backdrop-filter: blur(16px);
   }
 
-  .mobileBottomNav a {
+  .mobileBottomNav a,
+  .mobileBottomNav button {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
+    min-width: 0;
+    border: 0;
     color: var(--ink-muted);
+    background: transparent;
     font-size: 0.62rem;
+    cursor: pointer;
+  }
+
+  .mobileBottomNav a span,
+  .mobileBottomNav button span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .mobileBottomNav a.mobileNavActive {
@@ -1611,6 +1812,51 @@
   .cookieActions {
     display: grid;
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .headerMain {
+    min-height: 60px;
+    gap: 0.32rem;
+  }
+
+  .brandLink {
+    width: 128px;
+    height: 76px;
+  }
+
+  .brandLogo {
+    top: -31px;
+    width: 136px;
+    height: 136px;
+  }
+
+  .headerAction,
+  .headerSearchPillVisible {
+    width: 42px;
+    max-width: 42px;
+    height: 42px;
+  }
+
+  .headerSearchSubmit {
+    width: 38px;
+    height: 38px;
+  }
+
+  .mobileDrawerPanel {
+    width: min(95vw, 380px);
+    padding-inline: 0.72rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .brandLink {
+    width: 118px;
+  }
+
+  .mobileCustomMoortiText small {
+    display: none;
   }
 }
 

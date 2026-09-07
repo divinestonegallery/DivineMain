@@ -123,6 +123,18 @@ function profileRole(user: unknown) {
   return typeof role === "string" ? role.toLowerCase() : "";
 }
 
+function MobileCustomizedMoortiLink({ onClick }: { onClick: () => void }) {
+  return (
+    <Link href="/custom-murti" className={`${styles.mobileSectionLink} ${styles.mobileCustomMoortiLink}`} onClick={onClick}>
+      <span className={styles.mobileCustomMoortiText}>
+        <strong>Customized Moorti</strong>
+        <small>Create your own personalized moorti</small>
+      </span>
+      <Sparkles aria-hidden="true" size={19} strokeWidth={1.6} />
+    </Link>
+  );
+}
+
 export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const pathname = usePathname();
   const { isLoaded, isSignedIn, signOut } = useAuth();
@@ -653,6 +665,13 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                           <LayoutDashboard size={18} strokeWidth={1.5} />
                         </Link>
                       ) : null}
+                      <MobileCustomizedMoortiLink onClick={() => setMobileMenuOpen(false)} />
+                    </div>
+                    <div className={styles.mobileLogoutSection}>
+                      <button className={styles.mobileLogout} type="button" onClick={() => void handleLogout()}>
+                        <span>Logout</span>
+                        <LogOut aria-hidden="true" size={18} strokeWidth={1.6} />
+                      </button>
                     </div>
                   </>
                 ) : isLoaded ? (
@@ -661,6 +680,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                       <span>My Profile</span>
                       <ChevronRight size={18} strokeWidth={1.5} />
                     </Link>
+                    <MobileCustomizedMoortiLink onClick={() => setMobileMenuOpen(false)} />
                   </div>
                 ) : (
                   <div className={styles.mobileProfileLoading} aria-busy="true">Loading account...</div>
@@ -699,15 +719,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                   </a>
                 </div>
               </div>
-
-              {isLoaded && isSignedIn ? (
-                <div className={styles.mobileLogoutSection}>
-                  <button className={styles.mobileLogout} type="button" onClick={() => void handleLogout()}>
-                    <span>Logout</span>
-                    <LogOut aria-hidden="true" size={18} strokeWidth={1.6} />
-                  </button>
-                </div>
-              ) : null}
             </div>
           </div>
         </div>
