@@ -97,38 +97,30 @@ type CustomizeRequestRecord = CustomerRequestBase & {
 
 type CustomerRequestRecord = ContactRequestRecord | CustomizeRequestRecord;
 
-const sectionDetails: Record<Exclude<AdminSectionSlug, "overview">, { title: string; description: string }> = {
+const sectionDetails: Record<Exclude<AdminSectionSlug, "overview">, { title: string }> = {
   category: {
     title: "Category",
-    description: "Create and update product categories using the existing Django category API.",
   },
   deity: {
     title: "Deity",
-    description: "Create and update deity filters and product identity records.",
   },
   material: {
     title: "Material",
-    description: "Create and update stone and finish material records.",
   },
   product: {
     title: "Product",
-    description: "Manage products, taxonomy assignment, publishing status, images, and catalogue metadata.",
   },
   review: {
     title: "Review",
-    description: "Moderate submitted reviews with the backend approval workflow.",
   },
   faqs: {
     title: "FAQs",
-    description: "Create, update, order, publish, and deactivate frequently asked questions.",
   },
   "customer-requests": {
     title: "Customer Requests",
-    description: "Review contact messages and custom moorti enquiries from the existing request APIs.",
   },
   staff: {
     title: "Staff",
-    description: "Invite staff, manage admin access, and review security activity.",
   },
 };
 
@@ -661,7 +653,7 @@ export function AdminSectionPage({ section }: { section: Exclude<AdminSectionSlu
   return (
     <AdminAccess section={section}>
       <AdminShell>
-        <AdminPageHeader title={details.title} description={details.description} />
+        <AdminPageHeader title={details.title} />
         <SectionBody section={section} />
       </AdminShell>
     </AdminAccess>

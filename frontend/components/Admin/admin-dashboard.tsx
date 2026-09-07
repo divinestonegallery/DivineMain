@@ -45,7 +45,7 @@ function DashboardContent() {
 
   return (
     <AdminShell>
-      <AdminPageHeader title="Good morning, gallery team" description="A live view of the catalogue and customer conversations coming from the Django admin API." actions={<button className={styles.refresh} type="button" onClick={() => void load()} disabled={loading}><RefreshCw size={15} /> {loading ? "Loading" : "Refresh"}</button>} />
+      <AdminPageHeader title="Good morning, gallery team" actions={<button className={styles.refresh} type="button" onClick={() => void load()} disabled={loading}><RefreshCw size={15} /> {loading ? "Loading" : "Refresh"}</button>} />
       {error ? <div className={styles.error}><AlertTriangle size={18} /><span>{error}</span></div> : null}
       <section className={styles.metrics} aria-label="Administration summary">
         <article><Boxes size={20} /><span><small>Total Products</small><strong>{summary ? count(summary.products) : "-"}</strong><em>{summary ? `${summary.products.items.filter((item) => item.status === "active").length} in this view active` : "Loading"}</em></span></article>
