@@ -76,7 +76,7 @@ function payloadFor(kind: CatalogStructureKind, form: FormData, imageUrl?: strin
       ...base,
       description: text(form.get("description")),
     };
-    if (imageUrl) payload.image_url = imageUrl;
+    if (imageUrl !== undefined) payload.image_url = imageUrl;
     return payload;
   }
 
@@ -116,6 +116,7 @@ function TaxonomyModal({
   const spec = specs[kind];
   const selectedCategories = new Set((state.item?.categories ?? []).map(Number));
   const [selectedImages, setSelectedImages] = useState<AdminSelectedImage[]>([]);
+  const [existingCategoryImageRemoved, setExistingCategoryImageRemoved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
@@ -127,6 +128,10 @@ function TaxonomyModal({
     setError(null);
     setFieldErrors(validation);
     if (Object.keys(validation).length) return;
+    if (kind === "category" && selectedImages.length > 1) {
+      setError("Please keep only one category image before saving.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -135,6 +140,8 @@ function TaxonomyModal({
         const [upload] = await uploadPendingAdminImages(selectedImages, setSelectedImages);
         if (!upload.upload.public_url) throw new Error("Upload completed, but the API did not return an image URL.");
         imageUrl = upload.upload.public_url;
+      } else if (kind === "category" && existingCategoryImageRemoved) {
+        imageUrl = "";
       }
 
       const saved = await apiRequest<TaxonomyItem>(
@@ -182,9 +189,12 @@ function TaxonomyModal({
                 description="Upload or drag & drop a JPG, PNG, or WEBP image."
                 selectedImages={selectedImages}
                 onSelectedImagesChange={setSelectedImages}
-                existingImages={state.item?.image_url ? [{ id: state.item.id, image_url: state.item.image_url, alt_text: state.item.name }] : []}
+                existingImages={!existingCategoryImageRemoved && state.item?.image_url ? [{ id: state.item.id, image_url: state.item.image_url, alt_text: state.item.name }] : []}
+                multiple={false}
                 maxFiles={1}
                 disabled={submitting}
+                strictSingleImage
+                onRemoveExisting={() => setExistingCategoryImageRemoved(true)}
               />
             </>
           ) : null}

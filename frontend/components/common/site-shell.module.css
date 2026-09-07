@@ -1112,21 +1112,22 @@
 
 .mobileSocials {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
   gap: 0.55rem;
   padding-block: 0.5rem;
 }
 
 .mobileSocialLinkText {
-  display: inline-flex;
-  min-height: 38px;
+  display: flex;
+  width: 100%;
+  min-height: 48px;
   align-items: center;
-  padding-inline: 0.82rem;
-  border: 1px solid var(--dropdown-border);
-  border-radius: var(--radius-pill);
+  gap: 0.8rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 14px;
   color: var(--ink-muted);
-  background: rgb(255 253 249 / 0.68);
+  background: transparent;
   font-family: var(--font-brand-display);
   font-size: 1rem;
   font-weight: 400;
@@ -1140,6 +1141,22 @@
   border-color: rgb(120 82 31 / 0.34);
   color: var(--gold-deep);
   background: var(--dropdown-hover);
+}
+
+.mobileSocialIcon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ink-muted);
+  background: rgb(235 233 228 / 0.9);
+}
+
+.mobileSocialIcon img {
+  width: 22px;
+  height: 22px;
 }
 
 .mobileBottomNav {

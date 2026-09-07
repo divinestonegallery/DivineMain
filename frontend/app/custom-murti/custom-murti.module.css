@@ -322,8 +322,20 @@
   background: #fffdf9;
 }
 
+.uploadButton:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.uploadButtonActive {
+  border-color: var(--gold-deep);
+  background: rgb(244 234 215 / 0.82);
+  box-shadow: 0 0 0 4px rgb(161 118 51 / 0.11);
+}
+
 .uploadButton svg,
-.uploadPreview button svg {
+.uploadPreviewActions button svg,
+.uploadStatus svg {
   color: var(--gold-deep);
 }
 
@@ -352,26 +364,90 @@
 }
 
 .uploadPreview {
-  grid-template-columns: 2.85rem minmax(0, 1fr) auto;
+  grid-template-columns: minmax(5.4rem, 7rem) minmax(0, 1fr) auto;
+  min-height: 6.6rem;
   border-style: solid;
 }
 
-.uploadPreview img {
-  width: 2.85rem;
-  height: 2.85rem;
+.uploadPreview[data-status="uploaded"] {
+  border-color: rgb(53 83 59 / 0.26);
+  background: rgb(245 250 246 / 0.86);
+}
+
+.uploadPreview[data-status="error"] {
+  border-color: rgb(161 72 61 / 0.28);
+  background: rgb(252 243 241 / 0.88);
+}
+
+.uploadPreviewImage {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: min(7rem, 26vw);
+  aspect-ratio: 4 / 3;
+  border: 1px solid rgb(120 82 31 / 0.14);
   border-radius: 8px;
+  background: #f4ead7;
+}
+
+.uploadPreviewImage img {
   object-fit: cover;
 }
 
-.uploadPreview button {
-  display: grid;
-  width: 2rem;
-  height: 2rem;
-  place-items: center;
+.uploadStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: fit-content;
+  max-width: 100%;
+  font-weight: 720;
+}
+
+.uploadStatus[data-status="uploading"] {
+  color: var(--gold-deep);
+}
+
+.uploadStatus[data-status="uploaded"] {
+  color: #35533b;
+}
+
+.uploadStatus[data-status="error"] {
+  color: var(--danger);
+}
+
+.uploadPreviewActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.42rem;
+}
+
+.uploadPreviewActions button {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.38rem 0.62rem;
   border: 1px solid rgb(120 82 31 / 0.18);
   border-radius: 999px;
   background: #fffdf9;
+  color: var(--foreground);
+  font-size: 0.68rem;
+  font-weight: 720;
   cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.uploadPreviewActions button:hover:not(:disabled) {
+  border-color: rgb(120 82 31 / 0.38);
+  color: var(--gold-deep);
+  background: rgb(244 234 215 / 0.7);
+}
+
+.uploadPreviewActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .formError {
@@ -538,6 +614,19 @@
   .uploadButton,
   .uploadPreview {
     grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .uploadPreview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .uploadPreviewImage {
+    width: 100%;
+    max-width: none;
+  }
+
+  .uploadPreviewActions {
+    justify-content: flex-start;
   }
 
   .uploadButton > svg:last-child {

@@ -12,7 +12,8 @@ import {
   ShoppingBag,
   Sparkles,
   X,
-  ChevronRight
+  ChevronRight,
+  MessageCircle
 } from "lucide-react";
 import { FormEvent, MouseEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { AccountControl, MobileAccountControl } from "@/components/Auth/account-control";
@@ -667,12 +668,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                       ) : null}
                       <MobileCustomizedMoortiLink onClick={() => setMobileMenuOpen(false)} />
                     </div>
-                    <div className={styles.mobileLogoutSection}>
-                      <button className={styles.mobileLogout} type="button" onClick={() => void handleLogout()}>
-                        <span>Logout</span>
-                        <LogOut aria-hidden="true" size={18} strokeWidth={1.6} />
-                      </button>
-                    </div>
                   </>
                 ) : isLoaded ? (
                   <div className={styles.mobileSectionList}>
@@ -708,17 +703,33 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               <div className={styles.mobileSection}>
                 <p className={styles.mobileSectionHeader}>Social Media</p>
                 <div className={styles.mobileSocials}>
-                  <a href="https://www.instagram.com/divinestone_gallery?igsi=MWZwN3U4NnF0cWUwNQ==" target="_blank" rel="noreferrer" className={styles.mobileSocialLinkText}>
-                    <Image src="/brand/instagram.svg" alt="Instagram" width={24} height={24} />
-                  </a>
                   <a href="#" className={styles.mobileSocialLinkText}>
-                    <Image src="/brand/facebook.svg" alt="Facebook" width={24} height={24} />
+                    <span className={styles.mobileSocialIcon} aria-hidden="true"><Image src="/brand/facebook.svg" alt="" width={22} height={22} /></span>
+                    <span>Facebook</span>
+                  </a>
+                  <a href="https://www.instagram.com/divinestone_gallery?igsi=MWZwN3U4NnF0cWUwNQ==" target="_blank" rel="noreferrer" className={styles.mobileSocialLinkText}>
+                    <span className={styles.mobileSocialIcon} aria-hidden="true"><Image src="/brand/instagram.svg" alt="" width={22} height={22} /></span>
+                    <span>Instagram</span>
                   </a>
                   <a href="https://youtube.com/@divinestonegallery?si=GGX9Xu-UidKMfvBl" target="_blank" rel="noreferrer" className={styles.mobileSocialLinkText}>
-                    <Image src="/brand/youtube.svg" alt="YouTube" width={24} height={24} />
+                    <span className={styles.mobileSocialIcon} aria-hidden="true"><Image src="/brand/youtube.svg" alt="" width={22} height={22} /></span>
+                    <span>YouTube</span>
+                  </a>
+                  <a href="https://wa.me/919166138566?text=Namaste%2C%20I%20would%20like%20help%20choosing%20a%20moorti." target="_blank" rel="noreferrer" className={styles.mobileSocialLinkText}>
+                    <span className={styles.mobileSocialIcon} aria-hidden="true"><MessageCircle size={22} strokeWidth={1.7} /></span>
+                    <span>WhatsApp</span>
                   </a>
                 </div>
               </div>
+
+              {isLoaded && isSignedIn ? (
+                <div className={styles.mobileLogoutSection}>
+                  <button className={styles.mobileLogout} type="button" onClick={() => void handleLogout()}>
+                    <span>Logout</span>
+                    <LogOut aria-hidden="true" size={18} strokeWidth={1.6} />
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

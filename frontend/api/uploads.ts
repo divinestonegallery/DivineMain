@@ -1,7 +1,8 @@
 import { apiRequest } from "./client";
 import { prepareImageForUpload } from "@/components/Uploads/prepare-image";
 
-export type AdminUploadContentType = "image/jpeg" | "image/png" | "image/webp";
+export type UploadImageContentType = "image/jpeg" | "image/png" | "image/webp";
+export type AdminUploadContentType = UploadImageContentType;
 
 export interface AdminUploadSessionPayload {
   filename: string;
@@ -10,7 +11,7 @@ export interface AdminUploadSessionPayload {
   purpose: "product_image";
 }
 
-export interface AdminUploadSession {
+export interface PresignedImageUploadSession {
   method: "PUT" | string;
   upload_url: string;
   object_key: string;
@@ -19,24 +20,49 @@ export interface AdminUploadSession {
   expires_in_seconds?: number;
 }
 
-const supportedContentTypes = new Set<string>(["image/jpeg", "image/png", "image/webp"]);
+export type AdminUploadSession = PresignedImageUploadSession;
 
-function cleanFilename(file: File) {
+export const maxOriginalImageFileSize = 12 * 1024 * 1024;
+export const supportedUploadContentTypes = new Set<string>(["image/jpeg", "image/png", "image/webp"]);
+
+export function cleanUploadFilename(file: File) {
   const name = (file.name || "image").split(/[\\/]/).pop()?.replace(/^\.+/, "") || "image";
   return name.slice(0, 255);
 }
 
-function isSupportedContentType(type: string): type is AdminUploadContentType {
-  return supportedContentTypes.has(type);
+export function isSupportedUploadContentType(type: string): type is UploadImageContentType {
+  return supportedUploadContentTypes.has(type);
 }
 
-function uploadHeaders(session: AdminUploadSession, file: File) {
+export function validateUploadImageFile(file: File) {
+  if (!file.size || file.size > maxOriginalImageFileSize) return "Image must be 12 MB or smaller.";
+  if (!isSupportedUploadContentType(file.type)) return "Please choose a JPG, PNG, or WEBP image.";
+  return "";
+}
+
+export async function prepareSupportedUploadImage(file: File) {
+  const uploadFile = await prepareImageForUpload(file);
+  if (!isSupportedUploadContentType(uploadFile.type)) throw new Error("INVALID_IMAGE_TYPE");
+  return uploadFile as File & { type: UploadImageContentType };
+}
+
+export function uploadHeaders(session: PresignedImageUploadSession, file: File) {
   const headers = new Headers();
   Object.entries(session.required_headers || {}).forEach(([name, value]) => {
     if (name.toLowerCase() !== "content-length") headers.set(name, String(value));
   });
   if (!headers.has("Content-Type")) headers.set("Content-Type", file.type);
   return headers;
+}
+
+export async function putPresignedImage(session: PresignedImageUploadSession, file: File) {
+  const response = await fetch(session.upload_url, {
+    method: session.method || "PUT",
+    headers: uploadHeaders(session, file),
+    body: file,
+  });
+
+  if (!response.ok) throw new Error("Image upload failed. Please try again.");
 }
 
 export function friendlyUploadError(reason: unknown) {
@@ -52,15 +78,14 @@ export function friendlyUploadError(reason: unknown) {
 }
 
 export async function createAdminUploadSession(file: File) {
-  const uploadFile = await prepareImageForUpload(file);
-  if (!isSupportedContentType(uploadFile.type)) throw new Error("INVALID_IMAGE_TYPE");
+  const uploadFile = await prepareSupportedUploadImage(file);
 
   return {
     uploadFile,
     session: await apiRequest<AdminUploadSession>("/api/v1/common/upload/presigned-url", {
       method: "POST",
       body: JSON.stringify({
-        filename: cleanFilename(uploadFile),
+        filename: cleanUploadFilename(uploadFile),
         content_type: uploadFile.type,
         file_size: uploadFile.size,
         purpose: "product_image",
@@ -71,12 +96,6 @@ export async function createAdminUploadSession(file: File) {
 
 export async function uploadAdminImage(file: File) {
   const { uploadFile, session } = await createAdminUploadSession(file);
-  const response = await fetch(session.upload_url, {
-    method: session.method || "PUT",
-    headers: uploadHeaders(session, uploadFile),
-    body: uploadFile,
-  });
-
-  if (!response.ok) throw new Error("Image upload failed. Please try again.");
+  await putPresignedImage(session, uploadFile);
   return session;
 }

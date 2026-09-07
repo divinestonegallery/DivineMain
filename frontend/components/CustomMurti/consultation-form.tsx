@@ -1,33 +1,54 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, FormEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ArrowRight, CheckCircle2, ImageIcon, LockKeyhole, PencilRuler, UploadCloud, X } from "lucide-react";
-import { createCustomizationUploadSession, submitCustomizeRequest, type CustomizationUploadSession } from "@/api/contact";
+import { submitCustomizeRequest, uploadCustomizationReferenceImage } from "@/api/contact";
+import { friendlyUploadError, validateUploadImageFile } from "@/api/uploads";
 import { useUser } from "@/components/Auth/auth-facade";
 import { buttonClassName } from "@/components/ui/button";
 import { FormField, TextareaField } from "@/components/ui/form-field";
 import styles from "@/app/custom-murti/custom-murti.module.css";
 
 type Identity = { name: string; email: string; phone: string };
-type SupportedImageType = "image/jpeg" | "image/png" | "image/webp";
+type ReferencePhotoState = {
+  id: string;
+  file: File;
+  previewUrl: string;
+  status: "uploading" | "uploaded" | "error";
+  objectKey?: string;
+  publicUrl?: string | null;
+  error?: string;
+};
 
 const blankIdentity: Identity = { name: "", email: "", phone: "" };
-const supportedImageTypes = new Set<string>(["image/jpeg", "image/png", "image/webp"]);
 const phonePattern = /^\+?[0-9][0-9\s-]{7,19}$/;
 
 function cleanText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function supportedImageType(type: string): type is SupportedImageType {
-  return supportedImageTypes.has(type);
-}
-
 function friendlySubmitError(reason: unknown) {
   const message = reason instanceof Error ? reason.message : "";
+  if (/Reference upload/i.test(message)) return message;
   if (/already submitted/i.test(message)) return "This custom request was already sent recently.";
   return "Something went wrong. Please try again.";
+}
+
+function nextUploadId() {
+  if (typeof window !== "undefined" && window.crypto?.randomUUID) return window.crypto.randomUUID();
+  return `reference-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function fileLabel(file: File) {
+  const size = file.size >= 1024 * 1024 ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+  return `${file.type.replace("image/", "").toUpperCase()} - ${size}`;
+}
+
+function uploadStatusText(photo: ReferencePhotoState) {
+  if (photo.status === "uploading") return "Uploading...";
+  if (photo.status === "uploaded") return "Image Uploaded";
+  return photo.error || "Image upload failed. Please try again.";
 }
 
 function ProfileField({ label, loading, value }: { label: string; loading: boolean; value?: string }) {
@@ -40,26 +61,19 @@ function ProfileField({ label, loading, value }: { label: string; loading: boole
   );
 }
 
-function uploadHeaders(session: CustomizationUploadSession, file: File) {
-  const headers = new Headers();
-  Object.entries(session.required_headers || {}).forEach(([name, value]) => {
-    if (name.toLowerCase() !== "content-length") headers.set(name, String(value));
-  });
-  if (!headers.has("Content-Type")) headers.set("Content-Type", file.type);
-  return headers;
-}
-
 export function ConsultationForm() {
   const { isLoaded, isSignedIn, user } = useUser();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadRequestRef = useRef("");
   const profileIdentity: Identity = {
     name: cleanText(user?.name),
     email: cleanText(user?.email),
     phone: cleanText(user?.phone),
   };
   const [manualIdentity, setManualIdentity] = useState(blankIdentity);
-  const [referencePhoto, setReferencePhoto] = useState<{ file: File; previewUrl: string } | null>(null);
+  const [referencePhoto, setReferencePhoto] = useState<ReferencePhotoState | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [dragActive, setDragActive] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -81,30 +95,67 @@ export function ConsultationForm() {
     return () => setFieldErrors((current) => ({ ...current, [field]: "" }));
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    setError("");
-    setFieldErrors((current) => ({ ...current, referencePhoto: "" }));
-
-    if (!file) {
-      setReferencePhoto(null);
-      return;
-    }
-
-    if (!file.size || !supportedImageType(file.type)) {
-      setReferencePhoto(null);
-      setFieldErrors((current) => ({ ...current, referencePhoto: "Please select a valid image." }));
-      event.target.value = "";
-      return;
-    }
-
-    setReferencePhoto({ file, previewUrl: URL.createObjectURL(file) });
+  function clearFileInput() {
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function removeReferencePhoto() {
+    uploadRequestRef.current = nextUploadId();
     setReferencePhoto(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    clearFileInput();
     setFieldErrors((current) => ({ ...current, referencePhoto: "" }));
+  }
+
+  function selectReferencePhoto(file: File | undefined) {
+    setError("");
+    setFieldErrors((current) => ({ ...current, referencePhoto: "" }));
+
+    if (!file) return;
+
+    if (!isSignedIn) {
+      setFieldErrors((current) => ({ ...current, referencePhoto: "Please sign in to include a reference photo." }));
+      clearFileInput();
+      return;
+    }
+
+    const validation = validateUploadImageFile(file);
+    if (validation) {
+      setFieldErrors((current) => ({ ...current, referencePhoto: validation }));
+      clearFileInput();
+      return;
+    }
+
+    const uploadId = nextUploadId();
+    uploadRequestRef.current = uploadId;
+    setReferencePhoto({ id: uploadId, file, previewUrl: URL.createObjectURL(file), status: "uploading" });
+
+    void uploadCustomizationReferenceImage(file)
+      .then(({ objectKey, publicUrl }) => {
+        if (uploadRequestRef.current !== uploadId) return;
+        setReferencePhoto((current) => current?.id === uploadId
+          ? { ...current, status: "uploaded", objectKey, publicUrl, error: "" }
+          : current);
+      })
+      .catch((reason) => {
+        if (uploadRequestRef.current !== uploadId) return;
+        const message = friendlyUploadError(reason);
+        setReferencePhoto((current) => current?.id === uploadId
+          ? { ...current, status: "error", error: message }
+          : current);
+        setFieldErrors((current) => ({ ...current, referencePhoto: message }));
+      })
+      .finally(clearFileInput);
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    selectReferencePhoto(event.target.files?.[0]);
+  }
+
+  function handleDrop(event: DragEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    setDragActive(false);
+    if (submitting || referencePhoto?.status === "uploading") return;
+    selectReferencePhoto(event.dataTransfer.files?.[0]);
   }
 
   function validate(form: FormData) {
@@ -128,27 +179,11 @@ export function ConsultationForm() {
     const combinedCity = [value("address"), value("city"), value("state")].filter(Boolean).join(", ");
     if (combinedCity.length > 100) nextErrors.city = "Please keep your address details within 100 characters.";
     if (referencePhoto && !isSignedIn) nextErrors.referencePhoto = "Please sign in to include a reference photo, or remove it to send without the photo.";
+    else if (referencePhoto?.status === "uploading") nextErrors.referencePhoto = "Please wait for the image upload to finish.";
+    else if (referencePhoto?.status === "error") nextErrors.referencePhoto = referencePhoto.error || "Image upload failed. Please try again.";
+    else if (referencePhoto && !referencePhoto.objectKey) nextErrors.referencePhoto = "Please upload the image again or remove it before sending.";
 
     return { errors: nextErrors, value };
-  }
-
-  async function uploadReferencePhoto(file: File) {
-    if (!supportedImageType(file.type)) throw new Error("Invalid reference image.");
-
-    const session = await createCustomizationUploadSession({
-      filename: (file.name || "reference-image").slice(0, 255),
-      content_type: file.type,
-      file_size: file.size,
-    });
-
-    const response = await fetch(session.upload_url, {
-      method: session.method || "PUT",
-      headers: uploadHeaders(session, file),
-      body: file,
-    });
-
-    if (!response.ok) throw new Error("Reference upload failed.");
-    return session.object_key;
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -166,7 +201,7 @@ export function ConsultationForm() {
     setError("");
 
     try {
-      const referenceObjectKey = referencePhoto ? await uploadReferencePhoto(referencePhoto.file) : undefined;
+      const referenceObjectKey = referencePhoto?.status === "uploaded" ? referencePhoto.objectKey : undefined;
       await submitCustomizeRequest({
         name: isSignedIn ? profileIdentity.name || undefined : value("name"),
         email: isSignedIn ? profileIdentity.email || undefined : value("email"),
@@ -178,8 +213,10 @@ export function ConsultationForm() {
       });
 
       setSent(true);
+      uploadRequestRef.current = "";
       setReferencePhoto(null);
       formElement.reset();
+      clearFileInput();
       if (!isSignedIn) setManualIdentity(blankIdentity);
     } catch (reason) {
       setError(friendlySubmitError(reason));
@@ -203,6 +240,8 @@ export function ConsultationForm() {
   }
 
   const showProfileFields = !isLoaded || isSignedIn;
+  const referenceUploading = referencePhoto?.status === "uploading";
+  const uploadDisabled = !isLoaded || submitting || referenceUploading;
 
   return (
     <form className={styles.customizeForm} noValidate onSubmit={handleSubmit}>
@@ -235,23 +274,42 @@ export function ConsultationForm() {
 
         <div className={`${styles.uploadField} ${styles.fullField}`}>
           <div className={styles.uploadLabel}>
-            <span>Reference Photo <small>(Optional)</small></span>
+            <span>Custom Moorti Image <small>(Optional)</small></span>
             <small>{isSignedIn ? "Upload a photo or design reference if you have one." : "Sign in to include the photo with your request."}</small>
           </div>
-          <input ref={fileInputRef} className={styles.fileInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} />
+          <input ref={fileInputRef} className={styles.fileInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} disabled={uploadDisabled} />
           {referencePhoto ? (
-            <div className={styles.uploadPreview}>
-              <Image src={referencePhoto.previewUrl} alt="Selected reference preview" width={46} height={46} unoptimized />
+            <div className={styles.uploadPreview} data-status={referencePhoto.status} aria-busy={referenceUploading}>
+              <span className={styles.uploadPreviewImage}>
+                <Image src={referencePhoto.previewUrl} alt="Selected reference preview" fill sizes="120px" unoptimized />
+              </span>
               <span>
                 <strong>{referencePhoto.file.name}</strong>
-                <small>{referencePhoto.file.type.replace("image/", "").toUpperCase()}</small>
+                <small>{fileLabel(referencePhoto.file)}</small>
+                <small className={styles.uploadStatus} data-status={referencePhoto.status}>
+                  {referencePhoto.status === "uploaded" ? <CheckCircle2 aria-hidden="true" size={14} /> : null}
+                  {uploadStatusText(referencePhoto)}
+                </small>
+                {referencePhoto.publicUrl ? <small>Ready to attach to your request.</small> : null}
               </span>
-              <button type="button" aria-label="Remove selected reference photo" onClick={removeReferencePhoto}><X aria-hidden="true" size={16} /></button>
+              <span className={styles.uploadPreviewActions}>
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadDisabled}>Replace Image</button>
+                <button type="button" aria-label="Remove selected reference photo" onClick={removeReferencePhoto} disabled={submitting || referenceUploading}><X aria-hidden="true" size={14} /> Remove</button>
+              </span>
             </div>
           ) : (
-            <button className={styles.uploadButton} type="button" onClick={() => fileInputRef.current?.click()}>
+            <button
+              className={`${styles.uploadButton} ${dragActive ? styles.uploadButtonActive : ""}`.trim()}
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              onDragEnter={(event) => { event.preventDefault(); if (!uploadDisabled) setDragActive(true); }}
+              onDragOver={(event) => event.preventDefault()}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={handleDrop}
+              disabled={uploadDisabled}
+            >
               <UploadCloud aria-hidden="true" size={20} />
-              <span><strong>Upload Reference Photo</strong><small>JPG, PNG, WEBP</small></span>
+              <span><strong>Upload Image</strong><small>Drag & drop or Browse</small><small>JPG / PNG / WEBP</small></span>
               <ImageIcon aria-hidden="true" size={18} />
             </button>
           )}
@@ -260,8 +318,8 @@ export function ConsultationForm() {
       </div>
 
       {error ? <p className={styles.formError} role="alert">{error}</p> : null}
-      <button className={buttonClassName({ size: "lg", className: styles.formSubmit })} type="submit" disabled={submitting || !isLoaded}>
-        {submitting ? "Sending request..." : <>Send custom request <ArrowRight aria-hidden="true" size={18} /></>}
+      <button className={buttonClassName({ size: "lg", className: styles.formSubmit })} type="submit" disabled={submitting || !isLoaded || referenceUploading}>
+        {referenceUploading ? "Uploading image..." : submitting ? "Sending request..." : <>Send custom request <ArrowRight aria-hidden="true" size={18} /></>}
       </button>
       <p className={styles.formPrivacy}><LockKeyhole aria-hidden="true" size={14} /> Your details are used only to respond to this custom request.</p>
     </form>

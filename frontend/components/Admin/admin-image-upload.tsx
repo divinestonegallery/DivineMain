@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { ChangeEvent, Dispatch, DragEvent, SetStateAction, useEffect, useRef, useState } from "react";
 import { ImageIcon, Trash2, UploadCloud, X } from "lucide-react";
-import { friendlyUploadError, uploadAdminImage, type AdminUploadSession } from "@/api/uploads";
+import { friendlyUploadError, uploadAdminImage, validateUploadImageFile, type AdminUploadSession } from "@/api/uploads";
 import styles from "./admin-image-upload.module.css";
 
 export type AdminSelectedImage = {
@@ -28,7 +28,6 @@ export type UploadedAdminSelection = {
 };
 
 const accept = "image/jpeg,image/png,image/webp";
-const maxOriginalFileSize = 12 * 1024 * 1024;
 
 function nextId() {
   if (typeof window !== "undefined" && window.crypto?.randomUUID) return window.crypto.randomUUID();
@@ -38,12 +37,6 @@ function nextId() {
 function fileLabel(file: File) {
   const size = file.size >= 1024 * 1024 ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`;
   return `${file.type.replace("image/", "").toUpperCase()} - ${size}`;
-}
-
-function validateFile(file: File) {
-  if (!file.size || file.size > maxOriginalFileSize) return "Image must be 12 MB or smaller.";
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return "Please choose a JPG, PNG, or WEBP image.";
-  return "";
 }
 
 export async function uploadPendingAdminImages(
@@ -82,6 +75,7 @@ export function AdminImageUpload({
   multiple = false,
   maxFiles = multiple ? 12 : 1,
   disabled = false,
+  strictSingleImage = false,
   onRemoveExisting,
   onSetCoverExisting,
 }: {
@@ -93,6 +87,7 @@ export function AdminImageUpload({
   multiple?: boolean;
   maxFiles?: number;
   disabled?: boolean;
+  strictSingleImage?: boolean;
   onRemoveExisting?: (image: AdminExistingImage) => void;
   onSetCoverExisting?: (image: AdminExistingImage) => void;
 }) {
@@ -117,8 +112,13 @@ export function AdminImageUpload({
     const nextImages: AdminSelectedImage[] = [];
     const savedImageCount = multiple ? existingImages.filter((image) => image.image_url).length : 0;
 
+    if (!multiple && strictSingleImage && files.length > 1) {
+      setError("Please select only one image.");
+      return;
+    }
+
     for (const file of files) {
-      const validation = validateFile(file);
+      const validation = validateUploadImageFile(file);
       if (validation) {
         setError(validation);
         continue;

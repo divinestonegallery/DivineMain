@@ -1,4 +1,11 @@
 import { apiRequest } from "./client";
+import {
+  cleanUploadFilename,
+  prepareSupportedUploadImage,
+  putPresignedImage,
+  type PresignedImageUploadSession,
+  type UploadImageContentType,
+} from "./uploads";
 
 export interface ContactMessagePayload {
   name: string;
@@ -21,18 +28,11 @@ export interface CustomizeRequestPayload {
 
 export interface CustomizationUploadSessionPayload {
   filename: string;
-  content_type: "image/jpeg" | "image/png" | "image/webp";
+  content_type: UploadImageContentType;
   file_size: number;
 }
 
-export interface CustomizationUploadSession {
-  method: "PUT" | string;
-  upload_url: string;
-  object_key: string;
-  public_url?: string | null;
-  required_headers?: Record<string, string>;
-  expires_in_seconds?: number;
-}
+export type CustomizationUploadSession = PresignedImageUploadSession;
 
 export function sendContactMessage(payload: ContactMessagePayload) {
   return apiRequest<ContactMessagePayload>("/api/v1/contact/message", {
@@ -53,4 +53,22 @@ export function createCustomizationUploadSession(payload: CustomizationUploadSes
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export async function uploadCustomizationReferenceImage(file: File) {
+  const uploadFile = await prepareSupportedUploadImage(file);
+  const session = await createCustomizationUploadSession({
+    filename: cleanUploadFilename(uploadFile),
+    content_type: uploadFile.type,
+    file_size: uploadFile.size,
+  });
+
+  await putPresignedImage(session, uploadFile);
+
+  return {
+    session,
+    uploadFile,
+    objectKey: session.object_key,
+    publicUrl: session.public_url ?? null,
+  };
 }

@@ -15,23 +15,6 @@ export async function SiteFooter() {
   const address = settings.business_address || business.address || brand.location;
   return (
     <footer className={styles.siteFooter}>
-      <section className={styles.newsletterSection} aria-labelledby="newsletter-title">
-        <div className={`${styles.newsletterInner} site-container`}>
-          <div>
-            <p>From our atelier to your mandir</p>
-            <h2 className="font-display" id="newsletter-title">Stories of craft, devotion and new creations.</h2>
-          </div>
-          <a
-            className={styles.newsletterCta}
-            href="https://wa.me/919166138566?text=Namaste%2C%20please%20share%20updates%20about%20new%20Divine%20Stone%20Gallery%20creations."
-            target="_blank"
-            rel="noreferrer"
-          >
-            <MessageCircle aria-hidden="true" size={19} /> Ask for collection updates
-          </a>
-        </div>
-      </section>
-
       <div className={`${styles.footerGrid} site-container`}>
         <div className={styles.footerBrand}>
           <Image src="/brand/logo-horizontal.jpg" alt="Divine Stone Gallery" width={420} height={225} />
