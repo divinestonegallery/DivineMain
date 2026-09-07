@@ -6,18 +6,22 @@ from .views.admin_views import (
     AdminDietyListCreateView, AdminDietyDetailView,
     AdminProductImageListCreateView, AdminProductImageDetailView,
     AdminProductImageReorderView,
+    AdminProductImageUploadUrlView,
+    AdminCategoryImageUploadUrlView,
 )
 
 urlpatterns = [
     # Products
     path('', AdminProductCreateView.as_view(), name='admin-product-create'),
     path('/<int:product_id>', AdminProductDetailView.as_view(), name='admin-product-detail'),
+    path('/images/upload-url', AdminProductImageUploadUrlView.as_view(), name='admin-product-image-upload-url'),
     path('/<int:product_id>/images', AdminProductImageListCreateView.as_view(), name='admin-product-images'),
     path('/<int:product_id>/images/reorder', AdminProductImageReorderView.as_view(), name='admin-product-images-reorder'),
     path('/<int:product_id>/images/<int:image_id>', AdminProductImageDetailView.as_view(), name='admin-product-image-detail'),
 
     # Categories
     path('/categories', AdminCategoryListCreateView.as_view(), name='admin-category-list'),
+    path('/categories/upload-url', AdminCategoryImageUploadUrlView.as_view(), name='admin-category-image-upload-url'),
     path('/categories/<int:category_id>', AdminCategoryDetailView.as_view(), name='admin-category-detail'),
 
     # Materials

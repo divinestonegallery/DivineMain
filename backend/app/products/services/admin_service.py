@@ -72,6 +72,13 @@ class ProductAdminService:
 
 class ProductImageService:
     @staticmethod
+    def generate_upload_url(data, actor_id):
+        """Generate a presigned PUT URL for a product image upload."""
+        from app.common.services.upload_service import UploadService
+        payload = {**data, 'purpose': 'product_image'}
+        return UploadService.create_presigned_upload(payload, actor_id)
+
+    @staticmethod
     def list_images(product_id):
         return ProductImageRepository.get_image_list(product_id)
 
@@ -132,6 +139,13 @@ class ProductImageService:
 
 
 class CategoryAdminService:
+    @staticmethod
+    def generate_upload_url(data, actor_id):
+        """Generate a presigned PUT URL for a category image upload."""
+        from app.common.services.upload_service import UploadService
+        payload = {**data, 'purpose': 'category_image'}
+        return UploadService.create_presigned_upload(payload, actor_id)
+
     @staticmethod
     def get_all_categories():
         return CategoryRepository.get_all_categories_list()

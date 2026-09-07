@@ -50,3 +50,16 @@ class ContactStatusValidator(serializers.Serializer):
 
 class CustomizeStatusValidator(serializers.Serializer):
     status = serializers.ChoiceField(choices=('new', 'contacted', 'quoted', 'accepted', 'closed'))
+
+
+class CustomizationUploadUrlValidator(serializers.Serializer):
+    """Validates a request to generate a presigned upload URL for a customization reference image."""
+    content_type = serializers.ChoiceField(choices=('image/jpeg', 'image/png', 'image/webp'))
+    file_size = serializers.IntegerField(min_value=1)
+    filename = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    def validate_filename(self, value):
+        if value and ('/' in value or '\\' in value or value.startswith('.')):
+            raise serializers.ValidationError('Use a plain filename without path characters.')
+        return value
+

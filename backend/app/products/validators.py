@@ -110,3 +110,28 @@ class DietyRequestValidator(serializers.Serializer):
         if len(value) != len(set(value)):
             raise serializers.ValidationError('Category IDs must be unique.')
         return value
+
+
+class ProductImageUploadUrlValidator(serializers.Serializer):
+    """Validates a request to generate a presigned upload URL for a product image."""
+    content_type = serializers.ChoiceField(choices=('image/jpeg', 'image/png', 'image/webp'))
+    file_size = serializers.IntegerField(min_value=1)
+    filename = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    def validate_filename(self, value):
+        if value and ('/' in value or '\\' in value or value.startswith('.')):
+            raise serializers.ValidationError('Use a plain filename without path characters.')
+        return value
+
+
+class CategoryImageUploadUrlValidator(serializers.Serializer):
+    """Validates a request to generate a presigned upload URL for a category image."""
+    content_type = serializers.ChoiceField(choices=('image/jpeg', 'image/png', 'image/webp'))
+    file_size = serializers.IntegerField(min_value=1)
+    filename = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    def validate_filename(self, value):
+        if value and ('/' in value or '\\' in value or value.startswith('.')):
+            raise serializers.ValidationError('Use a plain filename without path characters.')
+        return value
+
