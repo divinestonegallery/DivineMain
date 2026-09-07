@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { apiRequest } from "./client";
 
 export interface FAQItem {

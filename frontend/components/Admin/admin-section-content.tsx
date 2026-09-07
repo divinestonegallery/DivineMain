@@ -43,6 +43,11 @@ type AdminList<T> = {
   pagination?: AdminPagination;
 };
 
+type NormalizedAdminList<T> = {
+  items: T[];
+  pagination: AdminPagination;
+};
+
 type ReviewRecord = {
   id: number;
   product?: number;
@@ -169,7 +174,7 @@ function asItems<T>(payload: AdminList<T> | T[] | null | undefined) {
   return Array.isArray(payload) ? payload : payload.items ?? [];
 }
 
-function asAdminList<T>(payload: AdminList<T> | T[] | null | undefined, page: number, pageSize = requestPageSize): AdminList<T> {
+function asAdminList<T>(payload: AdminList<T> | T[] | null | undefined, page: number, pageSize = requestPageSize): NormalizedAdminList<T> {
   const items = asItems(payload);
   if (!payload || Array.isArray(payload)) {
     return {
@@ -630,7 +635,7 @@ function RequestRow({ item, refresh }: { item: CustomerRequestRecord; refresh: (
 
 function ContactAdmin() {
   const { showToast } = useToast();
-  const [list, setList] = useState<AdminList<ContactRequestRecord>>(() => asAdminList<ContactRequestRecord>([], 1));
+  const [list, setList] = useState<NormalizedAdminList<ContactRequestRecord>>(() => asAdminList<ContactRequestRecord>([], 1));
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | ContactRequestRecord["status"]>("all");
   const [page, setPage] = useState(1);
@@ -698,7 +703,7 @@ function ContactAdmin() {
 
 function CustomMootiAdmin() {
   const { showToast } = useToast();
-  const [list, setList] = useState<AdminList<CustomizeRequestRecord>>(() => asAdminList<CustomizeRequestRecord>([], 1));
+  const [list, setList] = useState<NormalizedAdminList<CustomizeRequestRecord>>(() => asAdminList<CustomizeRequestRecord>([], 1));
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | CustomizeRequestRecord["status"]>("all");
   const [page, setPage] = useState(1);

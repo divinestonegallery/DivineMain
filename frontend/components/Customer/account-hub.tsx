@@ -37,6 +37,20 @@ function profileData(user: any) {
   return user?.user ?? user ?? {};
 }
 
+function profileName(user: unknown) {
+  const profile = profileData(user);
+  const name = cleanText(profile.name);
+  const firstName = cleanText(profile.first_name);
+  const lastName = cleanText(profile.last_name);
+  const username = cleanText(profile.username);
+  return name || [firstName, lastName].filter(Boolean).join(" ").trim() || username;
+}
+
+function profileIdentity(user: unknown) {
+  const profile = profileData(user);
+  return cleanText(profile.id) || cleanText(profile.email);
+}
+
 function displayValue(value: unknown, fallback = "Not provided") {
   const text = cleanText(value);
   return text || fallback;
@@ -44,7 +58,7 @@ function displayValue(value: unknown, fallback = "Not provided") {
 
 function profileInitial(user: any) {
   const profile = profileData(user);
-  const label = cleanText(profile.name) || cleanText(profile.email) || "G";
+  const label = profileName(profile) || cleanText(profile.email) || "G";
   return label.slice(0, 1).toUpperCase();
 }
 
@@ -156,7 +170,7 @@ function MyProfilePanel({ enabled = true, onProfileLoaded }: { enabled?: boolean
       <header className={styles.accountPanelHeader}>
         <div>
           <p className={styles.eyebrow}>My Profile</p>
-          <h2 className="font-display">{loading ? "Loading profile..." : profile ? `Namaste, ${displayValue(profile.name)}.` : "Profile unavailable"}</h2>
+          <h2 className="font-display">{loading ? "Loading profile..." : profile ? `Namaste, ${displayValue(profileName(profile))}.` : "Profile unavailable"}</h2>
           <p>Manage the profile details connected to your Divine Stone Gallery account.</p>
         </div>
         <span className={styles.accountAvatar}>{loading ? "..." : profile ? profileInitial(profile) : "-"}</span>
@@ -258,7 +272,12 @@ function ConnectedAccountHub() {
   const [activeSection, setActiveSection] = useState<AccountSection>("profile");
   const [loggingOut, setLoggingOut] = useState(false);
   const [savedProfile, setSavedProfile] = useState<any>(null);
-  const effectiveUser = useMemo(() => (savedProfile ? { ...profileData(user), ...savedProfile } : user), [savedProfile, user]);
+  const effectiveUser = useMemo(() => {
+    const currentIdentity = profileIdentity(user);
+    const savedIdentity = profileIdentity(savedProfile);
+    const savedProfileBelongsToUser = Boolean(currentIdentity && savedIdentity && currentIdentity === savedIdentity);
+    return savedProfileBelongsToUser ? { ...profileData(user), ...savedProfile } : user;
+  }, [savedProfile, user]);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -302,7 +321,7 @@ function ConnectedAccountHub() {
             <div className={styles.accountSidebarHeader}>
               <span className={styles.accountAvatar}>{profileInitial(effectiveUser)}</span>
               <div>
-                <strong>My Account</strong>
+                <strong>{!isLoaded ? "Loading..." : displayValue(profileName(effectiveUser), "My Account")}</strong>
                 <small>{displayValue(profileData(effectiveUser).email, "Signed customer")}</small>
               </div>
             </div>
