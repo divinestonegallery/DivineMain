@@ -17,7 +17,7 @@ export async function SiteFooter() {
     <footer className={styles.siteFooter}>
       <div className={`${styles.footerGrid} site-container`}>
         <div className={styles.footerBrand}>
-          <Image src="/brand/logo-horizontal.jpg" alt="Divine Stone Gallery" width={420} height={225} />
+          <Image src="/brand/DSG-Yellow.png" alt="Divine Stone Gallery" width={420} height={225} />
           <p>{brand.promise}, shaped by generations of experience and guided by sacred tradition.</p>
           <div className={styles.footerContact}>
             <span><MapPin aria-hidden="true" size={17} /> {address}</span>

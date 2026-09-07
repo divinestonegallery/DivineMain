@@ -374,7 +374,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       >
         <div className={`${styles.headerMain} site-container`}>
           <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home">
-            <Image className={`${styles.brandLogo} ${animateLogo ? styles.brandLogoAnimated : ""}`.trim()} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
+            <Image className={`${styles.brandLogo} ${animateLogo ? styles.brandLogoAnimated : ""}`.trim()} src="/brand/DSG-New.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
           </Link>
 
           <div className={styles.headerCenter}>
@@ -632,7 +632,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           <div className={styles.mobileDrawerPanel} ref={mobilePanelRef} tabIndex={-1}>
             <div className={styles.mobileDrawerHeader}>
               <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home" onClick={() => setMobileMenuOpen(false)}>
-                <Image className={`${styles.brandLogo} ${animateLogo ? styles.brandLogoAnimated : ""}`.trim()} src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
+                <Image className={`${styles.brandLogo} ${animateLogo ? styles.brandLogoAnimated : ""}`.trim()} src="/brand/DSG-Yellow.png" alt="Divine Stone Gallery" width={1600} height={1600} priority />
               </Link>
               <button
                 className={styles.closeButton}

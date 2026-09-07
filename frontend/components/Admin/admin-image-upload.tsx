@@ -117,6 +117,11 @@ export function AdminImageUpload({
       return;
     }
 
+    if (!multiple && strictSingleImage && (existingImages.some((image) => image.image_url) || selectedImages.length)) {
+      setError("Remove the current image before selecting another.");
+      return;
+    }
+
     for (const file of files) {
       const validation = validateUploadImageFile(file);
       if (validation) {

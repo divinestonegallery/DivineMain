@@ -95,7 +95,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <aside className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ""}`}>
         <div className={styles.brandRow}>
           <Link href="/admin" aria-label="Divine Stone Gallery admin overview" onClick={closeNavigation}>
-            <Image src="/brand/logo.png" alt="Divine Stone Gallery" width={1600} height={900} priority />
+            <Image src="/brand/DSG-Yellow.png" alt="Divine Stone Gallery" width={1600} height={900} priority />
           </Link>
           <button type="button" aria-label="Close navigation" onClick={() => setMenuOpen(false)}><X size={20} /></button>
         </div>
