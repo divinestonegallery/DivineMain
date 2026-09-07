@@ -1,4 +1,4 @@
-import { apiRequest } from "./client";
+import { ApiError, apiRequest } from "./client";
 import {
   cleanUploadFilename,
   prepareSupportedUploadImage,
@@ -49,7 +49,7 @@ export function submitCustomizeRequest(payload: CustomizeRequestPayload) {
 }
 
 export function createCustomizationUploadSession(payload: CustomizationUploadSessionPayload) {
-  return apiRequest<CustomizationUploadSession>("/api/v1/common/upload/customization-url", {
+  return apiRequest<CustomizationUploadSession>("/api/v1/contact/customize/upload-url", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -57,11 +57,17 @@ export function createCustomizationUploadSession(payload: CustomizationUploadSes
 
 export async function uploadCustomizationReferenceImage(file: File) {
   const uploadFile = await prepareSupportedUploadImage(file);
-  const session = await createCustomizationUploadSession({
-    filename: cleanUploadFilename(uploadFile),
-    content_type: uploadFile.type,
-    file_size: uploadFile.size,
-  });
+  let session: CustomizationUploadSession;
+  try {
+    session = await createCustomizationUploadSession({
+      filename: cleanUploadFilename(uploadFile),
+      content_type: uploadFile.type,
+      file_size: uploadFile.size,
+    });
+  } catch (reason) {
+    if (reason instanceof ApiError && (reason.status === 401 || reason.status === 403)) throw reason;
+    throw new Error("Unable to prepare image upload. Please try again.");
+  }
 
   await putPresignedImage(session, uploadFile);
 

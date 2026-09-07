@@ -1,4 +1,4 @@
-import { apiRequest } from "./client";
+import { ApiError, apiRequest } from "./client";
 import { prepareImageForUpload } from "@/components/Uploads/prepare-image";
 
 export type UploadImageContentType = "image/jpeg" | "image/png" | "image/webp";
@@ -8,7 +8,6 @@ export interface AdminUploadSessionPayload {
   filename: string;
   content_type: AdminUploadContentType;
   file_size: number;
-  purpose: "product_image";
 }
 
 export interface PresignedImageUploadSession {
@@ -21,6 +20,7 @@ export interface PresignedImageUploadSession {
 }
 
 export type AdminUploadSession = PresignedImageUploadSession;
+export type AdminImageUploadTarget = "product" | "category";
 
 export const maxOriginalImageFileSize = 12 * 1024 * 1024;
 export const supportedUploadContentTypes = new Set<string>(["image/jpeg", "image/png", "image/webp"]);
@@ -66,6 +66,9 @@ export async function putPresignedImage(session: PresignedImageUploadSession, fi
 }
 
 export function friendlyUploadError(reason: unknown) {
+  if (reason instanceof ApiError && (reason.status === 401 || reason.status === 403)) {
+    return reason.message || "Please sign in again to upload images.";
+  }
   const message = reason instanceof Error ? reason.message : String(reason || "");
   if (message === "IMAGE_TOO_LARGE") return "Image must be 12 MB or smaller before optimization.";
   if (message === "INVALID_IMAGE_TYPE") return "Please choose a JPG, PNG, or WEBP image.";
@@ -77,25 +80,38 @@ export function friendlyUploadError(reason: unknown) {
   return "Image upload failed. Please try again.";
 }
 
-export async function createAdminUploadSession(file: File) {
-  const uploadFile = await prepareSupportedUploadImage(file);
+function adminUploadUrlPath(target: AdminImageUploadTarget) {
+  return target === "category"
+    ? "/api/admin/products/categories/upload-url"
+    : "/api/admin/products/images/upload-url";
+}
 
-  return {
-    uploadFile,
-    session: await apiRequest<AdminUploadSession>("/api/v1/common/upload/presigned-url", {
+export async function createAdminUploadSession(file: File, target: AdminImageUploadTarget = "product") {
+  const uploadFile = await prepareSupportedUploadImage(file);
+  let session: AdminUploadSession;
+
+  try {
+    session = await apiRequest<AdminUploadSession>(adminUploadUrlPath(target), {
       method: "POST",
       body: JSON.stringify({
         filename: cleanUploadFilename(uploadFile),
         content_type: uploadFile.type,
         file_size: uploadFile.size,
-        purpose: "product_image",
       } satisfies AdminUploadSessionPayload),
-    }),
+    });
+  } catch (reason) {
+    if (reason instanceof ApiError && (reason.status === 401 || reason.status === 403)) throw reason;
+    throw new Error("Unable to prepare image upload. Please try again.");
+  }
+
+  return {
+    uploadFile,
+    session,
   };
 }
 
-export async function uploadAdminImage(file: File) {
-  const { uploadFile, session } = await createAdminUploadSession(file);
+export async function uploadAdminImage(file: File, target: AdminImageUploadTarget = "product") {
+  const { uploadFile, session } = await createAdminUploadSession(file, target);
   await putPresignedImage(session, uploadFile);
   return session;
 }

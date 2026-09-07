@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { getAuthEmailError, requestPasswordReset } from "@/api/auth";
 import { useAuth } from "@/components/Auth/auth-facade";
 import styles from "./auth.module.css";
@@ -22,15 +23,21 @@ export function AuthModal() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState("");
 
   const { isSignedIn, refresh, signIn, signUp } = useAuth();
+  const router = useRouter();
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleOpen = () => {
+    const handleOpen = (event: Event) => {
       if (!isSignedIn) {
+        const detail = (event as CustomEvent<{ pendingPath?: string; reason?: string }>).detail;
         setIsOpen(true);
         setMode("login");
+        setPendingPath(detail?.pendingPath ?? null);
+        setPrompt(detail?.reason === "custom-murti" ? "Please login or create an account to use Custom Mooti." : "");
         setError("");
         setSuccess("");
         setShowPassword(false);
@@ -41,10 +48,16 @@ export function AuthModal() {
     return () => window.removeEventListener("dsg:open-auth", handleOpen);
   }, [isSignedIn]);
 
+  function closeModal() {
+    setIsOpen(false);
+    setPendingPath(null);
+    setPrompt("");
+  }
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
-        setIsOpen(false);
+        closeModal();
       }
     };
 
@@ -79,7 +92,9 @@ export function AuthModal() {
 
     try {
       await signIn({ email: form.get("email"), password: form.get("password") });
-      setIsOpen(false);
+      const nextPath = pendingPath;
+      closeModal();
+      if (nextPath) router.push(nextPath);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Email or password is incorrect.");
     } finally {
@@ -110,7 +125,9 @@ export function AuthModal() {
         password: password,
       });
       await refresh();
-      setIsOpen(false);
+      const nextPath = pendingPath;
+      closeModal();
+      if (nextPath) router.push(nextPath);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Account creation failed.");
     } finally {
@@ -150,7 +167,7 @@ export function AuthModal() {
       <button
         className={styles.modalBackdrop}
         type="button"
-        onClick={() => setIsOpen(false)}
+        onClick={closeModal}
         aria-label="Close modal overlay"
         tabIndex={-1}
       />
@@ -174,12 +191,12 @@ export function AuthModal() {
             <div className={styles.modalHeader}>
               <div>
                 <h2 className={styles.modalTitle}>{copy.title}</h2>
-                <p className={styles.modalSubtitle}>{copy.subtitle}</p>
+                <p className={styles.modalSubtitle}>{prompt || copy.subtitle}</p>
               </div>
               <button
                 type="button"
                 className={styles.modalCloseButton}
-                onClick={() => setIsOpen(false)}
+                onClick={closeModal}
                 aria-label="Close authentication modal"
               >
                 <X size={24} strokeWidth={1.5} />

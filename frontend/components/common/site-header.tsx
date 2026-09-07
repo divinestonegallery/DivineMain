@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -16,7 +15,7 @@ import {
   MessageCircle
 } from "lucide-react";
 import { FormEvent, MouseEvent, useCallback, useEffect, useId, useRef, useState } from "react";
-import { AccountControl, MobileAccountControl } from "@/components/Auth/account-control";
+import { AccountControl } from "@/components/Auth/account-control";
 import { AuthModal } from "@/components/Auth/auth-modal";
 import { useAuth, useUser } from "@/components/Auth/auth-facade";
 import { useEnquiryBag } from "@/components/Customer/device-collections";
@@ -334,6 +333,29 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
     document.addEventListener("pointerdown", handleOutsidePointer, true);
     return () => document.removeEventListener("pointerdown", handleOutsidePointer, true);
   }, [closeMegaMenu, megaMenuOpen]);
+
+  useEffect(() => {
+    function protectCustomMurti(event: globalThis.MouseEvent) {
+      const target = event.target as HTMLElement | null;
+      const link = target?.closest<HTMLAnchorElement>("a[href]");
+      if (!link) return;
+
+      const destination = new URL(link.href, window.location.href);
+      if (destination.pathname !== "/custom-murti" || (isLoaded && isSignedIn)) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      window.dispatchEvent(new CustomEvent("dsg:open-auth", {
+        detail: {
+          pendingPath: `${destination.pathname}${destination.search}${destination.hash}`,
+          reason: "custom-murti",
+        },
+      }));
+    }
+
+    document.addEventListener("click", protectCustomMurti, true);
+    return () => document.removeEventListener("click", protectCustomMurti, true);
+  }, [isLoaded, isSignedIn]);
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     const form = event.currentTarget;
@@ -735,17 +757,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
         </div>
       ) : null}
 
-      <nav className={styles.mobileBottomNav} aria-label="Quick navigation">
-        <Link className={pathname === "/" ? styles.mobileNavActive : undefined} href="/" aria-current={pathname === "/" ? "page" : undefined}><Home aria-hidden="true" size={20} /><span>Home</span></Link>
-        <Link className={pathname.startsWith("/shop") || pathname.startsWith("/products/") ? styles.mobileNavActive : undefined} href="/shop" aria-current={pathname.startsWith("/shop") || pathname.startsWith("/products/") ? "page" : undefined}><ShoppingBag aria-hidden="true" size={20} /><span>Shop</span></Link>
-        <Link className={pathname.startsWith("/custom-murti") ? styles.mobileNavActive : undefined} href="/custom-murti" aria-current={pathname.startsWith("/custom-murti") ? "page" : undefined}><Sparkles aria-hidden="true" size={20} /><span>Custom</span></Link>
-        <Link className={pathname.startsWith("/cart") ? styles.mobileNavActive : undefined} href="/cart" aria-current={pathname.startsWith("/cart") ? "page" : undefined}><ShoppingBag aria-hidden="true" size={20} /><span>Bag{enquiryBag.count ? ` (${enquiryBag.count})` : ""}</span></Link>
-        <MobileAccountControl 
-          activeClassName={pathname.startsWith("/account") ? styles.mobileNavActive : undefined} 
-          defaultClassName={undefined} 
-        />
-      </nav>
-      
       <AuthModal />
     </>
   );

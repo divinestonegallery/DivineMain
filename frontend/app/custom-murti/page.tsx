@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/common/site-header";
 import { buttonClassName } from "@/components/ui/button";
 import { ToastProvider } from "@/components/ui/toast";
 import { ConsultationForm } from "@/components/CustomMurti/consultation-form";
+import { CustomMurtiAccess } from "@/components/CustomMurti/custom-murti-access";
 import styles from "./custom-murti.module.css";
 
 export const metadata: Metadata = {
@@ -28,35 +29,37 @@ export default function CustomMurtiPage() {
     <ToastProvider>
       <SiteHeader />
       <main id="main-content" tabIndex={-1}>
-        <section className={styles.customizeSection}>
-          <div className={`${styles.customizeLayout} site-container`}>
-            <div className={styles.customizeIntro}>
-              <p className={styles.eyebrow}>Turn Imagination into Reality</p>
-              <h1 className="font-display">Customize Your Moorti</h1>
-              <p className={styles.lede}>
-                Have a specific vision in mind? Share your requirements with us and our artisans will help bring your customized stone moorti to life.
-              </p>
-              <ul className={styles.featureList}>
-                {features.map(({ icon: Icon, title, copy }) => (
-                  <li key={title}>
-                    <span><Icon aria-hidden="true" size={18} /></span>
-                    <strong>{title}</strong>
-                    <small>{copy}</small>
-                  </li>
-                ))}
-              </ul>
-              <div className={styles.assistStrip}>
-                <BadgeCheck aria-hidden="true" size={18} />
-                <span>Prefer to talk first?</span>
-                <a className={buttonClassName({ variant: "outline", size: "sm" })} href={whatsappHref} target="_blank" rel="noreferrer">
-                  <MessageCircle aria-hidden="true" size={16} /> WhatsApp <ArrowRight aria-hidden="true" size={15} />
-                </a>
+        <CustomMurtiAccess>
+          <section className={styles.customizeSection}>
+            <div className={`${styles.customizeLayout} site-container`}>
+              <div className={styles.customizeIntro}>
+                <p className={styles.eyebrow}>Turn Imagination into Reality</p>
+                <h1 className="font-display">Customize Your Moorti</h1>
+                <p className={styles.lede}>
+                  Have a specific vision in mind? Share your requirements with us and our artisans will help bring your customized stone moorti to life.
+                </p>
+                <ul className={styles.featureList}>
+                  {features.map(({ icon: Icon, title, copy }) => (
+                    <li key={title}>
+                      <span><Icon aria-hidden="true" size={18} /></span>
+                      <strong>{title}</strong>
+                      <small>{copy}</small>
+                    </li>
+                  ))}
+                </ul>
+                <div className={styles.assistStrip}>
+                  <BadgeCheck aria-hidden="true" size={18} />
+                  <span>Prefer to talk first?</span>
+                  <a className={buttonClassName({ variant: "outline", size: "sm" })} href={whatsappHref} target="_blank" rel="noreferrer">
+                    <MessageCircle aria-hidden="true" size={16} /> WhatsApp <ArrowRight aria-hidden="true" size={15} />
+                  </a>
+                </div>
               </div>
-            </div>
 
-            <ConsultationForm />
-          </div>
-        </section>
+              <ConsultationForm />
+            </div>
+          </section>
+        </CustomMurtiAccess>
       </main>
       <SiteFooter />
       <CookieConsent />

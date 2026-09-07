@@ -137,7 +137,7 @@ function TaxonomyModal({
     try {
       let imageUrl: string | undefined;
       if (kind === "category" && selectedImages.length) {
-        const [upload] = await uploadPendingAdminImages(selectedImages, setSelectedImages);
+        const [upload] = await uploadPendingAdminImages(selectedImages, setSelectedImages, "category");
         if (!upload.upload.public_url) throw new Error("Upload completed, but the API did not return an image URL.");
         imageUrl = upload.upload.public_url;
       } else if (kind === "category" && existingCategoryImageRemoved) {

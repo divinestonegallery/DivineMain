@@ -1159,10 +1159,6 @@
   height: 22px;
 }
 
-.mobileBottomNav {
-  display: none;
-}
-
 .breadcrumbs {
   color: var(--ink-muted);
   font-size: 0.78rem;
@@ -1725,49 +1721,6 @@
 
   .searchProduct {
     grid-template-columns: 56px minmax(0, 1fr);
-  }
-
-  .mobileBottomNav {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 70;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    min-height: 64px;
-    padding-bottom: env(safe-area-inset-bottom);
-    border-top: 1px solid var(--border);
-    background: rgb(255 253 249 / 0.97);
-    box-shadow: 0 -8px 25px rgb(47 37 24 / 0.07);
-    backdrop-filter: blur(16px);
-  }
-
-  .mobileBottomNav a,
-  .mobileBottomNav button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem;
-    min-width: 0;
-    border: 0;
-    color: var(--ink-muted);
-    background: transparent;
-    font-size: 0.62rem;
-    cursor: pointer;
-  }
-
-  .mobileBottomNav a span,
-  .mobileBottomNav button span {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .mobileBottomNav a.mobileNavActive {
-    color: var(--gold-deep);
   }
 
   .newsletterInner {

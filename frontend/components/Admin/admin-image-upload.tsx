@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { ChangeEvent, Dispatch, DragEvent, SetStateAction, useEffect, useRef, useState } from "react";
 import { ImageIcon, Trash2, UploadCloud, X } from "lucide-react";
-import { friendlyUploadError, uploadAdminImage, validateUploadImageFile, type AdminUploadSession } from "@/api/uploads";
+import { friendlyUploadError, uploadAdminImage, validateUploadImageFile, type AdminImageUploadTarget, type AdminUploadSession } from "@/api/uploads";
 import styles from "./admin-image-upload.module.css";
 
 export type AdminSelectedImage = {
@@ -42,6 +42,7 @@ function fileLabel(file: File) {
 export async function uploadPendingAdminImages(
   images: AdminSelectedImage[],
   setImages: Dispatch<SetStateAction<AdminSelectedImage[]>>,
+  target: AdminImageUploadTarget = "product",
 ) {
   const uploads: UploadedAdminSelection[] = [];
 
@@ -53,7 +54,7 @@ export async function uploadPendingAdminImages(
 
     setImages((current) => current.map((item) => item.id === image.id ? { ...item, status: "uploading", error: "" } : item));
     try {
-      const upload = await uploadAdminImage(image.file);
+      const upload = await uploadAdminImage(image.file, target);
       setImages((current) => current.map((item) => item.id === image.id ? { ...item, status: "uploaded", result: upload } : item));
       uploads.push({ selection: image, upload });
     } catch (reason) {

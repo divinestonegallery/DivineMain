@@ -10,7 +10,9 @@ const adminSectionSlugs = [
   "product",
   "review",
   "faqs",
+  "contact",
   "customer-requests",
+  "custom-mooti",
   "staff",
 ] as const;
 

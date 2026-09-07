@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search } from "lucide-react";
-import { apiRequest } from "@/api/client";
+import { ApiError, apiRequest } from "@/api/client";
 import {
   AdminImageUpload,
   uploadPendingAdminImages,
@@ -177,15 +177,21 @@ async function attachUploadedProductImages(product: AdminProduct, uploads: Uploa
 
   for (const upload of uploads) {
     const currentImageCount = nextProduct.images?.length ?? 0;
-    const image = await apiRequest<ProductImage>(`/api/admin/products/${product.id}/images`, {
-      method: "POST",
-      body: JSON.stringify({
-        object_key: upload.upload.object_key,
-        alt_text: upload.selection.file.name || product.name,
-        cover_photo: currentImageCount === 0,
-        display_order: currentImageCount,
-      }),
-    });
+    let image: ProductImage;
+    try {
+      image = await apiRequest<ProductImage>(`/api/admin/products/${product.id}/images`, {
+        method: "POST",
+        body: JSON.stringify({
+          object_key: upload.upload.object_key,
+          alt_text: upload.selection.file.name || product.name,
+          cover_photo: currentImageCount === 0,
+          display_order: currentImageCount,
+        }),
+      });
+    } catch (reason) {
+      if (reason instanceof ApiError && (reason.status === 401 || reason.status === 403)) throw reason;
+      throw new Error("Image uploaded, but it could not be attached to the product.");
+    }
     nextProduct = { ...nextProduct, images: upsertImage(nextProduct.images, image) };
   }
 

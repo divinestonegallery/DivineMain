@@ -23,7 +23,9 @@ export const adminSectionSlugs = [
   "product",
   "review",
   "faqs",
+  "contact",
   "customer-requests",
+  "custom-mooti",
   "staff",
 ] as const;
 
@@ -116,8 +118,14 @@ const sectionDetails: Record<Exclude<AdminSectionSlug, "overview">, { title: str
   faqs: {
     title: "FAQs",
   },
+  contact: {
+    title: "Contact",
+  },
   "customer-requests": {
     title: "Customer Requests",
+  },
+  "custom-mooti": {
+    title: "Custom Mooti",
   },
   staff: {
     title: "Staff",
@@ -139,6 +147,7 @@ const customizeTransitions = {
   accepted: ["accepted", "closed"],
   closed: ["closed"],
 };
+const requestPageSize = 25;
 
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : value == null ? "" : String(value);
@@ -158,6 +167,30 @@ function when(value?: string) {
 function asItems<T>(payload: AdminList<T> | T[] | null | undefined) {
   if (!payload) return [];
   return Array.isArray(payload) ? payload : payload.items ?? [];
+}
+
+function asAdminList<T>(payload: AdminList<T> | T[] | null | undefined, page: number, pageSize = requestPageSize): AdminList<T> {
+  const items = asItems(payload);
+  if (!payload || Array.isArray(payload)) {
+    return {
+      items,
+      pagination: {
+        page,
+        page_size: pageSize,
+        total_items: items.length,
+        total_pages: items.length ? 1 : 0,
+      },
+    };
+  }
+  return {
+    items,
+    pagination: payload.pagination ?? {
+      page,
+      page_size: pageSize,
+      total_items: items.length,
+      total_pages: items.length ? 1 : 0,
+    },
+  };
 }
 
 function hasAdminRole(user: unknown) {
@@ -480,6 +513,39 @@ function allowedRequestStatuses(item: CustomerRequestRecord) {
   return customizeTransitions[item.status] ?? customizeStatuses;
 }
 
+function requestListUrl(path: string, page: number, status: string) {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(requestPageSize),
+  });
+  if (status !== "all") params.set("status", status);
+  return `${path}?${params.toString()}`;
+}
+
+function PaginationControls({
+  pagination,
+  loading,
+  onPageChange,
+}: {
+  pagination?: AdminPagination;
+  loading: boolean;
+  onPageChange: (page: number) => void;
+}) {
+  const page = Math.max(1, pagination?.page ?? 1);
+  const totalPages = Math.max(1, pagination?.total_pages ?? 1);
+  const totalItems = pagination?.total_items ?? 0;
+
+  if (totalPages <= 1 && !totalItems) return null;
+
+  return (
+    <div className={styles.pagination}>
+      <button className={styles.secondary} type="button" onClick={() => onPageChange(page - 1)} disabled={loading || page <= 1}>Previous</button>
+      <span>Page {page} of {totalPages}{totalItems ? ` - ${totalItems} total` : ""}</span>
+      <button className={styles.secondary} type="button" onClick={() => onPageChange(page + 1)} disabled={loading || page >= totalPages}>Next</button>
+    </div>
+  );
+}
+
 function RequestRow({ item, refresh }: { item: CustomerRequestRecord; refresh: () => Promise<void> }) {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -559,6 +625,142 @@ function RequestRow({ item, refresh }: { item: CustomerRequestRecord; refresh: (
         </form>
       </div>
     </details>
+  );
+}
+
+function ContactAdmin() {
+  const { showToast } = useToast();
+  const [list, setList] = useState<AdminList<ContactRequestRecord>>(() => asAdminList<ContactRequestRecord>([], 1));
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<"all" | ContactRequestRecord["status"]>("all");
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const payload = await apiRequest<AdminList<Omit<ContactRequestRecord, "kind">> | Array<Omit<ContactRequestRecord, "kind">>>(
+        requestListUrl("/api/admin/contact/message", page, status),
+      );
+      const normalized = asAdminList(payload, page);
+      setList({
+        ...normalized,
+        items: normalized.items.map((item): ContactRequestRecord => ({ ...item, kind: "contact" })),
+      });
+    } catch (reason) {
+      showToast(reason instanceof Error ? reason.message : "Contact messages could not be loaded.");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, showToast, status]);
+
+  useEffect(() => {
+    const task = window.setTimeout(() => { void refresh(); }, 0);
+    return () => window.clearTimeout(task);
+  }, [refresh]);
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return list.items.filter((item) => !needle || `${requestTitle(item)} ${item.email} ${item.phone} ${item.message} ${item.status}`.toLowerCase().includes(needle));
+  }, [list.items, query]);
+
+  return (
+    <section className={styles.section}>
+      <div className={styles.metrics}>
+        <article><Mail size={19} /><span><small>Messages in view</small><strong>{list.items.length}</strong></span></article>
+        <article><AlertTriangle size={19} /><span><small>New</small><strong>{list.items.filter((item) => item.status === "new").length}</strong></span></article>
+        <article><CheckCircle2 size={19} /><span><small>Contacted</small><strong>{list.items.filter((item) => item.status === "contacted").length}</strong></span></article>
+        <article><FileText size={19} /><span><small>Closed</small><strong>{list.items.filter((item) => item.status === "closed").length}</strong></span></article>
+      </div>
+      <div className={styles.toolbar}>
+        <label><Search size={17} /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search contacts..." /></label>
+        <select
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value as typeof status);
+            setPage(1);
+          }}
+          aria-label="Filter contact status"
+        >
+          <option value="all">All statuses</option>
+          {contactStatuses.map((value) => <option value={value} key={value}>{label(value)}</option>)}
+        </select>
+        <button className={styles.secondary} type="button" onClick={() => void refresh()} disabled={loading}><RefreshCw size={15} />{loading ? "Loading..." : "Refresh"}</button>
+      </div>
+      <div className={styles.list}>
+        {loading ? <p className={styles.empty}>Loading contact messages...</p> : filtered.map((item) => <RequestRow item={item} refresh={refresh} key={`contact-${item.id}`} />)}
+        {!loading && !filtered.length ? <p className={styles.empty}>No contact messages found.</p> : null}
+      </div>
+      <PaginationControls pagination={list.pagination} loading={loading} onPageChange={setPage} />
+    </section>
+  );
+}
+
+function CustomMootiAdmin() {
+  const { showToast } = useToast();
+  const [list, setList] = useState<AdminList<CustomizeRequestRecord>>(() => asAdminList<CustomizeRequestRecord>([], 1));
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<"all" | CustomizeRequestRecord["status"]>("all");
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const payload = await apiRequest<AdminList<Omit<CustomizeRequestRecord, "kind">> | Array<Omit<CustomizeRequestRecord, "kind">>>(
+        requestListUrl("/api/admin/contact/customize", page, status),
+      );
+      const normalized = asAdminList(payload, page);
+      setList({
+        ...normalized,
+        items: normalized.items.map((item): CustomizeRequestRecord => ({ ...item, kind: "customize" })),
+      });
+    } catch (reason) {
+      showToast(reason instanceof Error ? reason.message : "Custom moorti requests could not be loaded.");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, showToast, status]);
+
+  useEffect(() => {
+    const task = window.setTimeout(() => { void refresh(); }, 0);
+    return () => window.clearTimeout(task);
+  }, [refresh]);
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return list.items.filter((item) => !needle || `${requestTitle(item)} ${item.email} ${item.customer_email} ${item.phone} ${item.city} ${item.description} ${item.status}`.toLowerCase().includes(needle));
+  }, [list.items, query]);
+
+  return (
+    <section className={styles.section}>
+      <div className={styles.metrics}>
+        <article><Hammer size={19} /><span><small>Requests in view</small><strong>{list.items.length}</strong></span></article>
+        <article><AlertTriangle size={19} /><span><small>New</small><strong>{list.items.filter((item) => item.status === "new").length}</strong></span></article>
+        <article><FileText size={19} /><span><small>Quoted</small><strong>{list.items.filter((item) => item.status === "quoted").length}</strong></span></article>
+        <article><CheckCircle2 size={19} /><span><small>Accepted or Closed</small><strong>{list.items.filter((item) => ["accepted", "closed"].includes(item.status)).length}</strong></span></article>
+      </div>
+      <div className={styles.toolbar}>
+        <label><Search size={17} /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search custom moorti requests" /></label>
+        <select
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value as typeof status);
+            setPage(1);
+          }}
+          aria-label="Filter custom moorti status"
+        >
+          <option value="all">All statuses</option>
+          {customizeStatuses.map((value) => <option value={value} key={value}>{label(value)}</option>)}
+        </select>
+        <button className={styles.secondary} type="button" onClick={() => void refresh()} disabled={loading}><RefreshCw size={15} />{loading ? "Loading..." : "Refresh"}</button>
+      </div>
+      <div className={styles.list}>
+        {loading ? <p className={styles.empty}>Loading custom moorti requests...</p> : filtered.map((item) => <RequestRow item={item} refresh={refresh} key={`customize-${item.id}`} />)}
+        {!loading && !filtered.length ? <p className={styles.empty}>No custom moorti requests found.</p> : null}
+      </div>
+      <PaginationControls pagination={list.pagination} loading={loading} onPageChange={setPage} />
+    </section>
   );
 }
 
@@ -642,7 +844,9 @@ function SectionBody({ section }: { section: Exclude<AdminSectionSlug, "overview
   if (section === "product") return <CatalogAdmin />;
   if (section === "review") return <ReviewAdmin />;
   if (section === "faqs") return <FAQsAdmin />;
+  if (section === "contact") return <ContactAdmin />;
   if (section === "customer-requests") return <CustomerRequestsAdmin />;
+  if (section === "custom-mooti") return <CustomMootiAdmin />;
   if (section === "staff") return <StaffSecurityAdmin />;
   return null;
 }
