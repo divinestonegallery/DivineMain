@@ -50,6 +50,8 @@ export function AdminEntityModal({
   submitting,
   error,
   size = "default",
+  submitLabel,
+  submitDisabled = false,
 }: {
   open: boolean;
   mode: AdminEntityMode;
@@ -60,9 +62,11 @@ export function AdminEntityModal({
   submitting: boolean;
   error?: string | null;
   size?: "default" | "wide";
+  submitLabel?: string;
+  submitDisabled?: boolean;
 }) {
   const title = `${mode === "create" ? "Create" : "Edit"} ${entityLabel}`;
-  const submitText = mode === "create" ? "Create" : "Save Changes";
+  const submitText = submitLabel ?? (mode === "create" ? "Create" : "Save Changes");
   const submittingText = mode === "create" ? "Creating..." : "Saving...";
   const close = submitting ? () => undefined : onClose;
 
@@ -78,7 +82,7 @@ export function AdminEntityModal({
         {children}
         <div className={styles.footer}>
           <Button variant="outline" type="button" onClick={onClose} disabled={submitting}>Cancel</Button>
-          <Button type="submit" form={formId} disabled={submitting}>{submitting ? submittingText : submitText}</Button>
+          <Button type="submit" form={formId} disabled={submitting || submitDisabled}>{submitting ? submittingText : submitText}</Button>
         </div>
       </div>
     </Modal>

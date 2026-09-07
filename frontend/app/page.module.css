@@ -859,6 +859,10 @@
   padding-block: var(--home-section-space);
 }
 
+.reviewsSection {
+  overflow-x: clip;
+}
+
 .finalCta {
   text-align: center;
   background:
@@ -1123,48 +1127,74 @@
 
 .reviewShowcase {
   display: grid;
-  grid-template-columns: minmax(210px, 0.28fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 11.75rem;
   align-items: stretch;
-  gap: clamp(1rem, 2vw, 1.8rem);
+  gap: clamp(0.8rem, 1.6vw, 1.25rem);
+  min-width: 0;
+}
+
+.reviewShowcase > .carouselShell {
+  min-width: 0;
 }
 
 .reviewSummary {
   display: flex;
   min-height: 260px;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  padding: clamp(1.3rem, 2.4vw, 1.8rem);
+  gap: 0.42rem;
+  padding: 1rem 0.85rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--foreground);
-  color: white;
+  background: var(--surface);
+  color: var(--foreground);
+  text-align: center;
   box-shadow: var(--shadow-soft);
 }
 
 .reviewSummary strong {
   font-family: var(--font-brand-display);
-  font-size: clamp(2.2rem, 4vw, 3.3rem);
+  font-size: clamp(1.85rem, 2.1vw, 2.35rem);
   font-weight: 400;
   line-height: 1;
 }
 
 .reviewSummary span {
-  color: #cfc6bb;
-  font-size: 0.84rem;
+  color: var(--ink-muted);
+  font-size: 0.76rem;
 }
 
 .reviewSummary .stars {
-  color: var(--gold-soft);
+  color: var(--gold-deep);
 }
 
 .reviewRail {
-  grid-auto-columns: minmax(280px, 36%);
+  --review-visible: 3;
+  --review-gap: clamp(0.8rem, 1.4vw, 1.1rem);
+  gap: var(--review-gap);
+  grid-auto-columns: calc((100% - (var(--review-visible) - 1) * var(--review-gap)) / var(--review-visible));
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 0;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.reviewRail > * {
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .reviewCard {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   min-height: 260px;
+  height: 100%;
   flex-direction: column;
   justify-content: space-between;
   padding: clamp(1.3rem, 2.4vw, 1.8rem);
@@ -1252,6 +1282,14 @@
 }
 
 @media (max-width: 1120px) {
+  .reviewShowcase {
+    grid-template-columns: minmax(0, 1fr) 10.75rem;
+  }
+
+  .reviewRail {
+    --review-visible: 2;
+  }
+
   .heroInner {
     grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
     gap: 2.5rem;
@@ -1325,15 +1363,17 @@
   }
 
   .reviewRail {
-    grid-auto-columns: minmax(275px, 48%);
+    --review-visible: 2;
   }
 
   .reviewShowcase {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 10rem;
+    gap: 0.75rem;
   }
 
   .reviewSummary {
-    min-height: auto;
+    min-height: 260px;
+    padding: 0.95rem 0.75rem;
   }
 
   .customImage,
@@ -1577,7 +1617,24 @@
   }
 
   .reviewRail {
-    grid-auto-columns: minmax(238px, 84%);
+    --review-visible: 1;
+    --review-gap: 0.75rem;
+    grid-auto-columns: calc((100% - (var(--review-visible) - 1) * var(--review-gap)) / var(--review-visible));
+    margin-inline: 0;
+    padding-inline: 0;
+    scroll-padding-inline: 0;
+  }
+
+  .reviewShowcase {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .reviewSummary {
+    min-height: 0;
+    width: min(100%, 12.5rem);
+    justify-self: center;
+    padding: 0.85rem 0.75rem;
   }
 
   .categoryGrid {
@@ -1606,10 +1663,6 @@
 
   .reviewCard {
     min-height: 220px;
-    padding: 1rem;
-  }
-
-  .reviewSummary {
     padding: 1rem;
   }
 
@@ -1687,7 +1740,7 @@
   }
 
   .reviewRail {
-    grid-auto-columns: minmax(224px, 84%);
+    --review-visible: 1;
   }
 
   .categoryCard {

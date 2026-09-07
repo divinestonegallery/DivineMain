@@ -402,15 +402,6 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
         />
         {reviews.length ? (
           <div className={styles.reviewShowcase}>
-            <aside className={styles.reviewSummary} aria-label="Review summary">
-              <strong>{averageRating.toFixed(1)}/5</strong>
-              <div className={styles.stars} aria-hidden="true">
-                {Array.from({ length: 5 }, (_, index) => (
-                  <Star fill={index < Math.round(averageRating) ? "currentColor" : "none"} key={index} size={17} strokeWidth={1.5} />
-                ))}
-              </div>
-              <span>{reviews.length} {reviews.length === 1 ? "review" : "reviews"}</span>
-            </aside>
             <HomeCarouselRail className={styles.reviewRail} label="Customer Reviews">
               {reviews.map((review) => {
                 const rating = Math.max(0, Math.min(5, Number(review.rating ?? 0)));
@@ -442,6 +433,15 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
                 );
               })}
             </HomeCarouselRail>
+            <aside className={styles.reviewSummary} aria-label="Review summary">
+              <strong>{averageRating.toFixed(1)}/5</strong>
+              <div className={styles.stars} aria-hidden="true">
+                {Array.from({ length: 5 }, (_, index) => (
+                  <Star fill={index < Math.round(averageRating) ? "currentColor" : "none"} key={index} size={16} strokeWidth={1.5} />
+                ))}
+              </div>
+              <span>{reviews.length} {reviews.length === 1 ? "review" : "reviews"}</span>
+            </aside>
           </div>
         ) : (
           <EmptySection label="Customer Reviews are waiting for backend items" />

@@ -2,8 +2,18 @@
 
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, CircleHelp, FileText, Hammer, Mail, Plus, RefreshCw, Search, Star, Trash2 } from "lucide-react";
-import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { apiRequest } from "@/api/client";
+import {
+  AdminCheckboxField,
+  AdminEntityModal,
+  AdminFieldGrid,
+  type AdminFieldErrors,
+  AdminModalField,
+  AdminModalForm,
+  getFieldError,
+  parseAdminFormError,
+} from "@/components/Admin/admin-entity-modal";
 import { SignIn, useUser } from "@/components/Auth/auth-facade";
 import { useToast } from "@/components/ui/toast";
 import { AdminPageHeader } from "./admin-page-header";
@@ -362,6 +372,138 @@ function faqPayload(form: FormData) {
   };
 }
 
+function validateFaqForm(question: string, answer: string, displayOrder: string) {
+  const fieldErrors: AdminFieldErrors = {};
+  if (!question) fieldErrors.question = "Question is required.";
+  else if (question.length < 5) fieldErrors.question = "Question must be at least 5 characters.";
+  if (!answer) fieldErrors.answer = "Answer is required.";
+  else if (answer.length < 5) fieldErrors.answer = "Answer must be at least 5 characters.";
+  const order = Number(displayOrder || 0);
+  if (!Number.isFinite(order) || order < 0) fieldErrors.display_order = "Display order must be 0 or greater.";
+  return fieldErrors;
+}
+
+function CreateFAQModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => Promise<void> }) {
+  const { showToast } = useToast();
+  const formId = useId();
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [category, setCategory] = useState("");
+  const [displayOrder, setDisplayOrder] = useState("0");
+  const [isActive, setIsActive] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
+
+  const trimmedQuestion = question.trim();
+  const trimmedAnswer = answer.trim();
+  const isValid = !Object.keys(validateFaqForm(trimmedQuestion, trimmedAnswer, displayOrder)).length;
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submitting) return;
+
+    const nextFieldErrors = validateFaqForm(trimmedQuestion, trimmedAnswer, displayOrder);
+    setError(null);
+    setFieldErrors(nextFieldErrors);
+    if (Object.keys(nextFieldErrors).length) return;
+
+    setSubmitting(true);
+    try {
+      await apiRequest<FAQRecord>("/api/admin/faqs", {
+        method: "POST",
+        body: JSON.stringify({
+          question: trimmedQuestion,
+          answer: trimmedAnswer,
+          category: category.trim(),
+          display_order: Number(displayOrder || 0),
+          is_active: isActive,
+        }),
+      });
+      showToast("FAQ created.");
+      onClose();
+      await onCreated();
+    } catch (reason) {
+      const nextError = parseAdminFormError(reason, "FAQ could not be created.");
+      setError(nextError.message);
+      setFieldErrors(nextError.fieldErrors);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <AdminEntityModal
+      open
+      mode="create"
+      entityLabel="FAQ"
+      formId={formId}
+      onClose={onClose}
+      submitting={submitting}
+      error={error}
+      submitLabel="Create FAQ"
+      submitDisabled={!isValid}
+    >
+      <AdminModalForm id={formId} onSubmit={submit}>
+        <AdminFieldGrid>
+          <AdminModalField label="Question" required wide error={getFieldError(fieldErrors, "question")}>
+            <textarea
+              name="question"
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder="Enter the FAQ question"
+              rows={3}
+              disabled={submitting}
+              aria-invalid={Boolean(getFieldError(fieldErrors, "question"))}
+            />
+          </AdminModalField>
+          <AdminModalField label="Answer" required wide error={getFieldError(fieldErrors, "answer")}>
+            <textarea
+              name="answer"
+              value={answer}
+              onChange={(event) => setAnswer(event.target.value)}
+              placeholder="Enter the FAQ answer"
+              rows={6}
+              disabled={submitting}
+              aria-invalid={Boolean(getFieldError(fieldErrors, "answer"))}
+            />
+          </AdminModalField>
+          <AdminModalField label="Category" error={getFieldError(fieldErrors, "category")}>
+            <input
+              name="category"
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              placeholder="General"
+              disabled={submitting}
+              aria-invalid={Boolean(getFieldError(fieldErrors, "category"))}
+            />
+          </AdminModalField>
+          <AdminModalField label="Display order" error={getFieldError(fieldErrors, "display_order")} hint="Lower numbers appear first.">
+            <input
+              name="display_order"
+              type="number"
+              min="0"
+              value={displayOrder}
+              onChange={(event) => setDisplayOrder(event.target.value)}
+              disabled={submitting}
+              aria-invalid={Boolean(getFieldError(fieldErrors, "display_order"))}
+            />
+          </AdminModalField>
+          <AdminCheckboxField label="Active" error={getFieldError(fieldErrors, "is_active")}>
+            <input
+              name="is_active"
+              type="checkbox"
+              checked={isActive}
+              onChange={(event) => setIsActive(event.target.checked)}
+              disabled={submitting}
+            />
+          </AdminCheckboxField>
+        </AdminFieldGrid>
+      </AdminModalForm>
+    </AdminEntityModal>
+  );
+}
+
 function FAQRow({ item, refresh }: { item: FAQRecord; refresh: () => Promise<void> }) {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -450,22 +592,6 @@ function FAQsAdmin() {
     return () => window.clearTimeout(task);
   }, [refresh]);
 
-  async function create(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    try {
-      await apiRequest<FAQRecord>("/api/admin/faqs", {
-        method: "POST",
-        body: JSON.stringify(faqPayload(new FormData(event.currentTarget))),
-      });
-      event.currentTarget.reset();
-      setCreating(false);
-      showToast("FAQ created.");
-      await refresh();
-    } catch (reason) {
-      showToast(reason instanceof Error ? reason.message : "FAQ could not be created.");
-    }
-  }
-
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return items.filter((item) => !needle || `${item.question} ${item.answer} ${item.category}`.toLowerCase().includes(needle));
@@ -483,20 +609,9 @@ function FAQsAdmin() {
       <div className={styles.toolbar}>
         <label><Search size={17} /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search FAQs" /></label>
         <button className={styles.secondary} type="button" onClick={() => void refresh()} disabled={loading}><RefreshCw size={15} />{loading ? "Loading..." : "Refresh"}</button>
-        <button className={styles.primary} type="button" onClick={() => setCreating((value) => !value)}><Plus size={15} /> New FAQ</button>
+        <button className={styles.primary} type="button" onClick={() => setCreating(true)}><Plus size={15} /> Create New FAQ</button>
       </div>
-      {creating ? (
-        <div className={styles.recordBody}>
-          <form className={styles.fieldGrid} onSubmit={create}>
-            <label className={styles.wide}><span>Question</span><textarea name="question" required /></label>
-            <label className={styles.wide}><span>Answer</span><textarea name="answer" required rows={4} /></label>
-            <label><span>Category</span><input name="category" /></label>
-            <label><span>Display order</span><input name="display_order" type="number" min="0" defaultValue="0" /></label>
-            <label className={styles.checkField}><input name="is_active" type="checkbox" defaultChecked /><span>Active</span></label>
-            <div className={`${styles.actions} ${styles.wide}`}><button className={styles.primary} type="submit">Create FAQ</button></div>
-          </form>
-        </div>
-      ) : null}
+      {creating ? <CreateFAQModal onClose={() => setCreating(false)} onCreated={refresh} /> : null}
       <div className={styles.list}>
         {filtered.map((item) => <FAQRow item={item} refresh={refresh} key={item.id} />)}
         {!loading && !filtered.length ? <p className={styles.empty}>No FAQs found.</p> : null}

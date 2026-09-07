@@ -10,6 +10,24 @@ type ScrollState = {
   canScrollForward: boolean;
 };
 
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function carouselMetrics(rail: HTMLDivElement) {
+  const items = Array.from(rail.children).filter((node): node is HTMLElement => node instanceof HTMLElement);
+  const firstItem = items[0];
+  const computedStyle = window.getComputedStyle(rail);
+  const gap = Number.parseFloat(computedStyle.columnGap || computedStyle.gap || "0") || 0;
+  const cardWidth = firstItem?.getBoundingClientRect().width ?? 0;
+  const step = cardWidth + gap;
+  const visible = step > 0 ? Math.max(1, Math.round((rail.clientWidth + gap) / step)) : 1;
+  const maxIndex = Math.max(0, items.length - visible);
+  const currentIndex = step > 0 ? Math.round(rail.scrollLeft / step) : 0;
+
+  return { items, step, visible, maxIndex, currentIndex };
+}
+
 export function HomeCarouselRail({
   children,
   className,
@@ -40,15 +58,16 @@ export function HomeCarouselRail({
     const rail = railRef.current;
     if (!rail) return;
 
-    const firstItem = rail.firstElementChild instanceof HTMLElement ? rail.firstElementChild : null;
-    const computedStyle = window.getComputedStyle(rail);
-    const gap = Number.parseFloat(computedStyle.columnGap || computedStyle.gap || "0") || 0;
-    const cardWidth = firstItem?.getBoundingClientRect().width ?? 0;
-    const scrollAmount = cardWidth > 0 ? cardWidth + gap : rail.clientWidth * 0.8;
+    const { step, maxIndex, currentIndex } = carouselMetrics(rail);
+    if (step <= 0) {
+      rail.scrollBy({ left: direction * rail.clientWidth * 0.8, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+      return;
+    }
 
-    rail.scrollBy({
-      left: direction * scrollAmount,
-      behavior: "smooth",
+    const nextIndex = Math.min(maxIndex, Math.max(0, currentIndex + direction));
+    rail.scrollTo({
+      left: nextIndex * step,
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
     });
   }, []);
 
@@ -63,11 +82,13 @@ export function HomeCarouselRail({
     Array.from(rail.children).forEach((child) => resizeObserver.observe(child));
 
     rail.addEventListener("scroll", updateScrollState, { passive: true });
+    rail.addEventListener("scrollend", updateScrollState);
     window.addEventListener("resize", updateScrollState);
 
     return () => {
       resizeObserver.disconnect();
       rail.removeEventListener("scroll", updateScrollState);
+      rail.removeEventListener("scrollend", updateScrollState);
       window.removeEventListener("resize", updateScrollState);
     };
   }, [children, updateScrollState]);

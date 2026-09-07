@@ -26,6 +26,7 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [panning, setPanning] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const panRef = useRef(pan);
   const dragRef = useRef<{
@@ -157,6 +158,26 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
   useEffect(() => {
     if (!expanded) return;
 
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+
+      if (event.deltaY < 0) {
+        updateZoom("in");
+      } else if (event.deltaY > 0) {
+        updateZoom("out");
+      }
+    };
+
+    overlay.addEventListener("wheel", handleWheel, { passive: false });
+    return () => overlay.removeEventListener("wheel", handleWheel);
+  }, [expanded, updateZoom]);
+
+  useEffect(() => {
+    if (!expanded) return;
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -213,7 +234,7 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
         ))}
       </div>
       {expanded ? (
-        <div className={styles.imageViewerOverlay} role="dialog" aria-modal="true" aria-label="Expanded product image">
+        <div className={styles.imageViewerOverlay} role="dialog" aria-modal="true" aria-label="Expanded product image" ref={overlayRef}>
           <button className={styles.imageViewerBackdrop} type="button" aria-label="Close image viewer" onClick={closeViewer} />
           <button className={styles.imageViewerClose} type="button" aria-label="Close image viewer" onClick={closeViewer} ref={closeButtonRef}>
             <X aria-hidden="true" size={22} strokeWidth={1.8} />
