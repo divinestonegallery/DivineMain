@@ -19,7 +19,7 @@ const groupDetails: Record<string, { icon: LucideIcon; intro: string }> = {
   "choosing a murti": { icon: Gem, intro: "Products, materials and finding the right form." },
   "custom commissions": { icon: Sparkles, intro: "Creating a sacred work around your requirements." },
   "packing, delivery and care": { icon: PackageCheck, intro: "What happens after a work is selected." },
-  general: { icon: CircleHelp, intro: "Helpful answers from the gallery team." },
+  general: { icon: CircleHelp, intro: "" },
 };
 
 type FAQGroup = {
