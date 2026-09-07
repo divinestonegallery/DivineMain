@@ -92,7 +92,13 @@ class UploadService:
                     'Bucket': settings.R2_BUCKET_NAME,
                     'Key': object_key,
                     'ContentType': content_type,
-                    'ContentLength': file_size,
+                    # ContentLength is intentionally excluded: browsers control
+                    # Content-Length themselves (it is a forbidden header in the
+                    # Fetch spec) and cannot set it manually. Including it in
+                    # Params causes boto3 to add content-length to
+                    # X-Amz-SignedHeaders, which makes R2 reject the browser
+                    # preflight with 403. File size is validated server-side
+                    # in inspect_image() via head_object after the upload.
                 },
                 ExpiresIn=settings.R2_UPLOAD_URL_TTL_SECONDS,
             )
@@ -107,7 +113,8 @@ class UploadService:
             'public_url': UploadService.public_url(object_key),
             'required_headers': {
                 'Content-Type': content_type,
-                'Content-Length': str(file_size),
+                # Content-Length is set automatically by the browser from the
+                # request body — do not set it manually in JavaScript.
             },
             'expires_in_seconds': settings.R2_UPLOAD_URL_TTL_SECONDS,
         }
