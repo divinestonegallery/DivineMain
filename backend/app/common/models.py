@@ -18,6 +18,7 @@ class UploadSession(BaseModel):
 
     class Purpose(models.TextChoices):
         PRODUCT_IMAGE = "product_image", "Product image"
+        CATEGORY_IMAGE = "category_image", "Category image"
         CUSTOMIZATION_REFERENCE = "customization_reference", "Customization reference"
 
     object_key = models.CharField(max_length=500, unique=True)

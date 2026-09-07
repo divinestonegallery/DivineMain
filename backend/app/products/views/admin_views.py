@@ -8,12 +8,14 @@ from app.products.services.admin_service import (
     ProductImageService,
 )
 from app.products.validators import (
+    CategoryImageUploadUrlValidator,
     CategoryRequestValidator,
     DietyRequestValidator,
     MaterialRequestValidator,
     ProductImageFinalizeValidator,
     ProductImageReorderValidator,
     ProductImageUpdateValidator,
+    ProductImageUploadUrlValidator,
     ProductListValidator,
     ProductRequestValidator,
 )
@@ -113,6 +115,41 @@ class AdminProductImageReorderView(AdminAPIView):
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(message='Images reordered successfully', data=data))
 
+
+class AdminProductImageUploadUrlView(AdminAPIView):
+    """Generate a presigned PUT URL for uploading a product image to R2.
+
+    POST body: { content_type, file_size, filename? }
+    After uploading, finalise with POST /products/<id>/images using the returned object_key.
+    """
+    throttle_scope = 'uploads'
+
+    def post(self, request):
+        validator = ProductImageUploadUrlValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid upload request', err=validator.errors, status_code=400))
+        error, data = ProductImageService.generate_upload_url(validator.validated_data, request.user.id)
+        if error:
+            return get_response(ErrorResponse(message=error, status_code=400))
+        return get_response(SuccessResponse(message='Product image upload URL generated', data=data))
+
+
+class AdminCategoryImageUploadUrlView(AdminAPIView):
+    """Generate a presigned PUT URL for uploading a category image to R2.
+
+    POST body: { content_type, file_size, filename? }
+    After uploading, use the returned public_url as image_url when creating/updating the category.
+    """
+    throttle_scope = 'uploads'
+
+    def post(self, request):
+        validator = CategoryImageUploadUrlValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid upload request', err=validator.errors, status_code=400))
+        error, data = CategoryAdminService.generate_upload_url(validator.validated_data, request.user.id)
+        if error:
+            return get_response(ErrorResponse(message=error, status_code=400))
+        return get_response(SuccessResponse(message='Category image upload URL generated', data=data))
 
 class AdminCategoryListCreateView(AdminAPIView):
     def get(self, request):

@@ -5,6 +5,12 @@ from app.common.services.upload_service import UploadService
 
 class ContactUsCustomerService:
     @staticmethod
+    def generate_upload_url(data, actor_id):
+        """Generate a presigned PUT URL for a customization reference image upload."""
+        payload = {**data, 'purpose': 'customization_reference'}
+        return UploadService.create_presigned_upload(payload, actor_id)
+
+    @staticmethod
     def create_contact_message(data):
         if ContactUsRepository.recent_contact_duplicate(data['email'], data['message']):
             return 'This message was already submitted recently.', None
