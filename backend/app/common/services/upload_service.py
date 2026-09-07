@@ -68,7 +68,11 @@ class UploadService:
             return f'Image must not exceed {settings.R2_MAX_IMAGE_BYTES} bytes.', None
 
         UploadService.cleanup_expired(limit=10)
-        folder = 'product-images' if data['purpose'] == 'product_image' else 'customization-references'
+        folder = {
+            'product_image': 'product-images',
+            'category_image': 'category-images',
+            'customization_reference': 'customization-references',
+        }.get(data['purpose'], 'uploads')
         extension = UploadService.EXTENSIONS[content_type]
         object_key = f'{folder}/{uuid.uuid4().hex}.{extension}'
         expires_at = timezone.now() + timedelta(minutes=settings.R2_UPLOAD_SESSION_TTL_MINUTES)

@@ -92,14 +92,14 @@ class CustomerRepository:
     def get_or_create_authenticated_customer(clerk_id, email=None, name=None):
         customer = Customer.objects.filter(clerk_user_id=clerk_id).first()
         if customer:
-            # Customer already exists – only update name/email from the JWT
-            # if they differ, but never touch phone or other fields not present
-            # in the token payload (to avoid overwriting user-saved data).
+            # Sync email from the JWT if it changed (email changes are initiated
+            # in Clerk, so the JWT is always authoritative for email).
+            # Do NOT sync name — name is user-editable via the profile API and
+            # the JWT carries Clerk's copy which may be stale after a profile update.
             update_fields = []
             if email:
                 normalized_email = email.strip().lower()
                 if customer.email != normalized_email:
-                    # Ensure the new email is not already owned by a different account
                     email_taken = Customer.objects.filter(
                         email=normalized_email
                     ).exclude(id=customer.id).exists()
@@ -113,16 +113,13 @@ class CustomerRepository:
                     customer.role = Customer.Role.ADMIN
                     if 'role' not in update_fields:
                         update_fields.append('role')
-            if name and customer.name != name:
-                customer.name = name
-                update_fields.append('name')
             if update_fields:
                 update_fields.append('updated_at')
                 customer.save(update_fields=update_fields)
             return customer
 
-        # Customer does not exist yet – create them. Phone is not available
-        # from the JWT so we intentionally leave it as None here.
+        # Customer does not exist yet – create them using the JWT name as the
+        # initial value. Phone is not available from the JWT so we leave it None.
         safe_email = email or f"{clerk_id}@users.invalid"
         customer, _ = CustomerRepository.create_or_update_customer(
             clerk_id=clerk_id,
@@ -130,6 +127,7 @@ class CustomerRepository:
             name=name,
         )
         return customer
+
 
     @staticmethod
     def deactivate_customer(clerk_id):

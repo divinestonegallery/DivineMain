@@ -371,8 +371,21 @@ class CategoryRepository:
         return (None, CategoryAdminSerializer(item).data) if item else ('Not found', None)
 
     @staticmethod
+    def _validate_r2_image_url(image_url):
+        """Return an error string if image_url is set but is not a valid R2 public URL."""
+        if not image_url:
+            return None
+        base = settings.R2_PUBLIC_BASE_URL
+        if base and not image_url.startswith(base.rstrip('/')):
+            return 'image_url must be an R2 public URL. Generate one via POST /products/categories/upload-url.'
+        return None
+
+    @staticmethod
     def create_category(data):
         """Create a new category record."""
+        error = CategoryRepository._validate_r2_image_url(data.get('image_url'))
+        if error:
+            return error, None
         try:
             with transaction.atomic():
                 item = Category.objects.create(**data)
@@ -383,6 +396,9 @@ class CategoryRepository:
     @staticmethod
     def update_category(category_id, data):
         """Apply a partial update to a category record."""
+        error = CategoryRepository._validate_r2_image_url(data.get('image_url'))
+        if error:
+            return error, None
         item = Category.objects.filter(id=category_id).first()
         if not item:
             return 'Not found', None
