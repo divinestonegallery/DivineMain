@@ -274,6 +274,126 @@
   color: var(--gold-deep);
 }
 
+.keywordBuilderField {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.keywordBuilderLabel,
+.keywordEntry > label,
+.keywordCollectionLabel {
+  color: var(--ink-muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.keywordBuilder {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 0.8rem;
+}
+
+.keywordEntry,
+.keywordCollection {
+  display: grid;
+  align-content: start;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+}
+
+.keywordEntry input {
+  width: 100%;
+  min-height: 44px;
+  padding-inline: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+}
+
+.keywordEntry input:focus-visible,
+.keywordEntry button:focus-visible,
+.keywordChip button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.keywordEntry button {
+  width: fit-content;
+  min-height: 40px;
+  padding-inline: 1rem;
+  border: 1px solid var(--foreground);
+  border-radius: var(--radius-pill);
+  color: white;
+  background: var(--foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.keywordEntry button:disabled,
+.keywordChip button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.keywordChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.keywordChip {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 32px;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.4rem 0.3rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--foreground);
+  background: var(--surface-muted);
+  font-size: 0.72rem;
+}
+
+.keywordChip > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.keywordChip button {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--ink-muted);
+  background: transparent;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.keywordEmpty,
+.keywordFieldError {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+}
+
+.keywordFieldError {
+  color: var(--danger);
+}
+
 .editorGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -376,4 +496,5 @@
   .productSummary > .statusPill { display: none; }
   .productActions { grid-column: 1 / -1; justify-content: flex-end; }
   .editorActions button { width: 100%; margin-left: 0; }
+  .keywordBuilder { grid-template-columns: 1fr; }
 }

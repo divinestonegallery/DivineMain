@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search } from "lucide-react";
 import { ApiError, apiRequest } from "@/api/client";
 import {
@@ -52,7 +52,7 @@ type AdminProduct = {
   uid?: string;
   short_description?: string | null;
   description?: string | null;
-  keywords?: string | null;
+  keywords?: string[] | string | null;
   height?: string | number | null;
   min_weight?: string | number | null;
   max_weight?: string | number | null;
@@ -124,6 +124,11 @@ function addOptionalText(payload: Record<string, unknown>, form: FormData, key: 
   if (value) payload[key] = value;
 }
 
+function normalizeKeywords(value: AdminProduct["keywords"]): string[] {
+  const values = Array.isArray(value) ? value : typeof value === "string" ? value.split(/[\n,]/) : [];
+  return Array.from(new Set(values.map((keyword) => keyword.trim()).filter(Boolean)));
+}
+
 function validateProduct(form: FormData) {
   const fieldErrors: AdminFieldErrors = {};
   if (!text(form.get("name"))) fieldErrors.name = "Product name is required.";
@@ -133,7 +138,7 @@ function validateProduct(form: FormData) {
   return fieldErrors;
 }
 
-function productPayload(form: FormData) {
+function productPayload(form: FormData, keywords: string[]) {
   const payload: Record<string, unknown> = {
     name: text(form.get("name")),
     category: numericId(form, "category"),
@@ -141,7 +146,7 @@ function productPayload(form: FormData) {
     deity: numericId(form, "deity"),
     short_description: text(form.get("short_description")),
     description: text(form.get("description")),
-    keywords: text(form.get("keywords")),
+    keywords,
     is_featured: form.get("is_featured") === "on",
     availability: text(form.get("availability")),
     status: text(form.get("status")),
@@ -248,10 +253,29 @@ function ProductModal({
   const [currentProduct, setCurrentProduct] = useState<AdminProduct | undefined>(state.mode === "edit" ? state.product : undefined);
   const product = state.mode === "edit" ? currentProduct : undefined;
   const [selectedImages, setSelectedImages] = useState<AdminSelectedImage[]>([]);
+  const [keywords, setKeywords] = useState<string[]>(() => normalizeKeywords(state.mode === "edit" ? state.product.keywords : []));
+  const [keywordInput, setKeywordInput] = useState("");
+  const keywordInputId = useId();
+  const keywordInputRef = useRef<HTMLInputElement>(null);
   const [imageActionId, setImageActionId] = useState<string | number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
+
+  function addKeyword() {
+    const nextKeyword = keywordInput.trim();
+    if (!nextKeyword || keywords.includes(nextKeyword)) return;
+
+    setKeywords((current) => [...current, nextKeyword]);
+    setKeywordInput("");
+    keywordInputRef.current?.focus();
+  }
+
+  function handleKeywordKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    addKeyword();
+  }
 
   async function removeExistingImage(image: AdminExistingImage) {
     if (!product) return;
@@ -312,7 +336,7 @@ function ProductModal({
         state.mode === "create" ? "/api/admin/products" : `/api/admin/products/${product?.id}`,
         {
           method: state.mode === "create" ? "POST" : "PATCH",
-          body: JSON.stringify(productPayload(form)),
+          body: JSON.stringify(productPayload(form, keywords)),
         },
       );
       const savedWithImages = await attachUploadedProductImages(saved, uploadedImages);
@@ -353,9 +377,47 @@ function ProductModal({
             <AdminModalField label="Description" wide error={getFieldError(fieldErrors, "description")}>
               <textarea name="description" defaultValue={product?.description ?? ""} aria-invalid={Boolean(getFieldError(fieldErrors, "description"))} />
             </AdminModalField>
-            <AdminModalField label="Keywords" wide error={getFieldError(fieldErrors, "keywords")}>
-              <textarea name="keywords" defaultValue={product?.keywords ?? ""} aria-invalid={Boolean(getFieldError(fieldErrors, "keywords"))} />
-            </AdminModalField>
+            <div className={styles.keywordBuilderField}>
+              <span className={styles.keywordBuilderLabel}>Keywords</span>
+              <div className={styles.keywordBuilder}>
+                <div className={styles.keywordEntry}>
+                  <label htmlFor={keywordInputId}>Keyword</label>
+                  <input
+                    ref={keywordInputRef}
+                    id={keywordInputId}
+                    value={keywordInput}
+                    placeholder="Enter keyword"
+                    onChange={(event) => setKeywordInput(event.target.value)}
+                    onKeyDown={handleKeywordKeyDown}
+                    disabled={submitting}
+                  />
+                  <button type="button" onClick={addKeyword} disabled={submitting}>Add</button>
+                </div>
+                <div className={styles.keywordCollection} aria-live="polite">
+                  <span className={styles.keywordCollectionLabel}>Add Section</span>
+                  {keywords.length ? (
+                    <div className={styles.keywordChips}>
+                      {keywords.map((keyword) => (
+                        <span className={styles.keywordChip} key={keyword}>
+                          <span>{keyword}</span>
+                          <button
+                            type="button"
+                            aria-label={`Remove keyword ${keyword}`}
+                            onClick={() => setKeywords((current) => current.filter((item) => item !== keyword))}
+                            disabled={submitting}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className={styles.keywordEmpty}>No keywords added yet.</span>
+                  )}
+                </div>
+              </div>
+              {getFieldError(fieldErrors, "keywords") ? <p className={styles.keywordFieldError}>{getFieldError(fieldErrors, "keywords")}</p> : null}
+            </div>
           </AdminFieldGrid>
         </AdminModalSection>
 
