@@ -16,9 +16,9 @@ export function generateMetadata(): Metadata {
     },
     description,
     icons: {
-      icon: "/brand/lotus-mark.jpg",
-      shortcut: "/brand/lotus-mark.jpg",
-      apple: "/brand/lotus-mark.jpg",
+      icon: "/brand/DSG-New.png",
+      shortcut: "/brand/DSG-New.png",
+      apple: "/brand/DSG-New.png",
     },
     openGraph: {
       type: "website",
@@ -49,7 +49,7 @@ export default function RootLayout({
     "@type": "Organization",
     name: "Divine Stone Gallery",
     url: siteUrl,
-    logo: `${siteUrl}/brand/lotus-mark.jpg`,
+    logo: `${siteUrl}/brand/DSG-New.png`,
     foundingDate: "1960",
     description: "Fourth-generation family atelier creating hand-carved marble murtis in Alwar, Rajasthan.",
     areaServed: "IN",

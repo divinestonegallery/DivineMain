@@ -1287,8 +1287,6 @@
   height: auto;
   margin-bottom: 1rem;
   object-fit: contain;
-  filter: invert(1) grayscale(1);
-  mix-blend-mode: screen;
 }
 
 .footerBrand > p {

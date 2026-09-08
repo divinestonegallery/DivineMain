@@ -187,7 +187,7 @@ export function AuthModal() {
         <div className={styles.modalLayout}>
           <div className={styles.modalImageSection}>
             <Image
-              src="/brand/Divine%20_stone_gallery.png"
+              src="/brand/DSG-New.png"
               alt="Divine Murti"
               fill
               className={styles.modalImage}
