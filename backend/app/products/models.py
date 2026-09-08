@@ -2,6 +2,7 @@ import secrets
 import string
 
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models.functions import Lower
 
@@ -55,7 +56,7 @@ class Product(BaseModel):
     uid = models.CharField(max_length=255, unique=True, blank=True, null=True)
     short_description = models.CharField(max_length=500, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-    keywords = models.TextField(blank=True, null=True)
+    keywords = ArrayField(models.CharField(max_length=100), blank=True, default=list)
     height = models.CharField(max_length=100, blank=True, null=True)
     min_weight = models.CharField(max_length=100, blank=True, null=True)
     max_weight = models.CharField(max_length=100, blank=True, null=True)

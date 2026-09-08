@@ -11,7 +11,23 @@ class ProductRequestValidator(serializers.Serializer):
     name = serializers.CharField(max_length=255, required=False)
     short_description = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
     description = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    keywords = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    keywords = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        required=False,
+        allow_empty=True,
+        default=list,
+    )
+
+    def validate_keywords(self, value):
+        # Strip whitespace, drop blanks, deduplicate while preserving order
+        seen = set()
+        cleaned = []
+        for kw in value:
+            kw = kw.strip()
+            if kw and kw.lower() not in seen:
+                seen.add(kw.lower())
+                cleaned.append(kw)
+        return cleaned
     is_featured = serializers.BooleanField(required=False)
     availability = serializers.ChoiceField(
         choices=enum_choices(Availability), required=False,

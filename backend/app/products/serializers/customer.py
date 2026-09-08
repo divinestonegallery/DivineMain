@@ -73,6 +73,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     images = ProductImageCustomerSerializer(many=True, read_only=True)
     availability = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
+    keywords = serializers.ListField(child=serializers.CharField(), read_only=True)
 
     class Meta:
         model = Product
