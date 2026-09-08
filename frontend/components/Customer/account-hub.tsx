@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
-import { getCurrentUser, requestPasswordReset, updateCurrentUserProfile } from "@/api/auth";
+import { getCurrentUser, updateCurrentUserProfile } from "@/api/auth";
 import { AccountBootstrap } from "@/components/Auth/account-bootstrap";
 import { useAuth, useUser } from "@/components/Auth/auth-facade";
 import { useAuthConfigured } from "@/components/Auth/auth-provider";
@@ -19,14 +19,10 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import styles from "./customer-page.module.css";
 
-type AccountSection = "profile" | "password";
+type AccountSection = "profile";
 
 const profileSections: Array<{ id: AccountSection; label: string; icon: ReactNode }> = [
   { id: "profile", label: "My Profile", icon: <UserRound aria-hidden="true" size={18} /> },
-];
-
-const secureSections: Array<{ id: AccountSection; label: string; icon: ReactNode }> = [
-  { id: "password", label: "Change Password", icon: <KeyRound aria-hidden="true" size={18} /> },
 ];
 
 function cleanText(value: unknown) {
@@ -215,57 +211,6 @@ function MyProfilePanel({ enabled = true, onProfileLoaded }: { enabled?: boolean
   );
 }
 
-function ChangePasswordPanel({ user }: { user: any }) {
-  const profile = profileData(user);
-  const email = cleanText(profile.email);
-  const [sending, setSending] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
-
-  async function handlePasswordReset() {
-    if (!email) {
-      setFeedback({ type: "error", message: "A profile email is required before password reset instructions can be sent." });
-      return;
-    }
-
-    setSending(true);
-    setFeedback(null);
-
-    try {
-      const result = await requestPasswordReset(email);
-      setFeedback({ type: "success", message: result.message });
-    } catch (reason) {
-      setFeedback({ type: "error", message: reason instanceof Error ? reason.message : "Unable to request a password reset." });
-    } finally {
-      setSending(false);
-    }
-  }
-
-  return (
-    <article className={styles.accountPanel}>
-      <header className={styles.accountPanelHeader}>
-        <div>
-          <p className={styles.eyebrow}>Change Password</p>
-          <h2 className="font-display">Request password reset</h2>
-          <p>The backend currently supports password changes through the existing forgot/reset-password flow.</p>
-        </div>
-      </header>
-
-      <div className={styles.accountNotice}>
-        <KeyRound aria-hidden="true" size={21} />
-        <div>
-          <h3 className="font-display">{email ? email : "No email on this profile"}</h3>
-          <p>Use your saved email address to receive password reset instructions from the existing authentication API.</p>
-          {feedback ? <FeedbackMessage type={feedback.type}>{feedback.message}</FeedbackMessage> : null}
-          <Button type="button" size="md" disabled={sending || !email} onClick={handlePasswordReset}>
-            {sending ? <Loader2 className={styles.spinIcon} aria-hidden="true" size={17} /> : null}
-            {sending ? "Sending..." : "Send Reset Instructions"}
-          </Button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
 function ConnectedAccountHub() {
   const { isLoaded, isSignedIn, user } = useUser();
   const { signOut } = useAuth();
@@ -302,7 +247,6 @@ function ConnectedAccountHub() {
       );
     }
 
-    if (activeSection === "password") return <ChangePasswordPanel user={effectiveUser} />;
     return <MyProfilePanel onProfileLoaded={setSavedProfile} />;
   }, [activeSection, effectiveUser, isLoaded, isSignedIn]);
 
@@ -328,16 +272,6 @@ function ConnectedAccountHub() {
 
             <nav className={styles.accountNav}>
               {profileSections.map((item) => (
-                <AccountNavButton
-                  key={item.id}
-                  active={activeSection === item.id}
-                  icon={item.icon}
-                  onClick={() => setActiveSection(item.id)}
-                >
-                  {item.label}
-                </AccountNavButton>
-              ))}
-              {secureSections.map((item) => (
                 <AccountNavButton
                   key={item.id}
                   active={activeSection === item.id}
