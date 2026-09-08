@@ -115,6 +115,10 @@
   line-height: 1.6;
 }
 
+.descriptionToggle {
+  display: none;
+}
+
 .catalogSection {
   margin: 0;
   padding: 0;
@@ -495,6 +499,32 @@
   .productDetails h1 {
     padding-right: 7rem;
     font-size: clamp(1.875rem, 8vw, 2.25rem);
+  }
+
+  .descriptionCollapsed {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .descriptionToggle {
+    display: inline-block;
+    margin-top: 0.35rem;
+    padding: 0;
+    border: 0;
+    color: var(--gold-deep);
+    background: transparent;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 680;
+    cursor: pointer;
+  }
+
+  .descriptionToggle:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
   }
 
   .specificationGrid {

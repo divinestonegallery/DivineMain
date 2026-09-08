@@ -28,6 +28,7 @@ import type { CatalogItem } from "@/components/Catalog/catalog-data";
 import { ProductActions } from "@/components/Catalog/product-actions";
 import { ProductGallery } from "@/components/Catalog/product-gallery";
 import { ProductPrice } from "@/components/Catalog/product-price";
+import { ProductDescription } from "./product-description";
 import styles from "./product-page.module.css";
 
 type ProductPageProps = { params: Promise<{ slug: string }> };
@@ -211,7 +212,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               
               <hr className={styles.divider} />
               
-              <p className={styles.description}>{product.description}</p>
+              <ProductDescription key={product.slug} description={product.description} />
               
               <hr className={styles.divider} />
 
