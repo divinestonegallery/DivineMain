@@ -57,8 +57,28 @@ class ForgotPasswordValidator(serializers.Serializer):
 
 
 class ResetPasswordValidator(serializers.Serializer):
-    token = serializers.CharField()
+    email = serializers.EmailField(required=False)
+    code = serializers.CharField(required=False, max_length=50)
+    otp = serializers.CharField(required=False, max_length=50)
+    verification_id = serializers.CharField(required=False, max_length=255)
+    token = serializers.CharField(required=False)
     new_password = serializers.CharField(min_length=8, max_length=128, write_only=True)
+
+    def validate_email(self, value):
+        return value.strip().lower() if value else None
+
+    def validate(self, attrs):
+        token = attrs.get('token')
+        code = attrs.get('code') or attrs.get('otp')
+        if code:
+            attrs['code'] = code
+        email = attrs.get('email')
+
+        if not token and not (email and code):
+            raise serializers.ValidationError(
+                'Either provide "token", or provide both "email" and "code" (or "otp").'
+            )
+        return attrs
 
 
 class RefreshTokenValidator(serializers.Serializer):
