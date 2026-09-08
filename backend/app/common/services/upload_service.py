@@ -36,6 +36,16 @@ class UploadService:
             aws_secret_access_key=settings.R2_SECRET_ACCESS_KEY,
             config=Config(
                 signature_version='s3v4',
+                # Use virtual-hosted-style URLs so the presigned URL is:
+                #   https://bucket-name.account-id.r2.cloudflarestorage.com/key
+                # instead of path-style:
+                #   https://account-id.r2.cloudflarestorage.com/bucket-name/key
+                #
+                # Cloudflare R2 resolves the CORS policy against the bucket
+                # subdomain. With path-style URLs R2 cannot identify the bucket
+                # during an OPTIONS preflight and returns 403 before adding any
+                # CORS headers, which the browser surfaces as a CORS error.
+                s3={'addressing_style': 'virtual'},
                 connect_timeout=5,
                 read_timeout=15,
                 retries={'max_attempts': 2, 'mode': 'standard'},
@@ -92,7 +102,13 @@ class UploadService:
                     'Bucket': settings.R2_BUCKET_NAME,
                     'Key': object_key,
                     'ContentType': content_type,
-                    'ContentLength': file_size,
+                    # ContentLength is intentionally excluded: browsers control
+                    # Content-Length themselves (it is a forbidden header in the
+                    # Fetch spec) and cannot set it manually. Including it in
+                    # Params causes boto3 to add content-length to
+                    # X-Amz-SignedHeaders, which makes R2 reject the browser
+                    # preflight with 403. File size is validated server-side
+                    # in inspect_image() via head_object after the upload.
                 },
                 ExpiresIn=settings.R2_UPLOAD_URL_TTL_SECONDS,
             )
@@ -107,7 +123,8 @@ class UploadService:
             'public_url': UploadService.public_url(object_key),
             'required_headers': {
                 'Content-Type': content_type,
-                'Content-Length': str(file_size),
+                # Content-Length is set automatically by the browser from the
+                # request body — do not set it manually in JavaScript.
             },
             'expires_in_seconds': settings.R2_UPLOAD_URL_TTL_SECONDS,
         }

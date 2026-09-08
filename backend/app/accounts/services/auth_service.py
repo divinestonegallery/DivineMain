@@ -1,4 +1,5 @@
 import logging
+from django.core.cache import cache
 from app.accounts.repositories.customer_repository import CustomerRepository
 from app.accounts.services.clerk_client import ClerkClient
 from app.common.token_service import TokenService
@@ -112,27 +113,52 @@ class AuthService:
     def forgot_password(cls, data):
         email = data['email']
 
-        # Look up customer locally or in Clerk
+        # Look up customer in Clerk and locally
+        error, clerk_user = ClerkClient.get_user_by_email(email)
         customer_dict = CustomerRepository.get_customer_dict_by_email(email)
-        if not customer_dict:
-            error, clerk_user = ClerkClient.get_user_by_email(email)
-            if clerk_user:
-                sync_result = CustomerRepository.sync_customer(
-                    clerk_id=clerk_user['id'],
-                    email=email,
-                )
-                customer_dict = sync_result.get('customer')
+
+        if not clerk_user and customer_dict and customer_dict.get('clerk_id'):
+            error, clerk_user = ClerkClient.get_user_by_id(customer_dict['clerk_id'])
+
+        if clerk_user and not customer_dict:
+            sync_result = CustomerRepository.sync_customer(
+                clerk_id=clerk_user['id'],
+                email=email,
+            )
+            customer_dict = sync_result.get('customer')
+
+        email_sent = False
+        if clerk_user:
+            # Trigger Clerk to send the OTP verification email to the user
+            email_addresses = clerk_user.get('email_addresses', [])
+            email_id = None
+            for ea in email_addresses:
+                if ea.get('email_address', '').lower() == email.lower():
+                    email_id = ea.get('id')
+                    break
+            if not email_id and email_addresses:
+                email_id = email_addresses[0].get('id')
+
+            if email_id:
+                prep_err, prep_data = ClerkClient.prepare_email_verification(email_id)
+                if not prep_err:
+                    email_sent = True
+                    verification_id = prep_data.get('id') if isinstance(prep_data, dict) else None
+                    if verification_id:
+                        cache.set(f"pwd_reset_ver_{email.lower()}", verification_id, timeout=900)
+                else:
+                    logger.warning("Clerk prepare_email_verification failed for %s: %s", email, prep_err)
 
         reset_token = None
         if customer_dict and customer_dict.get('is_active', True):
             reset_token = TokenService.generate_password_reset_token(customer_dict)
 
-        # Prevent exposing password reset token to unauthenticated clients in production.
-        # Included in development/testing for API testing.
         from django.conf import settings
         response_data = {
-            'message': 'If an account exists with this email address, password reset link have been generated.',
+            'message': 'Password reset verification code has been sent to your email.' if email_sent else 'If an account exists with this email address, password reset instructions have been sent.',
         }
+        if email_sent and verification_id:
+            response_data['verification_id'] = verification_id
         if (getattr(settings, 'DEBUG', False) or getattr(settings, 'IS_TESTING', False)) and reset_token:
             response_data['reset_token'] = reset_token
 
@@ -140,20 +166,59 @@ class AuthService:
 
     @classmethod
     def reset_password(cls, data):
-        token = data['token']
+        token = data.get('token')
+        code = data.get('code')
+        email = data.get('email')
+        verification_id = data.get('verification_id')
         new_password = data['new_password']
 
-        # 1. Verify reset token
-        try:
-            payload = TokenService.verify_reset_token(token)
-        except (AuthenticationFailed, ValidationError) as exc:
-            return 'Invalid or expired password reset token.', None
+        clerk_user_id = None
 
-        clerk_user_id = payload.get('sub')
+        if code and email:
+            # 1. Lookup user in Clerk
+            error, clerk_user = ClerkClient.get_user_by_email(email)
+            if error or not clerk_user:
+                return 'Invalid email or verification code.', None
+
+            clerk_user_id = clerk_user.get('id')
+            email_addresses = clerk_user.get('email_addresses', [])
+            email_id = None
+            for ea in email_addresses:
+                if ea.get('email_address', '').lower() == email.lower():
+                    email_id = ea.get('id')
+                    break
+            if not email_id and email_addresses:
+                email_id = email_addresses[0].get('id')
+
+            if not email_id:
+                return 'Email address not found.', None
+
+            # Retrieve verification_id from cache if not passed directly
+            if not verification_id:
+                verification_id = cache.get(f"pwd_reset_ver_{email.lower()}")
+
+            # 2. Verify OTP code with Clerk
+            ver_err, is_verified = ClerkClient.attempt_email_verification(
+                email_id, code, verification_id=verification_id
+            )
+            if ver_err or not is_verified:
+                return ver_err or 'Invalid or expired verification code.', None
+
+        elif token:
+            # Verify reset JWT token
+            try:
+                payload = TokenService.verify_reset_token(token)
+            except (AuthenticationFailed, ValidationError):
+                return 'Invalid or expired password reset token.', None
+
+            clerk_user_id = payload.get('sub')
+            if not clerk_user_id:
+                return 'Invalid password reset token.', None
+
         if not clerk_user_id:
-            return 'Invalid password reset token.', None
+            return 'Invalid password reset request.', None
 
-        # 2. Update password in Clerk
+        # 3. Update password in Clerk
         error, updated_user = ClerkClient.update_password(clerk_user_id, new_password)
         if error:
             return error, None
@@ -161,6 +226,7 @@ class AuthService:
         return None, {
             'message': 'Password has been reset successfully. You can now log in with your new password.',
         }
+
 
     @classmethod
     def refresh_token(cls, data):
