@@ -4,17 +4,18 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { getAuthEmailError, requestPasswordReset } from "@/api/auth";
+import { getAuthEmailError, requestPasswordReset, resetPasswordWithCode } from "@/api/auth";
 import { useAuth } from "@/components/Auth/auth-facade";
 import { consumeLoginAfterLogout } from "@/components/Auth/auth-redirect";
 import styles from "./auth.module.css";
 
-type AuthModalMode = "login" | "signup" | "forgot";
+type AuthModalMode = "login" | "signup" | "forgot" | "reset";
 
 const modalCopy: Record<AuthModalMode, { title: string; subtitle: string }> = {
   login: { title: "Welcome Back", subtitle: "Sign in to continue" },
   signup: { title: "Create Account", subtitle: "Join us and start shopping" },
   forgot: { title: "Forgot Password", subtitle: "Enter your registered email address and we'll help you reset your password." },
+  reset: { title: "Verify OTP", subtitle: "We've sent a verification code to your email." },
 };
 
 export function AuthModal() {
@@ -24,6 +25,7 @@ export function AuthModal() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
 
@@ -64,6 +66,8 @@ export function AuthModal() {
     setIsOpen(false);
     setPendingPath(null);
     setPrompt("");
+    setResetEmail("");
+    setShowPassword(false);
   }
 
   useEffect(() => {
@@ -164,9 +168,63 @@ export function AuthModal() {
 
     try {
       const result = await requestPasswordReset(email);
-      setSuccess(result.message || "If an account exists with this email address, password reset instructions have been generated.");
+      setResetEmail(email);
+      setMode("reset");
+      setSuccess(result.message || "A verification code has been sent to your email.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Password reset request failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResetPassword(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    const form = new FormData(e.currentTarget);
+    const code = String(form.get("code") || "").trim();
+    const newPassword = String(form.get("newPassword") || "");
+    const confirmPassword = String(form.get("confirmPassword") || "");
+
+    if (!/^\d{6}$/.test(code)) {
+      setError("Please enter the 6-digit verification code from your email.");
+      setLoading(false);
+      return;
+    }
+
+    if (!newPassword) {
+      setError("Please enter a new password.");
+      setLoading(false);
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setError("Your new password must be at least 8 characters.");
+      setLoading(false);
+      return;
+    }
+
+    if (!confirmPassword) {
+      setError("Please confirm your new password.");
+      setLoading(false);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const result = await resetPasswordWithCode({ email: resetEmail, code, newPassword });
+      setMode("login");
+      setSuccess(result.message);
+      setResetEmail("");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to reset your password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -311,7 +369,7 @@ export function AuthModal() {
                     <p>Already have an account? <button type="button" onClick={() => switchMode("login")}>Login</button></p>
                   </div>
                 </form>
-              ) : (
+              ) : mode === "forgot" ? (
                 <form className={styles.modalForm} onSubmit={handleForgotPassword}>
                   <label>
                     <span>Email Address</span>
@@ -322,11 +380,71 @@ export function AuthModal() {
                   {success && <div className={styles.modalSuccess}>{success}</div>}
 
                   <button type="submit" className={styles.modalSubmit} disabled={loading}>
-                    {loading ? "Sending..." : "SEND RESET LINK"}
+                    {loading ? "Sending OTP..." : "SEND OTP"}
                   </button>
 
                   <div className={styles.modalFooter}>
-                    <p>Remembered your password? <button type="button" onClick={() => switchMode("login")}>Back to Login</button></p>
+                    <p>Remembered your password? <button type="button" disabled={loading} onClick={() => switchMode("login")}>Back to Login</button></p>
+                  </div>
+                </form>
+              ) : (
+                <form className={styles.modalForm} onSubmit={handleResetPassword}>
+                  <p className={styles.authHelpText}>Enter the 6-digit code sent to {resetEmail} and choose a new password.</p>
+                  <label>
+                    <span>Verification Code</span>
+                    <input
+                      name="code"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
+                      autoComplete="one-time-code"
+                      required
+                      disabled={loading}
+                    />
+                  </label>
+                  <label>
+                    <span>New Password</span>
+                    <div className={styles.passwordInputWrapper}>
+                      <input
+                        name="newPassword"
+                        type={showPassword ? "text" : "password"}
+                        minLength={8}
+                        autoComplete="new-password"
+                        required
+                        disabled={loading}
+                      />
+                      <button
+                        type="button"
+                        className={styles.passwordToggle}
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </label>
+                  <label>
+                    <span>Confirm Password</span>
+                    <input
+                      name="confirmPassword"
+                      type={showPassword ? "text" : "password"}
+                      minLength={8}
+                      autoComplete="new-password"
+                      required
+                      disabled={loading}
+                    />
+                  </label>
+
+                  {error && <div className={styles.modalError}>{error}</div>}
+                  {success && <div className={styles.modalSuccess}>{success}</div>}
+
+                  <button type="submit" className={styles.modalSubmit} disabled={loading}>
+                    {loading ? "Resetting Password..." : "RESET PASSWORD"}
+                  </button>
+
+                  <div className={styles.modalFooter}>
+                    <p><button type="button" disabled={loading} onClick={() => switchMode("forgot")}>Back</button></p>
                   </div>
                 </form>
               )}

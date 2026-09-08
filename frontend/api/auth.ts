@@ -130,6 +130,21 @@ export async function requestPasswordReset(email: string) {
   };
 }
 
+export async function resetPasswordWithCode({ email, code, newPassword }: { email: string; code: string; newPassword: string }) {
+  const payload = await fetchApi<any>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({
+      email: normalizeAuthEmail(email),
+      code: String(code || "").trim(),
+      new_password: newPassword,
+    }),
+  });
+
+  return {
+    message: payload?.data?.message || payload?.message || "Password has been reset successfully. You can now log in with your new password.",
+  };
+}
+
 export async function resetPasswordWithToken({ token, newPassword }: { token: string; newPassword: string }) {
   const payload = await fetchApi<any>("/auth/reset-password", {
     method: "POST",
