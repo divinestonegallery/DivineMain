@@ -71,15 +71,6 @@ function FAQShell({ children }: { children: ReactNode }) {
     <ToastProvider>
       <SiteHeader />
       <main id="main-content" tabIndex={-1}>
-        <section className={styles.hero}>
-          <div className="site-container">
-            <div className={styles.heroInner}>
-              <p className={styles.eyebrow}>Gallery assistance</p>
-              <h1 className="font-display">Questions, answered simply.</h1>
-              <p>Helpful starting answers about choosing, commissioning and caring for a marble murti. For a product-specific answer, speak directly with our gallery.</p>
-            </div>
-          </div>
-        </section>
         <section className={styles.faqSection}>
           <div className="site-container">{children}</div>
         </section>
