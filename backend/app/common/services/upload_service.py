@@ -36,6 +36,16 @@ class UploadService:
             aws_secret_access_key=settings.R2_SECRET_ACCESS_KEY,
             config=Config(
                 signature_version='s3v4',
+                # Use virtual-hosted-style URLs so the presigned URL is:
+                #   https://bucket-name.account-id.r2.cloudflarestorage.com/key
+                # instead of path-style:
+                #   https://account-id.r2.cloudflarestorage.com/bucket-name/key
+                #
+                # Cloudflare R2 resolves the CORS policy against the bucket
+                # subdomain. With path-style URLs R2 cannot identify the bucket
+                # during an OPTIONS preflight and returns 403 before adding any
+                # CORS headers, which the browser surfaces as a CORS error.
+                s3={'addressing_style': 'virtual'},
                 connect_timeout=5,
                 read_timeout=15,
                 retries={'max_attempts': 2, 'mode': 'standard'},
