@@ -3,9 +3,10 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getAuthEmailError, requestPasswordReset } from "@/api/auth";
 import { useAuth } from "@/components/Auth/auth-facade";
+import { consumeLoginAfterLogout } from "@/components/Auth/auth-redirect";
 import styles from "./auth.module.css";
 
 type AuthModalMode = "login" | "signup" | "forgot";
@@ -28,7 +29,18 @@ export function AuthModal() {
 
   const { isSignedIn, refresh, signIn, signUp } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (pathname !== "/" || isSignedIn || !consumeLoginAfterLogout()) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent("dsg:open-auth"));
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isSignedIn, pathname]);
 
   useEffect(() => {
     const handleOpen = (event: Event) => {

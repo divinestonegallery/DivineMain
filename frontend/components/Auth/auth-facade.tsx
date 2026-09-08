@@ -4,6 +4,7 @@
 import Link from "next/link";
 import React, { createContext, FormEvent, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ACCESS_TOKEN_KEY, clearAuthSession, getAuthEmailError, getCurrentUser, login, logoutCurrentSession, onAuthSessionChange, register, requestPasswordReset } from "@/api/auth";
+import { markLoginAfterLogout } from "@/components/Auth/auth-redirect";
 import styles from "./auth.module.css";
 
 const AuthContext = createContext({
@@ -122,6 +123,7 @@ export function ClerkProvider({ children, routerPush, afterSignOutUrl = "/" }: {
     } finally {
       clearAuthSession();
       setUser(null);
+      markLoginAfterLogout();
       routerPush?.(afterSignOutUrl);
     }
   }, [afterSignOutUrl, routerPush]);
