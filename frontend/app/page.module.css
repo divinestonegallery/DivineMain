@@ -1125,32 +1125,14 @@
   content: "";
 }
 
-.reviewShowcase {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 11.75rem;
-  align-items: stretch;
-  gap: clamp(0.8rem, 1.6vw, 1.25rem);
-  min-width: 0;
-}
-
-.reviewShowcase > .carouselShell {
-  min-width: 0;
-}
-
 .reviewSummary {
   display: flex;
-  min-height: 260px;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   gap: 0.42rem;
-  padding: 1rem 0.85rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
   color: var(--foreground);
-  text-align: center;
-  box-shadow: var(--shadow-soft);
+  text-align: right;
 }
 
 .reviewSummary strong {
@@ -1625,16 +1607,9 @@
     scroll-padding-inline: 0;
   }
 
-  .reviewShowcase {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-
   .reviewSummary {
-    min-height: 0;
-    width: min(100%, 12.5rem);
-    justify-self: center;
-    padding: 0.85rem 0.75rem;
+    align-items: flex-start;
+    text-align: left;
   }
 
   .categoryGrid {

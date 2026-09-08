@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -170,9 +171,11 @@ function MediaImage({
 function SectionHeading({
   title,
   href,
+  aside,
 }: {
   title: string;
   href?: string;
+  aside?: ReactNode;
 }) {
   return (
     <div className={styles.sectionHeadingRow}>
@@ -186,6 +189,7 @@ function SectionHeading({
           ) : null}
         </div>
       </div>
+      {aside}
     </div>
   );
 }
@@ -399,40 +403,7 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
       <div className="site-container">
         <SectionHeading
           title="Customer Reviews"
-        />
-        {reviews.length ? (
-          <div className={styles.reviewShowcase}>
-            <HomeCarouselRail className={styles.reviewRail} label="Customer Reviews">
-              {reviews.map((review) => {
-                const rating = Math.max(0, Math.min(5, Number(review.rating ?? 0)));
-                const date = review.created_at ? new Date(review.created_at) : null;
-                const validDate = date && !Number.isNaN(date.getTime()) ? date : null;
-                const comment = reviewComment(review.comment);
-
-                return (
-                  <article className={styles.reviewCard} key={review.id}>
-                    <div className={styles.reviewAvatar} aria-hidden="true">
-                      <span>{rating || 5}</span>
-                    </div>
-                    <div className={styles.stars} aria-label={`${rating} out of 5 stars`}>
-                      {Array.from({ length: 5 }, (_, index) => (
-                        <Star
-                          aria-hidden="true"
-                          fill={index < rating ? "currentColor" : "none"}
-                          key={index}
-                          size={17}
-                          strokeWidth={1.5}
-                        />
-                      ))}
-                    </div>
-                    {comment ? <p>{comment}</p> : <p>No written comment was provided.</p>}
-                    <footer>
-                      {validDate ? <time dateTime={review.created_at ?? undefined}>{reviewDate.format(validDate)}</time> : null}
-                    </footer>
-                  </article>
-                );
-              })}
-            </HomeCarouselRail>
+          aside={
             <aside className={styles.reviewSummary} aria-label="Review summary">
               <strong>{averageRating.toFixed(1)}/5</strong>
               <div className={styles.stars} aria-hidden="true">
@@ -442,7 +413,40 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
               </div>
               <span>{reviews.length} {reviews.length === 1 ? "review" : "reviews"}</span>
             </aside>
-          </div>
+          }
+        />
+        {reviews.length ? (
+          <HomeCarouselRail autoplay className={styles.reviewRail} label="Customer Reviews">
+            {reviews.map((review) => {
+              const rating = Math.max(0, Math.min(5, Number(review.rating ?? 0)));
+              const date = review.created_at ? new Date(review.created_at) : null;
+              const validDate = date && !Number.isNaN(date.getTime()) ? date : null;
+              const comment = reviewComment(review.comment);
+
+              return (
+                <article className={styles.reviewCard} key={review.id}>
+                  <div className={styles.reviewAvatar} aria-hidden="true">
+                    <span>{rating || 5}</span>
+                  </div>
+                  <div className={styles.stars} aria-label={`${rating} out of 5 stars`}>
+                    {Array.from({ length: 5 }, (_, index) => (
+                      <Star
+                        aria-hidden="true"
+                        fill={index < rating ? "currentColor" : "none"}
+                        key={index}
+                        size={17}
+                        strokeWidth={1.5}
+                      />
+                    ))}
+                  </div>
+                  {comment ? <p>{comment}</p> : <p>No written comment was provided.</p>}
+                  <footer>
+                    {validDate ? <time dateTime={review.created_at ?? undefined}>{reviewDate.format(validDate)}</time> : null}
+                  </footer>
+                </article>
+              );
+            })}
+          </HomeCarouselRail>
         ) : (
           <EmptySection label="Customer Reviews are waiting for backend items" />
         )}
