@@ -166,6 +166,59 @@ class ClerkClient:
         return cls._format_error(response, default_msg='Failed to update password.')
 
     @classmethod
+    def prepare_email_verification(cls, email_address_id):
+        """Trigger Clerk to send a verification code email to the given email address."""
+        headers = cls._get_headers()
+        if not headers:
+            return 'Clerk secret key is not configured.', None
+
+        try:
+            response = requests.post(
+                f'{cls.BASE_URL}/email_addresses/{email_address_id}/prepare_verification',
+                headers=headers,
+                timeout=10,
+            )
+        except requests.RequestException as exc:
+            logger.error("Failed to connect to Clerk prepare_email_verification: %s", exc)
+            return 'Unable to contact authentication service. Please try again later.', None
+
+        if response.status_code == 200:
+            return None, response.json()
+
+        return cls._format_error(response, default_msg='Failed to send verification email via Clerk.')
+
+    @classmethod
+    def attempt_email_verification(cls, email_address_id, code, verification_id=None):
+        """Verify the code sent to the email address via Clerk."""
+        headers = cls._get_headers()
+        if not headers:
+            return 'Clerk secret key is not configured.', False
+
+        payload = {'code': code.strip()}
+        if verification_id:
+            payload['verification_id'] = verification_id
+
+        try:
+            response = requests.post(
+                f'{cls.BASE_URL}/email_addresses/{email_address_id}/attempt_verification',
+                headers=headers,
+                json=payload,
+                timeout=10,
+            )
+        except requests.RequestException as exc:
+            logger.error("Failed to connect to Clerk attempt_email_verification: %s", exc)
+            return 'Unable to contact authentication service. Please try again later.', False
+
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('status') == 'verified':
+                return None, True
+            return 'Invalid or expired verification code.', False
+
+        err_msg, _ = cls._format_error(response, default_msg='Verification code check failed.')
+        return err_msg, False
+
+    @classmethod
     def create_sign_in_token(cls, user_id, expires_in_seconds=2592000):
         """Create a sign-in token in Clerk."""
         headers = cls._get_headers()
