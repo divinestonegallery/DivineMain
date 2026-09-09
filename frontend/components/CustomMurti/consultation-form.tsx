@@ -172,12 +172,10 @@ export function ConsultationForm() {
       nextErrors.profile = "We could not find contact details in your profile.";
     }
 
-    if (!value("height")) nextErrors.height = "Please enter the required height.";
-    if (!value("address")) nextErrors.address = "Please enter your full address.";
+    const pincode = value("pincode");
     if (!value("city") || value("city").length < 2) nextErrors.city = "Please enter your city.";
-    if (!value("state") || value("state").length < 2) nextErrors.state = "Please enter your state.";
-    const combinedCity = [value("address"), value("city"), value("state")].filter(Boolean).join(", ");
-    if (combinedCity.length > 100) nextErrors.city = "Please keep your address details within 100 characters.";
+    if (!pincode) nextErrors.pincode = "Please enter your 6-digit pincode.";
+    else if (!/^[1-9][0-9]{5}$/.test(pincode)) nextErrors.pincode = "Please enter a valid Indian pincode.";
     if (referencePhoto && !isSignedIn) nextErrors.referencePhoto = "Please sign in to include a reference photo, or remove it to send without the photo.";
     else if (referencePhoto?.status === "uploading") nextErrors.referencePhoto = "Please wait for the image upload to finish.";
     else if (referencePhoto?.status === "error") nextErrors.referencePhoto = referencePhoto.error || "Image upload failed. Please try again.";
@@ -206,8 +204,10 @@ export function ConsultationForm() {
         name: isSignedIn ? profileIdentity.name || undefined : value("name"),
         email: isSignedIn ? profileIdentity.email || undefined : value("email"),
         phone: isSignedIn ? profileIdentity.phone || undefined : value("phone"),
-        city: [value("address"), value("city"), value("state")].join(", "),
+        city: value("city"),
+        pincode: value("pincode"),
         approximate_height: value("height"),
+        preferred_material: value("preferred_material") || undefined,
         description: value("description") || undefined,
         reference_object_key: referenceObjectKey,
       });
@@ -266,10 +266,10 @@ export function ConsultationForm() {
             <FormField label="Phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="e.g. +91 98765 43210" pattern="\+?[0-9][0-9\s-]{7,19}" maxLength={20} value={manualIdentity.phone} onChange={updateIdentity("phone")} error={fieldErrors.phone} required />
           </>
         )}
-        <FormField label="Height" name="height" placeholder="e.g. 24 inches" maxLength={100} error={fieldErrors.height} onChange={clearFieldError("height")} required />
-        <FormField className={styles.fullField} label="Full Address" name="address" autoComplete="street-address" placeholder="House number, street, area" maxLength={100} error={fieldErrors.address} onChange={clearFieldError("address")} required />
+        <FormField label="Height(inches)" name="height" placeholder="e.g. 24 inches" maxLength={100} onChange={clearFieldError("height")} />
         <FormField label="City" name="city" autoComplete="address-level2" placeholder="Jaipur" minLength={2} maxLength={50} error={fieldErrors.city} onChange={clearFieldError("city")} required />
-        <FormField label="State" name="state" autoComplete="address-level1" placeholder="Rajasthan" minLength={2} maxLength={50} error={fieldErrors.state} onChange={clearFieldError("state")} required />
+        <FormField label="Pincode" name="pincode" inputMode="numeric" autoComplete="postal-code" placeholder="302001" pattern="[1-9][0-9]{5}" maxLength={6} error={fieldErrors.pincode} onChange={clearFieldError("pincode")} required />
+        <FormField className={styles.fullField} label="Preferred Material" name="preferred_material" placeholder="e.g. White Makrana Marble" maxLength={255} onChange={clearFieldError("preferred_material")} />
         <TextareaField className={styles.fullField} label="Description / Comment" name="description" maxLength={10000} placeholder="Tell us about your customization requirements..." />
 
         <div className={`${styles.uploadField} ${styles.fullField}`}>
