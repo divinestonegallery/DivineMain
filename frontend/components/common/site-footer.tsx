@@ -1,7 +1,7 @@
 // @ts-nocheck
 import Image from "next/image";
 import Link from "next/link";
-import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { brand } from "@/src/config/brand";
 import { getPublicBusinessDetails } from "@/src/config/business";
 import { getPublishedBusinessSettings } from "@/api/cms/public-repository";

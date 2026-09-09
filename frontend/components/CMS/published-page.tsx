@@ -6,7 +6,6 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
-import { WhatsAppAssistance } from "@/components/common/whatsapp-assistance";
 import { ToastProvider } from "@/components/ui/toast";
 import type { PublishedPage, PublishedSection } from "@/api/cms/public-repository";
 import styles from "./published-page.module.css";

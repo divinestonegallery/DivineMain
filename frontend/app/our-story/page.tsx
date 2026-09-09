@@ -16,7 +16,6 @@ import { Breadcrumbs } from "@/components/common/breadcrumbs";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
-import { WhatsAppAssistance } from "@/components/common/whatsapp-assistance";
 import { buttonClassName } from "@/components/ui/button";
 import { ToastProvider } from "@/components/ui/toast";
 import { getPublishedPage } from "@/api/cms/public-repository";

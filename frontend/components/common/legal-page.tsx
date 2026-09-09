@@ -4,7 +4,6 @@ import { Breadcrumbs } from "./breadcrumbs";
 import { CookieConsent } from "./cookie-consent";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
-import { WhatsAppAssistance } from "./whatsapp-assistance";
 import { ToastProvider } from "@/components/ui/toast";
 import styles from "./legal-page.module.css";
 
