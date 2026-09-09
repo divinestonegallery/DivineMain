@@ -1392,7 +1392,7 @@
   z-index: 100;
   display: grid;
   grid-template-columns: 1fr auto;
-  max-width: 820px;
+  max-width: 680px;
   gap: 1.5rem;
   align-items: center;
   margin-inline: auto;
