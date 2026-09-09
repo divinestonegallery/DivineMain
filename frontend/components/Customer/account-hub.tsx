@@ -12,7 +12,6 @@ import {
   UserRound,
 } from "lucide-react";
 import { getCurrentUser, updateCurrentUserProfile } from "@/api/auth";
-import { AccountBootstrap } from "@/components/Auth/account-bootstrap";
 import { useAuth, useUser } from "@/components/Auth/auth-facade";
 import { useAuthConfigured } from "@/components/Auth/auth-provider";
 import { Button, buttonClassName } from "@/components/ui/button";
@@ -258,7 +257,6 @@ function ConnectedAccountHub() {
 
   return (
     <>
-      <AccountBootstrap />
       <section className={styles.section}>
         <div className={`${styles.accountLayout} site-container`}>
           <aside className={styles.accountSidebar} aria-label="Account navigation">

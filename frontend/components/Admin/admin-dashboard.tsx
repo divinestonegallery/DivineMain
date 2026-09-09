@@ -63,7 +63,7 @@ function DashboardContent() {
           {summary?.products.items.length ? <ul>{summary.products.items.map((item) => <li key={item.id}><span><strong>{item.name}</strong><small>{item.updated_at ? new Date(item.updated_at).toLocaleDateString("en-IN") : "Recently updated"}</small></span><em>{label(item.status)}</em></li>)}</ul> : <p className={styles.empty}>{loading ? "Loading products..." : "No products were returned by the backend."}</p>}
         </div>
         <div className={styles.panel}>
-          <div className={styles.panelHeading}><div><small>Customer conversations</small><h2>Recent enquiries</h2></div><Link href="/admin/customer-requests">Open requests <ArrowUpRight size={15} /></Link></div>
+          <div className={styles.panelHeading}><div><small>Customer conversations</small><h2>Recent enquiries</h2></div><Link href="/admin/custom-mooti">Open requests <ArrowUpRight size={15} /></Link></div>
           {summary?.customRequests.items.length ? <ul>{summary.customRequests.items.map((item) => <li key={item.id}><span><strong>{item.name || item.customer_name || `Request #${item.id}`}</strong><small>{item.created_at ? new Date(item.created_at).toLocaleDateString("en-IN") : "Recently received"}</small></span><em>{label(item.status)}</em></li>)}</ul> : <p className={styles.empty}>{loading ? "Loading requests..." : "No custom requests were returned by the backend."}</p>}
         </div>
         <div className={styles.panel}>

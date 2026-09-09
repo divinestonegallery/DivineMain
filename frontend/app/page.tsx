@@ -5,19 +5,16 @@ import Link from "next/link";
 import {
   AlertCircle,
   ArrowRight,
-  BadgeCheck,
   ChevronDown,
   Gem,
   MessageCircle,
   Search,
-  ShieldCheck,
   Sparkles,
   Star,
 } from "lucide-react";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
-import { WhatsAppAssistance } from "@/components/common/whatsapp-assistance";
 import { ProductCard as CatalogProductCard } from "@/components/Catalog/product-card";
 import { buttonClassName } from "@/components/ui/button";
 import { ToastProvider } from "@/components/ui/toast";
@@ -88,14 +85,6 @@ function reviewComment(comment: string | null | undefined) {
   return normalizeText(comment).replace(/\s*\(Review\s+\d+\)\s*$/i, "").trim();
 }
 
-function productTitle(product: ProductCard) {
-  return normalizeText(product.title) || normalizeText((product as { name?: string }).name) || "Untitled work";
-}
-
-function productImage(product: ProductCard) {
-  return normalizeText(product.cover_photo) || normalizeText((product as { image_url?: string }).image_url);
-}
-
 function taxonomyHref(item: TaxonomyItem) {
   return `/shop?q=${encodeURIComponent(item.name)}`;
 }
@@ -112,10 +101,6 @@ function groupName(group: HomeDeityGroup) {
     normalizeText(group.products?.[0]?.deity) ||
     "Collection"
   );
-}
-
-function groupSlug(group: HomeDeityGroup) {
-  return normalizeText(group.deity_slug) || normalizeText(group.diety_slug);
 }
 
 function orderDreamMootiGroups(groups: HomeDeityGroup[]) {
@@ -296,58 +281,6 @@ function ProductRailSection({
   );
 }
 
-function DeityGroupCard({ group, priority = false }: { group: HomeDeityGroup; priority?: boolean }) {
-  const name = groupName(group);
-  const products = group.products ?? [];
-  const firstProduct = products[0];
-  const href = `/shop?q=${encodeURIComponent(name)}`;
-
-  return (
-    <Link className={styles.deityCard} href={href}>
-      <MediaImage
-        src={firstProduct ? productImage(firstProduct) : null}
-        alt={`${name} collection`}
-        priority={priority}
-        sizes="(max-width: 680px) 84vw, (max-width: 1100px) 42vw, 29vw"
-      />
-      <span className={styles.imageVeil} aria-hidden="true" />
-      <span className={styles.deityCardCopy}>
-        <small>{products.length} {products.length === 1 ? "work" : "works"}</small>
-        <strong className="font-display">{name}</strong>
-        {products[0] ? <em>{productTitle(products[0])}</em> : null}
-      </span>
-      <span className={styles.cardArrow} aria-hidden="true"><ArrowRight size={17} /></span>
-    </Link>
-  );
-}
-
-function DiscoverySection({
-  title,
-  groups,
-  surface = false,
-}: {
-  title: string;
-  groups: HomeDeityGroup[];
-  surface?: boolean;
-}) {
-  return (
-    <section className={`${styles.collectionSection} ${surface ? styles.surfaceSection : ""}`}>
-      <div className="site-container">
-        <SectionHeading title={title} href="/shop" />
-        {groups.length ? (
-          <div className={styles.deityGrid}>
-            {groups.map((group, index) => (
-              <DeityGroupCard group={group} priority={index === 0} key={groupSlug(group) || groupName(group) || index} />
-            ))}
-          </div>
-        ) : (
-          <EmptySection label={`${title} is waiting for backend items`} />
-        )}
-      </div>
-    </section>
-  );
-}
-
 function CategoriesSection({ categories }: { categories: TaxonomyItem[] }) {
   return (
     <section className={styles.categorySection}>
@@ -508,10 +441,6 @@ function HeroSection({ quickLinks }: { quickLinks: Array<{ label: string; href: 
               Customize Your Moorti
             </Link>
           </div>
-          {/* <div className={styles.heroProof}>
-            <span><BadgeCheck aria-hidden="true" size={18} /> Fourth-generation atelier</span>
-            <span><ShieldCheck aria-hidden="true" size={18} /> Secure delivery</span>
-          </div> */}
         </div>
         <Link className={styles.heroScrollCue} href="#popular-mooti" aria-label="Scroll to Popular Mooti">
           <ChevronDown aria-hidden="true" size={21} />

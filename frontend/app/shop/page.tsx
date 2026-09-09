@@ -1,7 +1,6 @@
 // @ts-nocheck
 import type { Metadata } from "next";
-import { ReactNode, Suspense } from "react";
-import { Breadcrumbs } from "@/components/common/breadcrumbs";
+import { Suspense } from "react";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
@@ -84,18 +83,17 @@ function shopFiltersFromSearchParams(params: Record<string, string | string[] | 
       min_price: apiFilters.min_price === undefined ? "" : String(apiFilters.min_price),
       max_price: apiFilters.max_price === undefined ? "" : String(apiFilters.max_price),
     },
-    currentQuery: query,
     currentSort: apiFilters.sort ?? "featured",
   };
 }
 
-function errorMessage(error: unknown) {
+function errorMessage() {
   return "We could not load the collection right now. Please try again in a moment.";
 }
 
-async function ShopCatalogData({ searchParams, breadcrumbs }: { searchParams: ShopSearchParams; breadcrumbs: ReactNode }) {
+async function ShopCatalogData({ searchParams }: { searchParams: ShopSearchParams }) {
   const params = await searchParams;
-  const { apiFilters, currentFilters, currentQuery, currentSort } = shopFiltersFromSearchParams(params);
+  const { apiFilters, currentFilters, currentSort } = shopFiltersFromSearchParams(params);
 
   const [catalogResult, facetsResult] = await Promise.allSettled([
     getPublicCatalogListing(apiFilters),
@@ -112,7 +110,7 @@ async function ShopCatalogData({ searchParams, breadcrumbs }: { searchParams: Sh
 
   const catalog = catalogResult.status === "fulfilled" ? catalogResult.value : { items: [], pagination: emptyPagination };
   const facets = facetsResult.status === "fulfilled" ? facetsResult.value : emptyFacets;
-  const error = catalogResult.status === "rejected" ? errorMessage(catalogResult.reason) : null;
+  const error = catalogResult.status === "rejected" ? errorMessage() : null;
 
   return (
     <ShopCatalog
@@ -122,10 +120,8 @@ async function ShopCatalogData({ searchParams, breadcrumbs }: { searchParams: Sh
       availableDeities={facets.deities}
       availableMaterials={facets.materials}
       currentFilters={currentFilters}
-      currentQuery={currentQuery}
       currentSort={currentSort}
       errorMessage={error}
-      breadcrumbs={breadcrumbs}
     />
   );
 }
@@ -136,7 +132,7 @@ export default async function ShopPage({ searchParams }: { searchParams: ShopSea
       <SiteHeader />
       <main id="main-content" tabIndex={-1}>
         <Suspense fallback={<div className="site-container" aria-live="polite">Preparing the marble collection…</div>}>
-          <ShopCatalogData searchParams={searchParams} breadcrumbs={<Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Shop" }]} />} />
+          <ShopCatalogData searchParams={searchParams} />
         </Suspense>
       </main>
       <SiteFooter />

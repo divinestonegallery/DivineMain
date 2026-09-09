@@ -5,12 +5,8 @@ import { cache } from "react";
 import {
   ArrowRight,
   BadgeCheck,
-  Gem,
-  HandHeart,
   PackageCheck,
-  Ruler,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
@@ -54,15 +50,6 @@ const loadProduct = cache(async function loadProduct(slug: string): Promise<{ pr
 
 function productPageTitle(product: CatalogItem) {
   return product.height > 0 ? `${product.name} | ${product.height}-inch Marble Moorti` : `${product.name} | Marble Moorti`;
-}
-
-function availabilityLabel(value: string | null | undefined) {
-  const labels: Record<string, string> = {
-    in_stock: "In stock",
-    made_to_order: "Made to order",
-    out_of_stock: "Out of stock",
-  };
-  return value ? labels[value] ?? value.replace(/_/g, " ") : "";
 }
 
 function cleanProductName(name: string) {

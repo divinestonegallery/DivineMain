@@ -8,7 +8,6 @@ import {
   LogOut,
   Menu,
   Search,
-  ShoppingBag,
   Sparkles,
   X,
   ChevronRight,
@@ -18,7 +17,6 @@ import { FormEvent, MouseEvent, useCallback, useEffect, useId, useRef, useState 
 import { AccountControl } from "@/components/Auth/account-control";
 import { AuthModal } from "@/components/Auth/auth-modal";
 import { useAuth, useUser } from "@/components/Auth/auth-facade";
-import { useEnquiryBag } from "@/components/Customer/device-collections";
 import { getDeities, searchApplication } from "@/api/products";
 import type { BackendProductImage } from "@/api/products";
 import styles from "./site-shell.module.css";
@@ -139,7 +137,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const pathname = usePathname();
   const { isLoaded, isSignedIn, signOut } = useAuth();
   const { user } = useUser();
-  const enquiryBag = useEnquiryBag();
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   const [megaMenuClosing, setMegaMenuClosing] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -160,6 +157,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const searchPanelRef = useRef<HTMLElement>(null);
   const mobilePanelRef = useRef<HTMLDivElement>(null);
+  const deityLinksLoadedRef = useRef(false);
   const searchTitleId = useId();
   const shopMenuId = useId();
   const showDockedSearch = pathname === "/" ? dockedSearchVisible : true;
@@ -189,6 +187,9 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   }, []);
 
   useEffect(() => {
+    if (!megaMenuOpen || deityLinksLoadedRef.current) return;
+
+    deityLinksLoadedRef.current = true;
     let cancelled = false;
     getDeities()
       .then((items) => {
@@ -201,9 +202,11 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           ]);
         }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        deityLinksLoadedRef.current = false;
+      });
     return () => { cancelled = true; };
-  }, []);
+  }, [megaMenuOpen]);
 
   useEffect(() => {
     if (pathname !== "/") return;

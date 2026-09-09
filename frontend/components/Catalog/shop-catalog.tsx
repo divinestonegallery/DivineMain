@@ -4,7 +4,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import {
   ArrowRight,
@@ -277,25 +276,21 @@ function CatalogDropdown({
 }
 
 export function ShopCatalog({
-  breadcrumbs,
   products,
   pagination,
   availableCategories = [],
   availableDeities = [],
   availableMaterials = [],
   currentFilters = emptyFilters,
-  currentQuery = "",
   currentSort = "featured",
   errorMessage = null,
 }: {
-  breadcrumbs: ReactNode;
   products: CatalogItem[];
   pagination: ProductListResult["pagination"];
   availableCategories?: PublicCatalogOption[];
   availableDeities?: PublicCatalogOption[];
   availableMaterials?: PublicCatalogOption[];
   currentFilters?: Filters;
-  currentQuery?: string;
   currentSort?: SortValue;
   errorMessage?: string | null;
 }) {

@@ -11,7 +11,6 @@ import {
   CircleHelp,
   CircleUserRound,
   Gem,
-  Hammer,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -48,7 +47,6 @@ const groups: Array<{ label: string; items: NavItem[] }> = [
       { label: "Review", href: "/admin/review", icon: Star, description: "Moderate customer reviews" },
       { label: "FAQs", href: "/admin/faqs", icon: CircleHelp, description: "Manage frequently asked questions" },
       { label: "Contact", href: "/admin/contact", icon: Mail, description: "Manage contact submissions" },
-      { label: "Customer Requests", href: "/admin/customer-requests", icon: Hammer, description: "Review customization requests" },
       { label: "Custom Mooti", href: "/admin/custom-mooti", icon: Sparkles, description: "Track custom moorti enquiries" },
       { label: "Staff", href: "/admin/staff", icon: ShieldCheck, description: "Manage staff and administrators" },
     ],
@@ -123,7 +121,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </div>
           ))}
         </nav>
-        <Link className={styles.storeLink} href="/" target="_blank"><Store size={17} /><span>View storefront</span><ChevronRight size={15} /></Link>
+        <Link className={styles.storeLink} href="/"><Store size={17} /><span>View storefront</span><ChevronRight size={15} /></Link>
         {isSignedIn ? (
           <div className={styles.sidebarAccount}>
             <Link href="/account" onClick={closeNavigation}><CircleUserRound size={17} /><span>Profile</span></Link>
@@ -140,7 +138,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
           <div className={styles.topbarActions}>
             <button className={styles.searchButton} type="button" aria-expanded={searchOpen} onClick={() => setSearchOpen((open) => !open)}><Search size={18} /><span>Search admin</span><kbd>⌘ K</kbd></button>
-            <Link className={styles.viewStore} href="/" target="_blank"><Store size={17} /><span>View store</span></Link>
+            <Link className={styles.viewStore} href="/"><Store size={17} /><span>View store</span></Link>
             <AccountControl className={styles.accountControl} />
           </div>
         </header>

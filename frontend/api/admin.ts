@@ -8,7 +8,6 @@ export const adminModules = [
   { section: "product", title: "Product", description: "Review active, draft, and archived product listings.", endpoint: "/api/admin/products" },
   { section: "review", title: "Review", description: "Review customer review moderation queue.", endpoint: "/api/admin/reviews" },
   { section: "faqs", title: "FAQs", description: "Review FAQ records.", endpoint: "/api/admin/faqs" },
-  { section: "customer-requests", title: "Customer Requests", description: "Review contact and customization requests.", endpoint: "/api/admin/contact/message, /api/admin/contact/customize" },
   { section: "staff", title: "Staff", description: "Review staff and admin users.", endpoint: "/api/admin/staff" },
 ] as const;
 
@@ -86,24 +85,7 @@ export async function getAdminSectionData(section: AdminSection) {
     } satisfies AdminList;
   }
 
-  if (section === "customer-requests") {
-    const [contacts, customize] = await Promise.all([
-      apiRequest<AdminListResponse>("/api/admin/contact/message?page_size=50"),
-      apiRequest<AdminListResponse>("/api/admin/contact/customize?page_size=50"),
-    ]);
-    const contactItems = normalizeAdminList(contacts).items;
-    const customizeItems = normalizeAdminList(customize).items;
-    const items = [
-      ...contactItems.map((item) => ({ ...item, request_type: "contact" })),
-      ...customizeItems.map((item) => ({ ...item, request_type: "customize" })),
-    ];
-    return {
-      items,
-      pagination: { page: 1, page_size: items.length, total_items: items.length, total_pages: 1 },
-    } satisfies AdminList;
-  }
-
-  const endpoints: Record<Exclude<AdminSection, "overview" | "customer-requests">, string> = {
+  const endpoints: Record<Exclude<AdminSection, "overview">, string> = {
     category: "/api/admin/products/categories",
     deity: "/api/admin/products/deities",
     material: "/api/admin/products/materials",
