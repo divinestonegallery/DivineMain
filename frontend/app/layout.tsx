@@ -1,6 +1,7 @@
 // @ts-nocheck
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/common/json-ld";
+import { RouteScrollReset } from "@/components/common/route-scroll-reset";
 import { getSiteUrl } from "@/src/config/site";
 import "./globals.css";
 
@@ -73,6 +74,7 @@ export default function RootLayout({
     >
       <body className="antialiased">
         <a className="skip-link" href="#main-content">Skip to main content</a>
+        <RouteScrollReset />
         <JsonLd data={organizationSchema} />
         <GalleryAuthProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? null}>
           {children}
