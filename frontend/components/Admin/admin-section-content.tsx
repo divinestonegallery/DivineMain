@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { AlertTriangle, CheckCircle2, CircleHelp, FileText, Hammer, Mail, Plus, RefreshCw, Search, Star, Trash2 } from "lucide-react";
-import { FormEvent, ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, CircleHelp, FileText, Hammer, Mail, Plus, RefreshCw, RotateCcw, Search, Star, Trash2, X, ZoomIn, ZoomOut } from "lucide-react";
+import { FormEvent, PointerEvent, ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { apiRequest } from "@/api/client";
 import {
   AdminCheckboxField,
@@ -34,7 +33,6 @@ export const adminSectionSlugs = [
   "review",
   "faqs",
   "contact",
-  "customer-requests",
   "custom-mooti",
   "staff",
 ] as const;
@@ -135,9 +133,6 @@ const sectionDetails: Record<Exclude<AdminSectionSlug, "overview">, { title: str
   },
   contact: {
     title: "Contact",
-  },
-  "customer-requests": {
-    title: "Customer Requests",
   },
   "custom-mooti": {
     title: "Custom Mooti",
@@ -666,6 +661,169 @@ function PaginationControls({
   );
 }
 
+function ReferenceImageViewer({ src }: { src: string }) {
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const dragRef = useRef({ startX: 0, startY: 0, originX: 0, originY: 0 });
+  const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
+  const [fitScale, setFitScale] = useState(1);
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [available, setAvailable] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    setNaturalSize({ width: 0, height: 0 });
+    setFitScale(1);
+    setScale(1);
+    setOffset({ x: 0, y: 0 });
+    setDragging(false);
+    setAvailable(true);
+    setExpanded(false);
+  }, [src]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [expanded]);
+
+  function fitImageToViewport() {
+    const image = imageRef.current;
+    const viewport = viewportRef.current;
+    if (!image?.naturalWidth || !image.naturalHeight || !viewport) return;
+
+    const nextFitScale = Math.min(
+      1,
+      viewport.clientWidth / image.naturalWidth,
+      viewport.clientHeight / image.naturalHeight,
+    );
+    setNaturalSize({ width: image.naturalWidth, height: image.naturalHeight });
+    setFitScale(nextFitScale);
+    setScale(nextFitScale);
+    setOffset({ x: 0, y: 0 });
+  }
+
+  useEffect(() => {
+    if (!expanded) return;
+    const frame = window.requestAnimationFrame(fitImageToViewport);
+    const handleResize = () => fitImageToViewport();
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [expanded, src]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setExpanded(false);
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [expanded]);
+
+  function reset() {
+    setScale(fitScale);
+    setOffset({ x: 0, y: 0 });
+    viewportRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+  }
+
+  function changeZoom(direction: number) {
+    setScale((current) => {
+      const step = fitScale * 0.25;
+      const next = Math.min(fitScale * 4, Math.max(fitScale, current + direction * step));
+      setOffset((currentOffset) => next === fitScale ? { x: 0, y: 0 } : clampOffset(currentOffset, next));
+      return next;
+    });
+  }
+
+  function clampOffset(next: { x: number; y: number }, nextScale = scale) {
+    const viewport = viewportRef.current;
+    if (!viewport) return next;
+    const zoomRatio = nextScale / fitScale;
+    const maxX = viewport.clientWidth * Math.max(0, zoomRatio - 1) / 2;
+    const maxY = viewport.clientHeight * Math.max(0, zoomRatio - 1) / 2;
+    return {
+      x: Math.min(maxX, Math.max(-maxX, next.x)),
+      y: Math.min(maxY, Math.max(-maxY, next.y)),
+    };
+  }
+
+  function handleWheel(event: React.WheelEvent<HTMLDivElement>) {
+    event.preventDefault();
+    changeZoom(event.deltaY < 0 ? 1 : -1);
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (scale <= 1) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = { startX: event.clientX, startY: event.clientY, originX: offset.x, originY: offset.y };
+    setDragging(true);
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!dragging) return;
+    setOffset(clampOffset({
+      x: dragRef.current.originX + event.clientX - dragRef.current.startX,
+      y: dragRef.current.originY + event.clientY - dragRef.current.startY,
+    }));
+  }
+
+  function stopDragging(event: PointerEvent<HTMLDivElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    setDragging(false);
+  }
+
+  if (!available) return <p className={styles.referenceUnavailable}>Reference image unavailable</p>;
+
+  return (
+    <div className={`${styles.referenceViewer} ${expanded ? styles.referenceViewerExpanded : ""}`.trim()}>
+      {expanded ? <button className={styles.referenceClose} type="button" onClick={() => setExpanded(false)} aria-label="Close expanded reference image" title="Close"><X size={18} /></button> : null}
+      <div
+        ref={viewportRef}
+        className={`${styles.referenceViewport} ${dragging ? styles.referenceViewportDragging : ""}`.trim()}
+        onWheel={handleWheel}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={stopDragging}
+        onPointerCancel={stopDragging}
+        onClick={() => { if (scale === fitScale) setExpanded(true); }}
+        title={scale > 1 ? "Drag to inspect the reference image" : "Click to expand or scroll to zoom"}
+      >
+        <img
+          className={styles.referenceImage}
+          src={src}
+          alt="Customer reference"
+          draggable={false}
+          ref={imageRef}
+          onLoad={fitImageToViewport}
+          onError={() => setAvailable(false)}
+          style={expanded && naturalSize.width && naturalSize.height
+            ? {
+                width: naturalSize.width * scale,
+                height: naturalSize.height * scale,
+                maxWidth: "none",
+                maxHeight: "none",
+                transform: `translate(${offset.x}px, ${offset.y}px)`,
+              }
+            : { transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale / fitScale})` }}
+        />
+      </div>
+      <div className={styles.referenceControls} aria-label="Reference image controls">
+        <button type="button" onClick={() => changeZoom(-1)} disabled={scale <= fitScale} aria-label="Zoom out" title="Zoom out"><ZoomOut size={14} /></button>
+        <button type="button" onClick={reset} disabled={scale === fitScale && offset.x === 0 && offset.y === 0} aria-label="Reset image" title="Reset image"><RotateCcw size={14} /></button>
+        <button type="button" onClick={() => changeZoom(1)} disabled={scale >= fitScale * 4} aria-label="Zoom in" title="Zoom in"><ZoomIn size={14} /></button>
+      </div>
+    </div>
+  );
+}
+
 function RequestRow({ item, refresh }: { item: CustomerRequestRecord; refresh: () => Promise<void> }) {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -727,10 +885,7 @@ function RequestRow({ item, refresh }: { item: CustomerRequestRecord; refresh: (
           <section>
             <h3>Reference</h3>
             {item.kind === "customize" && (item.reference_image || item.reference_object_key) ? (
-              <>
-                {item.reference_image ? <p><Link href={item.reference_image} target="_blank">Open reference image</Link></p> : null}
-                {item.reference_object_key ? <em>{item.reference_object_key}</em> : null}
-              </>
+              <ReferenceImageViewer src={item.reference_image || item.reference_object_key || ""} />
             ) : (
               <p>No reference file supplied.</p>
             )}
@@ -884,79 +1039,6 @@ function CustomMootiAdmin() {
   );
 }
 
-function CustomerRequestsAdmin() {
-  const { showToast } = useToast();
-  const [items, setItems] = useState<CustomerRequestRecord[]>([]);
-  const [query, setQuery] = useState("");
-  const [scope, setScope] = useState("all");
-  const [loading, setLoading] = useState(true);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [contacts, customize] = await Promise.all([
-        apiRequest<AdminList<Omit<ContactRequestRecord, "kind">> | Array<Omit<ContactRequestRecord, "kind">>>("/api/admin/contact/message?page_size=100"),
-        apiRequest<AdminList<Omit<CustomizeRequestRecord, "kind">> | Array<Omit<CustomizeRequestRecord, "kind">>>("/api/admin/contact/customize?page_size=100"),
-      ]);
-      setItems([
-        ...asItems(contacts).map((item): ContactRequestRecord => ({ ...item, kind: "contact" })),
-        ...asItems(customize).map((item): CustomizeRequestRecord => ({ ...item, kind: "customize" })),
-      ].sort((first, second) => new Date(second.created_at || 0).getTime() - new Date(first.created_at || 0).getTime()));
-    } catch (reason) {
-      showToast(reason instanceof Error ? reason.message : "Customer requests could not be loaded.");
-    } finally {
-      setLoading(false);
-    }
-  }, [showToast]);
-
-  useEffect(() => {
-    const task = window.setTimeout(() => { void refresh(); }, 0);
-    return () => window.clearTimeout(task);
-  }, [refresh]);
-
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return items.filter((item) => {
-      const matchesScope =
-        scope === "all"
-        || (scope === "contact" && item.kind === "contact")
-        || (scope === "customize" && item.kind === "customize")
-        || (scope === "new" && item.status === "new")
-        || (scope === "open" && !["accepted", "closed"].includes(item.status))
-        || (scope === "closed" && ["accepted", "closed"].includes(item.status));
-      const matchesQuery = !needle || `${requestTitle(item)} ${item.email} ${item.customer_email} ${item.phone} ${item.city} ${item.message} ${item.description} ${item.status}`.toLowerCase().includes(needle);
-      return matchesScope && matchesQuery;
-    });
-  }, [items, query, scope]);
-
-  return (
-    <section className={styles.section}>
-      <div className={styles.metrics}>
-        <article><Mail size={19} /><span><small>Total Requests</small><strong>{items.length}</strong></span></article>
-        <article><AlertTriangle size={19} /><span><small>New</small><strong>{items.filter((item) => item.status === "new").length}</strong></span></article>
-        <article><Hammer size={19} /><span><small>Custom Moorti</small><strong>{items.filter((item) => item.kind === "customize").length}</strong></span></article>
-        <article><CheckCircle2 size={19} /><span><small>Accepted or Closed</small><strong>{items.filter((item) => ["accepted", "closed"].includes(item.status)).length}</strong></span></article>
-      </div>
-      <div className={styles.toolbar}>
-        <label><Search size={17} /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search customer requests" /></label>
-        <select value={scope} onChange={(event) => setScope(event.target.value)} aria-label="Filter customer requests">
-          <option value="all">All requests</option>
-          <option value="contact">Contact/product enquiries</option>
-          <option value="customize">Custom moorti</option>
-          <option value="new">New only</option>
-          <option value="open">Open workflow</option>
-          <option value="closed">Accepted or closed</option>
-        </select>
-        <button className={styles.secondary} type="button" onClick={() => void refresh()} disabled={loading}><RefreshCw size={15} />{loading ? "Loading..." : "Refresh"}</button>
-      </div>
-      <div className={styles.list}>
-        {filtered.map((item) => <RequestRow item={item} refresh={refresh} key={`${item.kind}-${item.id}`} />)}
-        {!loading && !filtered.length ? <p className={styles.empty}>No customer requests found.</p> : null}
-      </div>
-    </section>
-  );
-}
-
 function SectionBody({ section }: { section: Exclude<AdminSectionSlug, "overview"> }) {
   if (section === "category") return <CatalogStructureAdmin kind="category" />;
   if (section === "deity") return <CatalogStructureAdmin kind="deity" />;
@@ -965,7 +1047,6 @@ function SectionBody({ section }: { section: Exclude<AdminSectionSlug, "overview
   if (section === "review") return <ReviewAdmin />;
   if (section === "faqs") return <FAQsAdmin />;
   if (section === "contact") return <ContactAdmin />;
-  if (section === "customer-requests") return <CustomerRequestsAdmin />;
   if (section === "custom-mooti") return <CustomMootiAdmin />;
   if (section === "staff") return <StaffSecurityAdmin />;
   return null;
