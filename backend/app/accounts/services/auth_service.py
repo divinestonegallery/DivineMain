@@ -155,7 +155,7 @@ class AuthService:
 
         from django.conf import settings
         response_data = {
-            'message': 'Password reset verification code has been sent to your email.' if email_sent else 'If an account exists with this email address, password reset instructions have been sent.',
+            'message': 'Password reset OTP has been sent to your email.' if email_sent else 'If an account exists with this email address, password reset instructions have been sent.',
         }
         if email_sent and verification_id:
             response_data['verification_id'] = verification_id
@@ -178,7 +178,7 @@ class AuthService:
             # 1. Lookup user in Clerk
             error, clerk_user = ClerkClient.get_user_by_email(email)
             if error or not clerk_user:
-                return 'Invalid email or verification code.', None
+                return 'Invalid email or OTP.', None
 
             clerk_user_id = clerk_user.get('id')
             email_addresses = clerk_user.get('email_addresses', [])
@@ -202,7 +202,7 @@ class AuthService:
                 email_id, code, verification_id=verification_id
             )
             if ver_err or not is_verified:
-                return ver_err or 'Invalid or expired verification code.', None
+                return ver_err or 'Invalid or expired OTP.', None
 
         elif token:
             # Verify reset JWT token

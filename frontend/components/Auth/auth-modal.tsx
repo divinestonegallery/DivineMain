@@ -15,7 +15,7 @@ const modalCopy: Record<AuthModalMode, { title: string; subtitle: string }> = {
   login: { title: "Welcome Back", subtitle: "Sign in to continue" },
   signup: { title: "Create Account", subtitle: "Join us and start shopping" },
   forgot: { title: "Forgot Password", subtitle: "Enter your registered email address and we'll help you reset your password." },
-  reset: { title: "Verify OTP", subtitle: "We've sent a verification code to your email." },
+  reset: { title: "Verify OTP", subtitle: "We've sent a OTP to your email." },
 };
 
 export function AuthModal() {
@@ -26,6 +26,7 @@ export function AuthModal() {
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [verificationId, setVerificationId] = useState("");
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
 
@@ -67,6 +68,7 @@ export function AuthModal() {
     setPendingPath(null);
     setPrompt("");
     setResetEmail("");
+    setVerificationId("");
     setShowPassword(false);
   }
 
@@ -168,9 +170,16 @@ export function AuthModal() {
 
     try {
       const result = await requestPasswordReset(email);
+      if (!result.verificationId) {
+        setError("We could not start password verification. Please request a new code.");
+        setLoading(false);
+        return;
+      }
+
       setResetEmail(email);
+      setVerificationId(result.verificationId);
       setMode("reset");
-      setSuccess(result.message || "A verification code has been sent to your email.");
+      setSuccess(result.message || "An OTP has been sent to your email.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Password reset request failed.");
     } finally {
@@ -189,7 +198,7 @@ export function AuthModal() {
     const confirmPassword = String(form.get("confirmPassword") || "");
 
     if (!/^\d{6}$/.test(code)) {
-      setError("Please enter the 6-digit verification code from your email.");
+      setError("Please enter the 6-digit OTP from your email.");
       setLoading(false);
       return;
     }
@@ -218,11 +227,18 @@ export function AuthModal() {
       return;
     }
 
+    if (!verificationId) {
+      setError("This verification session has expired. Please request a new code.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const result = await resetPasswordWithCode({ email: resetEmail, code, newPassword });
+      const result = await resetPasswordWithCode({ email: resetEmail, code, verificationId, newPassword });
       setMode("login");
       setSuccess(result.message);
       setResetEmail("");
+      setVerificationId("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to reset your password. Please try again.");
     } finally {
@@ -391,7 +407,7 @@ export function AuthModal() {
                 <form className={styles.modalForm} onSubmit={handleResetPassword}>
                   <p className={styles.authHelpText}>Enter the 6-digit code sent to {resetEmail} and choose a new password.</p>
                   <label>
-                    <span>Verification Code</span>
+                    <span>OTP</span>
                     <input
                       name="code"
                       type="text"
