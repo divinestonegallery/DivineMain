@@ -37,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const HOME_BLOCK = {
   popularMooti: "popular_moorti",
@@ -79,6 +79,15 @@ function getReviews(data: HomeBlock["data"] | undefined): ReviewCard[] {
 
 function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function shouldSkipImageOptimization(src: string) {
+  if (!/^https?:\/\//i.test(src)) return false;
+  try {
+    return !["media.divinestonegallery.com", "images.unsplash.com"].includes(new URL(src).hostname);
+  } catch {
+    return true;
+  }
 }
 
 function reviewComment(comment: string | null | undefined) {
@@ -154,8 +163,17 @@ function MediaImage({
     );
   }
 
-  const remote = /^https?:\/\//i.test(src);
-  return <Image className={styles.mediaImg} src={src} alt={alt} fill sizes={sizes} priority={priority} unoptimized={remote} />;
+  return (
+    <Image
+      className={styles.mediaImg}
+      src={src}
+      alt={alt}
+      fill
+      sizes={sizes}
+      priority={priority}
+      unoptimized={shouldSkipImageOptimization(src)}
+    />
+  );
 }
 
 function SectionHeading({
@@ -256,7 +274,7 @@ function ProductRailSection({
   carousel?: boolean;
 }) {
   const productCards = products.map((product, index) => (
-    <CatalogProductCard product={product} priority={index === 0} key={product.uid ?? product.slug ?? `${title}-${index}`} />
+    <CatalogProductCard product={product} key={product.uid ?? product.slug ?? `${title}-${index}`} />
   ));
 
   return (
@@ -291,13 +309,12 @@ function CategoriesSection({ categories }: { categories: TaxonomyItem[] }) {
         />
         {categories.length ? (
           <HomeCarouselRail className={styles.categoryGrid} label="Categories">
-            {categories.map((category, index) => (
+            {categories.map((category) => (
               <Link className={styles.categoryCard} href={categoryFilterHref(category)} key={category.id ?? category.slug ?? category.name}>
                 <span className={styles.categoryImage}>
                   <MediaImage
                     src={category.image_url}
                     alt={`${category.name} category`}
-                    priority={index === 0}
                     sizes="(max-width: 680px) 90vw, (max-width: 1024px) 45vw, 31vw"
                   />
                 </span>

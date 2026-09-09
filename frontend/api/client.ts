@@ -15,6 +15,13 @@ export interface ApiEnvelope<T> {
   data: T;
 }
 
+type ApiRequestOptions = RequestInit & {
+  next?: {
+    revalidate?: number | false;
+    tags?: string[];
+  };
+};
+
 export class ApiError extends Error {
   status: number;
   details: unknown;
@@ -53,13 +60,13 @@ export function apiHeaders(headers?: HeadersInit, hasBody = false) {
   return nextHeaders;
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   let response: Response;
   try {
     response = await fetch(apiUrl(path), {
       ...options,
       headers: apiHeaders(options.headers, Boolean(options.body)),
-      cache: "no-store",
+      cache: options.cache ?? "no-store",
     });
   } catch {
     throw new ApiError(`Could not reach the API at ${apiUrl(path)}.`, 503);

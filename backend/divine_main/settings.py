@@ -232,6 +232,10 @@ CACHES = {
     }
 }
 
+HOME_CACHE_TTL = int(os.getenv('HOME_CACHE_TTL', '60'))
+CATALOG_CACHE_TTL = int(os.getenv('CATALOG_CACHE_TTL', '60'))
+TAXONOMY_CACHE_TTL = int(os.getenv('TAXONOMY_CACHE_TTL', '300'))
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

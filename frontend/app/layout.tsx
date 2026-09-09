@@ -17,9 +17,9 @@ export function generateMetadata(): Metadata {
     },
     description,
     icons: {
-      icon: "/brand/DSG-New.png",
-      shortcut: "/brand/DSG-New.png",
-      apple: "/brand/DSG-New.png",
+      icon: [{ url: "/brand/metalogo.png", type: "image/png", sizes: "900x900" }],
+      shortcut: "/brand/metalogo.png",
+      apple: [{ url: "/brand/metalogo.png", sizes: "900x900", type: "image/png" }],
     },
     openGraph: {
       type: "website",
@@ -50,7 +50,7 @@ export default function RootLayout({
     "@type": "Organization",
     name: "Divine Stone Gallery",
     url: siteUrl,
-    logo: `${siteUrl}/brand/DSG-New.png`,
+    logo: `${siteUrl}/brand/metalogo.png`,
     foundingDate: "1960",
     description: "Fourth-generation family atelier creating hand-carved marble murtis in Alwar, Rajasthan.",
     areaServed: "IN",
