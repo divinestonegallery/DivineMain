@@ -55,7 +55,9 @@ export function ContactForm() {
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const value = (name: string) => form.get(name)?.toString().trim() || "";
-    const cityState = value("cityState");
+    const address = value("address");
+    const city = value("city");
+    const state = value("state");
     const message = value("message");
     setSubmitting(true);
     setError("");
@@ -66,7 +68,8 @@ export function ContactForm() {
         email: value("email"),
         phone: value("phone"),
         message: [
-          `City / State: ${cityState}`,
+          `Address: ${address}`,
+          `City / State: ${[city, state].filter(Boolean).join(", ")}`,
           "",
           `Comment: ${message || "Not provided"}`,
         ].join("\n").trim(),
@@ -113,7 +116,9 @@ export function ContactForm() {
         <FormField label="Name" name="name" autoComplete="name" placeholder="Full name" value={identity.name} onChange={updateIdentity("name")} required />
         <FormField label="Email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={identity.email} onChange={updateIdentity("email")} required />
         <FormField label="Phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="e.g. +91 98765 43210" pattern="\+?[0-9][0-9\s-]{7,19}" value={identity.phone} onChange={updateIdentity("phone")} required />
-        <FormField label="Address / City / State" name="cityState" autoComplete="address-level2" placeholder="City, State" required />
+        <FormField className={styles.fullField} label="Address" name="address" autoComplete="street-address" placeholder="Street address" required />
+        <FormField label="City" name="city" autoComplete="address-level2" placeholder="City" required />
+        <FormField label="State" name="state" autoComplete="address-level1" placeholder="State" required />
         <TextareaField className={styles.fullField} label="Query / Description / Comment" name="message" placeholder="Tell us what you are looking for, or leave this blank." />
       </div>
       {error ? <p className={styles.formError} role="alert">{error}</p> : null}
