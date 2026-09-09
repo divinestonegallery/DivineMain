@@ -261,17 +261,13 @@ export function AuthModal() {
         <div className={styles.modalLayout}>
           <div className={styles.modalImageSection}>
             <Image
-              src="/brand/DSG-New.png"
-              alt="Divine Murti"
+              src="/brand/login_modal.png"
+              alt="The Legacy of Faith - Divine Stone Gallery"
               fill
+              sizes="(max-width: 768px) 100vw, 400px"
               className={styles.modalImage}
               priority
             />
-            <div className={styles.modalImageOverlay}>
-              <h3 className={styles.modalImageText}>
-                Bring Divine Beauty<br />Into Your Home
-              </h3>
-            </div>
           </div>
           <div className={styles.modalContentSection}>
             <div className={styles.modalHeader}>
@@ -285,7 +281,7 @@ export function AuthModal() {
                 onClick={closeModal}
                 aria-label="Close authentication modal"
               >
-                <X size={24} strokeWidth={1.5} />
+                <X size={18} strokeWidth={2} />
               </button>
             </div>
 
