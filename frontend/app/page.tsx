@@ -100,6 +100,11 @@ function taxonomyHref(item: TaxonomyItem) {
   return `/shop?q=${encodeURIComponent(item.name)}`;
 }
 
+function categoryFilterHref(item: TaxonomyItem) {
+  const category = normalizeText(item.slug) || normalizeText(item.name);
+  return `/shop?category=${encodeURIComponent(category)}`;
+}
+
 function groupName(group: HomeDeityGroup) {
   return (
     normalizeText(group.deity_name) ||
@@ -354,7 +359,7 @@ function CategoriesSection({ categories }: { categories: TaxonomyItem[] }) {
         {categories.length ? (
           <HomeCarouselRail className={styles.categoryGrid} label="Categories">
             {categories.map((category, index) => (
-              <Link className={styles.categoryCard} href={taxonomyHref(category)} key={category.id ?? category.slug ?? category.name}>
+              <Link className={styles.categoryCard} href={categoryFilterHref(category)} key={category.id ?? category.slug ?? category.name}>
                 <span className={styles.categoryImage}>
                   <MediaImage
                     src={category.image_url}
