@@ -1,0 +1,181 @@
+.upload {
+  display: grid;
+  gap: 0.75rem;
+  grid-column: 1 / -1;
+}
+
+.uploadHeader {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.uploadHeader strong {
+  font-size: 0.78rem;
+}
+
+.uploadHeader small {
+  color: var(--ink-muted);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+.dropzone {
+  display: grid;
+  min-height: 150px;
+  place-items: center;
+  align-content: center;
+  gap: 0.45rem;
+  padding: 1.15rem;
+  border: 1px dashed rgb(151 116 64 / 0.5);
+  border-radius: var(--radius-lg);
+  color: var(--gold-deep);
+  background: #fffaf2;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.dropzone:hover,
+.dropzoneActive {
+  border-color: var(--gold-deep);
+  background: #fff6e8;
+  transform: translateY(-1px);
+}
+
+.dropzone:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.dropzone span {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.dropzone strong {
+  color: var(--foreground);
+  font-size: 0.82rem;
+}
+
+.dropzone small {
+  color: var(--ink-muted);
+  font-size: 0.67rem;
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.previewGrid,
+.existingGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
+  gap: 0.7rem;
+}
+
+.previewCard,
+.existingCard {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+}
+
+.previewImage,
+.existingImage {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 1.18;
+  background: var(--surface-muted);
+}
+
+.previewImage img,
+.existingImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.previewMeta,
+.existingMeta {
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.65rem;
+}
+
+.previewMeta strong,
+.existingMeta strong {
+  overflow: hidden;
+  font-size: 0.67rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewMeta small,
+.existingMeta small {
+  color: var(--ink-muted);
+  font-size: 0.58rem;
+}
+
+.previewActions,
+.existingActions {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0 0.65rem 0.65rem;
+}
+
+.previewActions button,
+.existingActions button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding-inline: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--foreground);
+  background: var(--surface);
+  font-size: 0.58rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.existingActions button:first-child {
+  color: var(--gold-deep);
+}
+
+.coverBadge,
+.errorText {
+  width: fit-content;
+  color: var(--gold-deep);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.errorText {
+  color: var(--danger);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.uploadError {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.68rem;
+}
+
+@media (max-width: 560px) {
+  .previewGrid,
+  .existingGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -1,0 +1,46 @@
+.previewIntro { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr); align-items: end; gap: 3rem; padding-block: clamp(3rem, 7vw, 6rem) 2.5rem; }
+.previewIntro p, .sectionHeading p, .eyebrow { margin: 0 0 0.65rem; color: var(--gold-deep); font-size: 0.68rem; font-weight: 650; letter-spacing: 0.12em; text-transform: uppercase; }
+.previewIntro h1 { max-width: 750px; margin: 0; font-size: clamp(2.8rem, 6.5vw, 6rem); font-weight: 400; letter-spacing: -0.045em; line-height: 0.94; }
+.previewIntro > span { color: var(--ink-muted); font-size: 0.95rem; line-height: 1.7; }
+.controlBar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 3.5rem; padding: 0.8rem 0; border-block: 1px solid var(--border); }
+.controlBar > div { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.curatedMedia { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr); gap: clamp(0.75rem, 1.5vw, 1.25rem); margin-bottom: clamp(4rem, 8vw, 7rem); }
+.editorialStack { display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: clamp(0.75rem, 1.5vw, 1.25rem); }
+.editorialCard { position: relative; overflow: hidden; min-height: 270px; margin: 0; border-radius: var(--radius-lg); background: #ddd0bf; box-shadow: var(--shadow-soft); }
+.editorialMain { min-height: clamp(430px, 50vw, 640px); }
+.editorialCard::after { position: absolute; inset: 32% 0 0; background: linear-gradient(transparent, rgb(23 17 11 / 0.72)); content: ""; pointer-events: none; }
+.editorialCard img { object-fit: cover; transition: transform 800ms cubic-bezier(0.22, 1, 0.36, 1); }
+.editorialCard:hover img { transform: scale(1.025); }
+.editorialCaption { position: absolute; right: clamp(1rem, 2.5vw, 2rem); bottom: clamp(1rem, 2.5vw, 2rem); left: clamp(1rem, 2.5vw, 2rem); z-index: 1; display: flex; flex-direction: column; color: #fffdf9; text-shadow: 0 2px 16px rgb(0 0 0 / 0.35); }
+.editorialCaption span { margin-bottom: 0.3rem; color: #f0d7aa; font-size: 0.64rem; font-weight: 650; letter-spacing: 0.12em; text-transform: uppercase; }
+.editorialCaption strong { font-family: var(--font-brand-display); font-size: clamp(1.25rem, 2.4vw, 2.25rem); font-weight: 400; line-height: 1.08; }
+.editorialStack .editorialCaption strong { font-size: clamp(1.1rem, 1.7vw, 1.6rem); }
+.sectionHeading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; margin-bottom: 1.5rem; }
+.sectionHeading h2 { margin: 0; font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 400; }
+.productGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(1rem, 2.5vw, 2rem); }
+.paginationWrap { margin-top: 2.5rem; }
+.detailPreview { display: grid; grid-template-columns: 1.2fr 1fr 0.65fr; gap: clamp(1.5rem, 4vw, 4rem); margin-top: clamp(4rem, 9vw, 8rem); padding-block: clamp(2rem, 5vw, 4rem); border-top: 1px solid var(--border); }
+.quantityDemo { display: flex; flex-direction: column; align-items: flex-start; gap: 0.8rem; }
+.quantityDemo small { color: var(--ink-muted); line-height: 1.55; }
+.previewForm { display: grid; gap: 1rem; }
+
+@media (max-width: 900px) {
+  .previewIntro { grid-template-columns: 1fr; gap: 1.5rem; }
+  .curatedMedia { grid-template-columns: 1fr; }
+  .editorialStack { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; }
+  .detailPreview { grid-template-columns: 1fr 1fr; }
+  .quantityDemo { grid-column: 1 / -1; }
+}
+
+@media (max-width: 680px) {
+  .controlBar { align-items: flex-start; }
+  .controlBar > button { width: 44px; overflow: hidden; padding: 0; font-size: 0; }
+  .curatedMedia { margin-inline: calc(var(--page-gutter) * -1); }
+  .editorialMain { min-height: 420px; border-radius: 0; }
+  .editorialStack { gap: 0.5rem; padding-inline: var(--page-gutter); }
+  .editorialStack .editorialCard { min-height: 250px; }
+  .productGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  .productGrid > :last-child { display: none; }
+  .detailPreview { grid-template-columns: 1fr; }
+  .quantityDemo { grid-column: auto; }
+}

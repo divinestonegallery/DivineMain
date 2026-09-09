@@ -1,0 +1,551 @@
+.eyebrow {
+  margin: 0 0 0.75rem;
+  color: var(--gold-deep);
+  font-size: 0.67rem;
+  font-weight: 680;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hubHero,
+.articleHero {
+  padding-bottom: clamp(4rem, 8vw, 7rem);
+  background:
+    radial-gradient(circle at 82% 20%, rgb(216 189 138 / 0.25), transparent 25rem),
+    linear-gradient(180deg, #fbf8f2, var(--background));
+}
+
+.hubHeroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.42fr);
+  gap: clamp(3rem, 9vw, 9rem);
+  align-items: end;
+  padding-top: clamp(3rem, 7vw, 6rem);
+}
+
+.hubHeroGrid h1 {
+  margin: 0;
+  font-size: clamp(4rem, 8vw, 8rem);
+  font-weight: 400;
+  letter-spacing: -0.065em;
+  line-height: 0.84;
+}
+
+.hubHeroGrid h1 span {
+  display: block;
+  color: var(--gold-deep);
+  font-style: italic;
+}
+
+.hubHeroGrid > div > p:not(.eyebrow) {
+  max-width: 700px;
+  margin: 1.5rem 0 0;
+  color: var(--ink-muted);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.hubHeroGrid aside {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgb(255 253 249 / 0.78);
+  box-shadow: var(--shadow-soft);
+}
+
+.hubHeroGrid aside > svg {
+  color: var(--gold-deep);
+}
+
+.hubHeroGrid aside strong {
+  display: block;
+  margin-top: 1rem;
+  font-size: 1.3rem;
+  font-weight: 400;
+}
+
+.hubHeroGrid aside p {
+  margin: 0.5rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  line-height: 1.6;
+}
+
+.hubHeroGrid aside a,
+.guideCardCopy > a,
+.relatedHeading > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  color: var(--gold-deep);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.guideCardsSection {
+  padding-block: clamp(5rem, 9vw, 8rem);
+  background: var(--surface);
+}
+
+.guideCards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 2.4vw, 2rem);
+}
+
+.guideCards article {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+}
+
+.guideCardImage {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  background: #e7ded2;
+}
+
+.guideCardImage img,
+.articleHeroImage img {
+  object-fit: contain;
+}
+
+.guideCardCopy {
+  padding: 1.25rem;
+}
+
+.guideCardCopy > span {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--gold-deep);
+  font-size: 0.6rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.guideCardCopy h2 {
+  margin: 0.75rem 0 0;
+  font-size: clamp(1.45rem, 2.5vw, 2.15rem);
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.guideCardCopy > p {
+  margin: 0.8rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.73rem;
+  line-height: 1.65;
+}
+
+.hubCta,
+.articleCta {
+  padding-block: clamp(5rem, 9vw, 8rem);
+  text-align: center;
+  background: var(--background);
+}
+
+.hubCta svg,
+.articleCta > div > svg {
+  margin-inline: auto;
+  color: var(--gold-deep);
+}
+
+.hubCta .eyebrow,
+.articleCta .eyebrow {
+  margin-top: 1rem;
+}
+
+.hubCta h2,
+.articleCta h2 {
+  max-width: 950px;
+  margin: 0 auto;
+  font-size: clamp(3rem, 5vw, 5.5rem);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+}
+
+.hubCta > div > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.7rem;
+}
+
+.articleHeroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(420px, 0.72fr);
+  gap: clamp(3rem, 8vw, 8rem);
+  align-items: center;
+  padding-top: clamp(2.5rem, 6vw, 5rem);
+}
+
+.articleHeroCopy h1 {
+  margin: 0;
+  font-size: clamp(3.8rem, 7vw, 7rem);
+  font-weight: 400;
+  letter-spacing: -0.06em;
+  line-height: 0.88;
+}
+
+.articleHeroCopy > p:not(.eyebrow) {
+  max-width: 650px;
+  margin: 1.4rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+.articleHeroCopy > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1.25rem;
+  color: var(--gold-deep);
+  font-size: 0.65rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.articleHeroImage {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  border-radius: 45% 45% var(--radius-lg) var(--radius-lg);
+  background: #e7ded2;
+  box-shadow: var(--shadow-soft);
+}
+
+.highlightsSection {
+  background: var(--foreground);
+}
+
+.highlightsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-left: 1px solid #504a42;
+}
+
+.highlightsGrid article {
+  min-height: 240px;
+  padding: 1.3rem;
+  border-right: 1px solid #504a42;
+  color: #f4eee6;
+}
+
+.highlightsGrid article > span {
+  color: var(--gold-soft);
+  font-size: 0.6rem;
+}
+
+.highlightsGrid article > strong {
+  display: block;
+  margin-top: 3rem;
+  color: var(--gold-soft);
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  font-weight: 400;
+}
+
+.highlightsGrid h2 {
+  margin: 0.35rem 0 0;
+  font-size: 0.76rem;
+}
+
+.highlightsGrid p {
+  max-width: 300px;
+  margin: 0.5rem 0 0;
+  color: #bcb3a9;
+  font-size: 0.69rem;
+  line-height: 1.55;
+}
+
+.articleBody {
+  padding-block: clamp(5rem, 9vw, 8rem);
+  background: var(--surface);
+}
+
+.articleBodyGrid {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 780px);
+  gap: clamp(3rem, 8vw, 8rem);
+  justify-content: center;
+}
+
+.articleBodyGrid > aside {
+  position: sticky;
+  top: 1.5rem;
+  display: flex;
+  height: fit-content;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+}
+
+.articleBodyGrid > aside > span {
+  margin-bottom: 0.65rem;
+  color: var(--gold-deep);
+  font-size: 0.61rem;
+  font-weight: 680;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.articleBodyGrid > aside a {
+  padding-block: 0.55rem;
+  color: var(--ink-muted);
+  font-size: 0.69rem;
+  line-height: 1.45;
+}
+
+.articleBodyGrid > aside a:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+  color: var(--gold-deep);
+  font-weight: 650;
+}
+
+.articleSections > section {
+  scroll-margin-top: 2rem;
+  padding-bottom: 3.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.articleSections > section + section {
+  padding-top: 3.5rem;
+}
+
+.articleSections > section > span {
+  color: var(--gold-deep);
+  font-size: 0.61rem;
+  font-weight: 680;
+  letter-spacing: 0.1em;
+}
+
+.articleSections h2 {
+  margin: 0.65rem 0 0;
+  font-size: clamp(2.3rem, 4vw, 3.8rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.articleSections section > p {
+  margin: 1rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.88rem;
+  line-height: 1.8;
+}
+
+.articleSections ul {
+  display: grid;
+  gap: 0.7rem;
+  margin: 1.3rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.articleSections li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  color: var(--ink-muted);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.articleSections li svg {
+  flex: 0 0 auto;
+  color: var(--gold-deep);
+}
+
+.guideNote {
+  display: flex;
+  gap: 0.8rem;
+  margin-top: 2rem;
+  padding: 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+}
+
+.guideNote > svg {
+  flex: 0 0 auto;
+  color: var(--gold-deep);
+}
+
+.guideNote span {
+  display: flex;
+  flex-direction: column;
+}
+
+.guideNote strong {
+  font-size: 0.74rem;
+}
+
+.guideNote p {
+  margin: 0.35rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.7rem;
+  line-height: 1.6;
+}
+
+.articleCta {
+  color: #f4eee6;
+  background: var(--foreground);
+}
+
+.articleCta .eyebrow,
+.articleCta > div > svg {
+  color: var(--gold-soft);
+}
+
+.articleCta > div > p:not(.eyebrow) {
+  max-width: 630px;
+  margin: 1rem auto 0;
+  color: #bcb3a9;
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+
+.articleCta > div > a {
+  margin-top: 1.5rem;
+  color: var(--foreground);
+  background: var(--gold-soft);
+}
+
+.relatedGuides {
+  padding-block: clamp(5rem, 9vw, 8rem);
+  background: var(--background);
+}
+
+.relatedHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.relatedHeading h2 {
+  margin: 0;
+  font-size: clamp(2.8rem, 5vw, 4.8rem);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+}
+
+.relatedHeading > a {
+  margin-top: 0;
+}
+
+.relatedGuides > div > div:last-child {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.relatedGuides > div > div:last-child > a {
+  position: relative;
+  display: flex;
+  min-height: 210px;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.relatedGuides a > span {
+  color: var(--gold-deep);
+  font-size: 0.6rem;
+  font-weight: 680;
+  text-transform: uppercase;
+}
+
+.relatedGuides a > strong {
+  max-width: 420px;
+  margin-top: 2.7rem;
+  font-size: 1.55rem;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.relatedGuides a > small {
+  margin-top: 0.5rem;
+  color: var(--ink-muted);
+  font-size: 0.62rem;
+}
+
+.relatedGuides a > svg {
+  position: absolute;
+  right: 1.2rem;
+  bottom: 1.2rem;
+  color: var(--gold-deep);
+}
+
+@media (max-width: 900px) {
+  .articleHeroGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .articleHeroImage {
+    max-width: 700px;
+  }
+
+  .articleBodyGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .articleBodyGrid > aside {
+    position: static;
+  }
+}
+
+@media (max-width: 680px) {
+  .hubHeroGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .hubHeroGrid h1,
+  .articleHeroCopy h1 {
+    font-size: clamp(3.8rem, 18vw, 5.8rem);
+  }
+
+  .guideCards,
+  .highlightsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .highlightsGrid article {
+    min-height: 200px;
+    border-bottom: 1px solid #504a42;
+  }
+
+  .highlightsGrid article > strong {
+    margin-top: 2.2rem;
+  }
+
+  .hubCta > div > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .relatedHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .relatedGuides > div > div:last-child {
+    grid-template-columns: 1fr;
+  }
+}

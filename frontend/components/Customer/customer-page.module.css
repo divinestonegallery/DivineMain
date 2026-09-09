@@ -1,0 +1,822 @@
+.hero {
+  padding-block: clamp(3rem, 7vw, 6rem);
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(145deg, var(--surface) 0%, var(--background) 72%);
+}
+
+.heroInner {
+  max-width: 900px;
+  padding-top: clamp(2rem, 5vw, 4rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.8rem;
+  color: var(--gold-deep);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 850px;
+  margin: 0;
+  font-size: clamp(3.2rem, 7vw, 7rem);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  line-height: 0.92;
+}
+
+.heroInner > p:not(.eyebrow) {
+  max-width: 720px;
+  margin: 1.3rem 0 0;
+  color: var(--ink-muted);
+  font-size: clamp(1rem, 1.8vw, 1.18rem);
+  line-height: 1.7;
+}
+
+.deviceNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin: 1.3rem 0 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--ink-muted);
+  background: rgb(255 253 249 / 0.72);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.deviceNote svg {
+  flex: 0 0 auto;
+  color: var(--gold-deep);
+}
+
+.section {
+  min-height: 420px;
+  padding-block: clamp(3rem, 7vw, 6rem) clamp(7rem, 10vw, 9rem);
+  background: var(--surface);
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.sectionHeading h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 400;
+}
+
+.sectionHeading button {
+  min-height: 44px;
+  padding-inline: 0.9rem;
+  border: 0;
+  color: var(--gold-deep);
+  background: transparent;
+  font-size: 0.73rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 2.5vw, 2rem);
+}
+
+.productCard {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+}
+
+.productImage {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--surface-muted);
+}
+
+.productImage img {
+  object-fit: contain;
+}
+
+.productCopy {
+  padding: 1.1rem;
+}
+
+.productCopy > span {
+  color: var(--gold-deep);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.productCopy h2 {
+  display: -webkit-box;
+  min-height: calc(2 * 1.05em);
+  margin: 0.45rem 0 0;
+  overflow: hidden;
+  font-size: 1.65rem;
+  font-weight: 400;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.productCopy p {
+  margin: 0.5rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.cardActions a,
+.cardActions button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding-inline: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: 0.68rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.cardActions a:first-child {
+  color: white;
+  background: var(--foreground);
+}
+
+.emptyState {
+  display: grid;
+  min-height: 360px;
+  place-items: center;
+  padding: 2rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  background: var(--background);
+}
+
+.emptyState > div {
+  max-width: 520px;
+}
+
+.emptyState svg {
+  color: var(--gold-deep);
+}
+
+.emptyState h2 {
+  margin: 1rem 0 0;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 400;
+}
+
+.emptyState p {
+  margin: 0.75rem 0 1.4rem;
+  color: var(--ink-muted);
+  line-height: 1.65;
+}
+
+.bagLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 360px);
+  gap: clamp(2rem, 5vw, 5rem);
+}
+
+.bagItems {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.bagItem {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+}
+
+.bagItem > div {
+  min-width: 0;
+}
+
+.bagThumb {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.bagThumb img {
+  object-fit: contain;
+}
+
+.bagItem h2 {
+  display: -webkit-box;
+  min-height: calc(2 * 1.15em);
+  margin: 0;
+  overflow: hidden;
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.bagItem p {
+  margin: 0.4rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+}
+
+.removeButton {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.bagSummary,
+.accountStatus,
+.accountCard,
+.orderCard {
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+}
+
+.bagSummary {
+  align-self: start;
+  position: sticky;
+  top: 120px;
+}
+
+.bagSummary h2,
+.accountStatus h2,
+.accountCard h2,
+.orderCard h2 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 400;
+}
+
+.bagSummary p,
+.accountStatus p,
+.accountCard p,
+.orderCard p {
+  color: var(--ink-muted);
+  line-height: 1.65;
+}
+
+.bagSummary > a {
+  width: 100%;
+  margin-top: 0.8rem;
+}
+
+.accountGrid {
+  display: grid;
+  grid-template-columns: 1.1fr repeat(2, 0.8fr);
+  gap: 1rem;
+}
+
+.accountStatus {
+  grid-row: span 2;
+}
+
+.statusBadge {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1.2rem;
+  padding-inline: 0.75rem;
+  border-radius: var(--radius-pill);
+  color: var(--gold-deep);
+  background: var(--surface-muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.accountCard strong {
+  display: block;
+  margin-top: 0.7rem;
+  font-family: var(--font-brand-display);
+  font-size: 3rem;
+  font-weight: 400;
+}
+
+.accountCard a,
+.accountStatus a,
+.orderCard > a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+  color: var(--gold-deep);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.preferenceCard {
+  grid-column: span 2;
+}
+
+.preferenceCard button {
+  min-height: 44px;
+  padding-inline: 1rem;
+  border: 1px solid var(--foreground);
+  border-radius: var(--radius-pill);
+  color: white;
+  background: var(--foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.preferenceCard button:disabled {
+  border-color: var(--border);
+  color: var(--ink-muted);
+  background: var(--surface-muted);
+  cursor: not-allowed;
+}
+
+.preferenceCard small {
+  display: block;
+  margin-top: 0.75rem;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.accountLayout {
+  display: grid;
+  grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+  gap: clamp(1rem, 3vw, 2rem);
+  align-items: start;
+}
+
+.accountSidebar,
+.accountPanel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+}
+
+.accountSidebar {
+  position: sticky;
+  top: 110px;
+  padding: 0.85rem;
+}
+
+.accountSidebarHeader {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.4rem 0.35rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.accountSidebarHeader > div {
+  min-width: 0;
+}
+
+.accountSidebarHeader strong,
+.accountSidebarHeader small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountSidebarHeader strong {
+  font-size: 0.95rem;
+}
+
+.accountSidebarHeader small {
+  margin-top: 0.18rem;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+}
+
+.accountAvatar {
+  display: grid;
+  flex: 0 0 auto;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--gold-deep);
+  background: var(--surface-muted);
+  font-family: var(--font-brand-display);
+  font-size: 1.7rem;
+  font-weight: 400;
+}
+
+.accountNav {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.9rem;
+}
+
+.accountNavItem {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--ink-muted);
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.accountNavItem span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.accountNavItem:hover,
+.accountNavItem:focus-visible,
+.accountNavItem[aria-current="page"] {
+  border-color: var(--border);
+  color: var(--foreground);
+  background: var(--surface-muted);
+  outline: none;
+}
+
+.accountNavItem[aria-current="page"] {
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+
+.accountLogout {
+  color: var(--danger);
+}
+
+.accountLogout:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.accountContent {
+  min-width: 0;
+}
+
+.accountPanel {
+  min-height: 520px;
+  padding: clamp(1.1rem, 3vw, 2rem);
+}
+
+.accountPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: clamp(1.2rem, 2.5vw, 2rem);
+}
+
+.accountPanelHeader h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.accountPanelHeader p:not(.eyebrow) {
+  max-width: 700px;
+  margin: 0.75rem 0 0;
+  color: var(--ink-muted);
+  line-height: 1.65;
+}
+
+.profileSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.profileSummaryGrid > div {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.profileSummaryGrid small {
+  display: block;
+  color: var(--gold-deep);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.profileSummaryGrid strong {
+  display: block;
+  margin-top: 0.4rem;
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.profileEditButton {
+  margin-top: clamp(0.65rem, 1.5vw, 1rem);
+}
+
+.accountForm {
+  display: grid;
+  max-width: 760px;
+  gap: 1rem;
+}
+
+.accountFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.accountForm label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.accountForm label > span {
+  color: var(--foreground);
+}
+
+.accountForm input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.78rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--foreground);
+  background: var(--surface);
+  font: inherit;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.accountForm input:focus {
+  border-color: var(--gold);
+  box-shadow: var(--dropdown-focus-ring);
+}
+
+.accountForm input[readonly] {
+  color: var(--ink-muted);
+  background: var(--surface-muted);
+}
+
+.accountForm small {
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.accountForm button {
+  justify-self: start;
+}
+
+.accountFeedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.accountFeedback svg {
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+}
+
+.accountFeedbackSuccess {
+  border-color: #bfd2c1;
+  color: #28452d;
+  background: #f0f7f1;
+}
+
+.accountFeedbackError {
+  border-color: #e0b6af;
+  color: #7d332b;
+  background: #f8ebe8;
+}
+
+.accountNotice {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.accountNotice > svg {
+  flex: 0 0 auto;
+  color: var(--gold-deep);
+}
+
+.accountNotice h3 {
+  margin: 0;
+  font-size: 1.7rem;
+  font-weight: 400;
+}
+
+.accountNotice p {
+  max-width: 680px;
+  margin: 0.5rem 0 0;
+  color: var(--ink-muted);
+  line-height: 1.65;
+}
+
+.accountNotice a,
+.accountNotice button {
+  margin-top: 1rem;
+}
+
+.spinIcon {
+  animation: accountSpin 0.8s linear infinite;
+}
+
+@keyframes accountSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.orderLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(1.5rem, 5vw, 5rem);
+}
+
+.orderForm {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+.orderForm label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.orderForm input,
+.orderForm textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--foreground);
+  background: var(--surface);
+}
+
+.orderForm textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.orderForm button {
+  justify-self: start;
+}
+
+@media (max-width: 900px) {
+  .productGrid,
+  .accountGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .accountStatus {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .accountLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .accountSidebar {
+    position: static;
+  }
+
+  .accountNav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .preferenceCard {
+    grid-column: 1 / -1;
+  }
+
+  .bagLayout,
+  .orderLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .bagSummary {
+    position: static;
+  }
+}
+
+@media (max-width: 620px) {
+  .productGrid,
+  .accountGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .preferenceCard {
+    grid-column: auto;
+  }
+
+  .accountSidebarHeader,
+  .accountPanelHeader,
+  .accountNotice {
+    align-items: flex-start;
+  }
+
+  .accountNav,
+  .accountFormGrid,
+  .profileSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .accountPanel {
+    min-height: auto;
+    padding: 1rem;
+  }
+
+  .accountPanelHeader {
+    flex-direction: column;
+  }
+
+  .accountNotice {
+    flex-direction: column;
+  }
+
+  .sectionHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .bagItem {
+    grid-template-columns: 86px minmax(0, 1fr) auto;
+  }
+
+  .bagItem h2 {
+    font-size: 1.2rem;
+  }
+}
