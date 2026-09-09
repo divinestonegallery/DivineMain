@@ -193,6 +193,8 @@ export async function getProductListing(filters?: ProductFilters) {
   const data = await apiRequest<ProductListPayload>("/api/v1/products", {
     method: "POST",
     body: JSON.stringify(requestBody),
+    cache: "force-cache",
+    next: { revalidate: 60, tags: ["catalog"] },
   });
   return normalizeProductListResult(data, requestBody);
 }
@@ -202,23 +204,38 @@ export function getProducts(filters?: ProductFilters) {
 }
 
 export function getProduct(slug: string) {
-  return apiRequest<ProductDetail>(`/api/v1/products/${encodeURIComponent(slug)}`);
+  return apiRequest<ProductDetail>(`/api/v1/products/${encodeURIComponent(slug)}`, {
+    cache: "force-cache",
+    next: { revalidate: 60, tags: ["catalog", `product:${slug}`] },
+  });
 }
 
 export function getCategories() {
-  return apiRequest<TaxonomyItem[]>("/api/v1/products/categories");
+  return apiRequest<TaxonomyItem[]>("/api/v1/products/categories", {
+    cache: "force-cache",
+    next: { revalidate: 300, tags: ["catalog-taxonomy"] },
+  });
 }
 
 export function getMaterials() {
-  return apiRequest<TaxonomyItem[]>("/api/v1/products/materials");
+  return apiRequest<TaxonomyItem[]>("/api/v1/products/materials", {
+    cache: "force-cache",
+    next: { revalidate: 300, tags: ["catalog-taxonomy"] },
+  });
 }
 
 export function getDeities() {
-  return apiRequest<TaxonomyItem[]>("/api/v1/products/deities");
+  return apiRequest<TaxonomyItem[]>("/api/v1/products/deities", {
+    cache: "force-cache",
+    next: { revalidate: 300, tags: ["catalog-taxonomy"] },
+  });
 }
 
 export async function getHome() {
-  return apiRequest<HomeData>("/api/v1/application/home");
+  return apiRequest<HomeData>("/api/v1/application/home", {
+    cache: "force-cache",
+    next: { revalidate: 60, tags: ["home"] },
+  });
 }
 
 export function searchApplication(query: string) {

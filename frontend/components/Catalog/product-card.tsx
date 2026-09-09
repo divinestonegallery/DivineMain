@@ -1,5 +1,3 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import { Gem } from "lucide-react";
@@ -23,6 +21,15 @@ type ProductCardInput = Product | (ApiProductCard & {
 
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function shouldSkipImageOptimization(src: string) {
+  if (!/^https?:\/\//i.test(src)) return false;
+  try {
+    return !["media.divinestonegallery.com", "images.unsplash.com"].includes(new URL(src).hostname);
+  } catch {
+    return true;
+  }
 }
 
 function normalizePriceValue(value: unknown) {
@@ -103,7 +110,7 @@ export function ProductCard({ product, priority = false, href }: { product: Prod
               fill
               sizes="(max-width: 680px) 72vw, (max-width: 1024px) 38vw, 24vw"
               priority={priority}
-              unoptimized={/^https?:\/\//i.test(image.src)}
+              unoptimized={shouldSkipImageOptimization(image.src)}
             />
           ) : (
             <span className={styles.productImagePlaceholder}>

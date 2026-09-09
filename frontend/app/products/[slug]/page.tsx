@@ -30,7 +30,7 @@ import styles from "./product-page.module.css";
 type ProductPageProps = { params: Promise<{ slug: string }> };
 
 // New and updated products are resolved from PostgreSQL at request time.
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 type ProductLoadState = "not-found" | "unavailable";
 

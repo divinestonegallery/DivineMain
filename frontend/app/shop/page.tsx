@@ -17,9 +17,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/shop" },
 };
 
-// Catalogue changes made in Admin must be visible on the next storefront request.
-export const dynamic = "force-dynamic";
-
 type ShopSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 const supportedSorts = new Set(["featured", "display_order", "newest", "oldest", "price_asc", "price_desc"]);

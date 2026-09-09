@@ -109,14 +109,30 @@ function FilterControls({
   );
 }
 
-function ProductCard({ item }: { item: CatalogItem }) {
+function shouldSkipImageOptimization(src: string) {
+  if (!/^https?:\/\//i.test(src)) return false;
+  try {
+    return !["media.divinestonegallery.com", "images.unsplash.com"].includes(new URL(src).hostname);
+  } catch {
+    return true;
+  }
+}
+
+function ProductCard({ item, priority = false }: { item: CatalogItem; priority?: boolean }) {
   const fallback = item.salesMode === "direct" || item.salesMode === "both" ? "Price on request" : "Enquire for price";
 
   return (
     <article className={styles.productCard}>
       <div className={styles.productMedia}>
         <Link href={`/products/${item.slug}`} aria-label={`View ${item.name}`}>
-          <Image src={item.image} alt={`${item.name}, hand-carved marble work`} fill sizes="(max-width: 680px) 50vw, (max-width: 1050px) 33vw, 25vw" unoptimized={/^https?:\/\//i.test(item.image)} />
+          <Image
+            src={item.image}
+            alt={`${item.name}, hand-carved marble work`}
+            fill
+            sizes="(max-width: 680px) 50vw, (max-width: 1050px) 33vw, 25vw"
+            priority={priority}
+            unoptimized={shouldSkipImageOptimization(item.image)}
+          />
         </Link>
         {item.height > 0 ? <span className={styles.heightBadge}>{item.height}&quot;</span> : null}
 
@@ -413,8 +429,8 @@ export function ShopCatalog({
               ) : products.length ? (
                 <>
                   <div className={styles.productGrid}>
-                    {products.map((item) => (
-                      <ProductCard item={item} key={item.id} />
+                    {products.map((item, index) => (
+                      <ProductCard item={item} key={item.id} priority={index < 4} />
                     ))}
                   </div>
                   {totalPages > 1 ? (
