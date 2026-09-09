@@ -213,9 +213,9 @@ class ClerkClient:
             data = response.json()
             if data.get('status') == 'verified':
                 return None, True
-            return 'Invalid or expired verification code.', False
+            return 'Invalid or expired OTP.', False
 
-        err_msg, _ = cls._format_error(response, default_msg='Verification code check failed.')
+        err_msg, _ = cls._format_error(response, default_msg=' check failed.')
         return err_msg, False
 
     @classmethod

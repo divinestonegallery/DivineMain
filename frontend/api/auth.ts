@@ -126,16 +126,23 @@ export async function requestPasswordReset(email: string) {
 
   return {
     message: payload?.data?.message || payload?.message || "If an account exists with this email address, password reset instructions have been generated.",
+    verificationId: payload?.data?.verification_id || payload?.verification_id || null,
     resetToken: payload?.data?.reset_token || null,
   };
 }
 
-export async function resetPasswordWithCode({ email, code, newPassword }: { email: string; code: string; newPassword: string }) {
+export async function resetPasswordWithCode({ email, code, verificationId, newPassword }: { email: string; code: string; verificationId: string; newPassword: string }) {
+  const normalizedVerificationId = String(verificationId || "").trim();
+  if (!normalizedVerificationId) {
+    throw new Error("Password verification could not be completed. Please request a new code.");
+  }
+
   const payload = await fetchApi<any>("/auth/reset-password", {
     method: "POST",
     body: JSON.stringify({
       email: normalizeAuthEmail(email),
       code: String(code || "").trim(),
+      verification_id: normalizedVerificationId,
       new_password: newPassword,
     }),
   });
