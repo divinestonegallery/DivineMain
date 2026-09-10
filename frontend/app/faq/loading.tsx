@@ -1,4 +1,5 @@
-import { ArrowRight, CircleHelp, MessageCircle } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, CircleHelp } from "lucide-react";
 import Link from "next/link";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
@@ -12,15 +13,6 @@ export default function FaqLoading() {
     <ToastProvider>
       <SiteHeader />
       <main id="main-content" tabIndex={-1}>
-        <section className={styles.hero}>
-          <div className="site-container">
-            <div className={styles.heroInner}>
-              <p className={styles.eyebrow}>Gallery assistance</p>
-              <h1 className="font-display">Questions, answered simply.</h1>
-              <p>Helpful starting answers about choosing, commissioning and caring for a marble murti. For a product-specific answer, speak directly with our gallery.</p>
-            </div>
-          </div>
-        </section>
         <section className={styles.faqSection}>
           <div className="site-container">
             <section className={styles.faqGroup}>
@@ -35,7 +27,7 @@ export default function FaqLoading() {
         </section>
         <section className={styles.cta}>
           <div className="site-container">
-            <MessageCircle aria-hidden="true" size={26} />
+            <Image src="/brand/whatsapp.svg" alt="" width={26} height={26} aria-hidden="true" />
             <p className={styles.eyebrow}>Still have a question?</p>
             <h2 className="font-display">Ask our gallery about your specific work or space.</h2>
             <div>

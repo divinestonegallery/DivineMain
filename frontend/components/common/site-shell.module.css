@@ -808,16 +808,14 @@
 }
 
 .searchProduct strong {
-  display: -webkit-box;
+  display: block;
   min-height: calc(2 * 1.2em);
   font-family: var(--font-brand-display);
   font-size: 1rem;
   font-weight: 400;
   line-height: 1.2;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .searchProduct small {
@@ -1277,7 +1275,7 @@
 
 .footerGrid {
   display: grid;
-  grid-template-columns: minmax(260px, 1.55fr) repeat(3, minmax(130px, 0.7fr));
+  grid-template-columns: minmax(280px, 1.55fr) minmax(190px, 1fr) minmax(230px, 1.15fr);
   gap: clamp(2rem, 4vw, 5rem);
   padding-block: clamp(3rem, 6vw, 5.5rem);
 }
@@ -1304,6 +1302,10 @@
   margin-top: 1.35rem;
   color: #cfc6bb;
   font-size: 0.8rem;
+}
+
+.footerColumn .footerContact {
+  margin-top: 0.15rem;
 }
 
 .footerContact span,
@@ -1497,11 +1499,8 @@
   }
 
   .footerGrid {
-    grid-template-columns: 1.4fr repeat(2, 1fr);
-  }
-
-  .footerColumn:last-child {
-    grid-column: 2 / -1;
+    grid-template-columns: minmax(210px, 1.3fr) minmax(170px, 1fr) minmax(200px, 1.15fr);
+    gap: 2rem;
   }
 }
 
@@ -1736,16 +1735,8 @@
   }
 
   .footerGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     padding-bottom: 6rem;
-  }
-
-  .footerBrand {
-    grid-column: 1 / -1;
-  }
-
-  .footerColumn:last-child {
-    grid-column: 1 / -1;
   }
 
   .footerBottom {

@@ -435,17 +435,15 @@
 }
 
 .relatedGrid h3 {
-  display: -webkit-box;
+  display: block;
   min-height: calc(2 * 1.2em);
   margin: 0.4rem 0 0;
   overflow: hidden;
   font-size: clamp(1.15rem, 2vw, 1.4rem);
   font-weight: 400;
   line-height: 1.2;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .relatedMeta {

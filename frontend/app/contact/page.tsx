@@ -1,6 +1,7 @@
 // @ts-nocheck
 import type { Metadata } from "next";
-import { ArrowRight, MapPin, MessageCircle, Phone } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, MapPin, Phone } from "lucide-react";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
@@ -30,7 +31,7 @@ export default function ContactPage() {
 
               <div className={styles.contactMethods}>
                 <a className={styles.contactCard} href={whatsappHref} target="_blank" rel="noreferrer">
-                  <span className={styles.contactIcon}><MessageCircle aria-hidden="true" size={22} /></span>
+                  <span className={styles.contactIcon}><Image src="/brand/whatsapp.svg" alt="" width={22} height={22} aria-hidden="true" /></span>
                   <span>
                     <strong>WhatsApp</strong>
                     <small>Share photos, dimensions and product links</small>

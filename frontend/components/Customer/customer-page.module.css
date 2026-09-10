@@ -240,17 +240,15 @@
 }
 
 .bagItem h2 {
-  display: -webkit-box;
+  display: block;
   min-height: calc(2 * 1.15em);
   margin: 0;
   overflow: hidden;
   font-size: 1.5rem;
   font-weight: 400;
   line-height: 1.15;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .bagItem p {

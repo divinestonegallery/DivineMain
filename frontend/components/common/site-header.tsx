@@ -10,8 +10,7 @@ import {
   Search,
   Sparkles,
   X,
-  ChevronRight,
-  MessageCircle
+  ChevronRight
 } from "lucide-react";
 import { FormEvent, MouseEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { AccountControl } from "@/components/Auth/account-control";
@@ -742,7 +741,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                     <span>YouTube</span>
                   </a>
                   <a href="https://wa.me/919166138566?text=Namaste%2C%20I%20would%20like%20help%20choosing%20a%20moorti." target="_blank" rel="noreferrer" className={styles.mobileSocialLinkText}>
-                    <span className={styles.mobileSocialIcon} aria-hidden="true"><MessageCircle size={22} strokeWidth={1.7} /></span>
+                    <span className={styles.mobileSocialIcon} aria-hidden="true"><Image src="/brand/whatsapp.svg" alt="" width={22} height={22} /></span>
                     <span>WhatsApp</span>
                   </a>
                 </div>

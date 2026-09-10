@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, BadgeCheck, BookOpen, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, BookOpen, Sparkles } from "lucide-react";
 import { Breadcrumbs } from "@/components/common/breadcrumbs";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
@@ -69,7 +69,7 @@ export default async function GuidePage({ params }: GuidePageProps) {
         </section>
 
         <section className={styles.articleCta}>
-          <div className="site-container"><MessageCircle aria-hidden="true" size={25} /><p className={styles.eyebrow}>Personal gallery assistance</p><h2 className="font-display">Have a question about your murti or space?</h2><p>Send the gallery a photo, measurement or product link and we will help you understand the next step.</p><a className={buttonClassName({ size: "lg" })} href="https://wa.me/919166138566?text=Namaste%2C%20I%20have%20a%20question%20after%20reading%20one%20of%20your%20murti%20guides." target="_blank" rel="noreferrer">Ask on WhatsApp <ArrowRight aria-hidden="true" size={18} /></a></div>
+          <div className="site-container"><Image src="/brand/whatsapp.svg" alt="" width={25} height={25} aria-hidden="true" /><p className={styles.eyebrow}>Personal gallery assistance</p><h2 className="font-display">Have a question about your murti or space?</h2><p>Send the gallery a photo, measurement or product link and we will help you understand the next step.</p><a className={buttonClassName({ size: "lg" })} href="https://wa.me/919166138566?text=Namaste%2C%20I%20have%20a%20question%20after%20reading%20one%20of%20your%20murti%20guides." target="_blank" rel="noreferrer">Ask on WhatsApp <ArrowRight aria-hidden="true" size={18} /></a></div>
         </section>
 
         <section className={styles.relatedGuides}>

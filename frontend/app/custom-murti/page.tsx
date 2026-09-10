@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { ArrowRight, BadgeCheck, Gem, HandHeart, MessageCircle, PackageCheck, Ruler } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, BadgeCheck, Gem, HandHeart, PackageCheck, Ruler } from "lucide-react";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
@@ -51,7 +52,7 @@ export default function CustomMurtiPage() {
                   <BadgeCheck aria-hidden="true" size={18} />
                   <span>Prefer to talk first?</span>
                   <a className={buttonClassName({ variant: "outline", size: "sm" })} href={whatsappHref} target="_blank" rel="noreferrer">
-                    <MessageCircle aria-hidden="true" size={16} /> WhatsApp <ArrowRight aria-hidden="true" size={15} />
+                    <Image src="/brand/whatsapp.svg" alt="" width={16} height={16} aria-hidden="true" /> WhatsApp <ArrowRight aria-hidden="true" size={15} />
                   </a>
                 </div>
               </div>

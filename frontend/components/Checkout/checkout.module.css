@@ -29,7 +29,7 @@
 .itemImage img { object-fit: contain; }
 .item > div { min-width: 0; }
 .item small, .item p { color: var(--ink-muted); font-size: 0.65rem; }
-.item h3 { display: -webkit-box; min-height: calc(2 * 1.15em); margin: 0.3rem 0 0; overflow: hidden; font-size: 1.45rem; font-weight: 400; line-height: 1.15; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+.item h3 { display: block; min-height: calc(2 * 1.15em); margin: 0.3rem 0 0; overflow: hidden; font-size: 1.45rem; font-weight: 400; line-height: 1.15; white-space: nowrap; text-overflow: ellipsis; }
 .item p { margin: 0.3rem 0 0; }
 .item > strong { font-size: 0.78rem; }
 

@@ -19,39 +19,27 @@ export async function SiteFooter() {
         <div className={styles.footerBrand}>
           <Image src="/brand/DSG-White.png" alt="Divine Stone Gallery" width={420} height={225} />
           <p>{brand.promise}, shaped by generations of experience and guided by sacred tradition.</p>
+        </div>
+
+        <div className={styles.footerColumn}>
+          <p>Contact</p>
           <div className={styles.footerContact}>
             <span><MapPin aria-hidden="true" size={17} /> {address}</span>
             <a href={`tel:${phone.replace(/[^+\d]/g, "")}`}><Phone aria-hidden="true" size={17} /> {phone}</a>
             <a href={`mailto:${email}`}><Mail aria-hidden="true" size={17} /> {email}</a>
-            {business.gstin ? <span>GSTIN: {business.gstin}</span> : null}
           </div>
         </div>
 
         <div className={styles.footerColumn}>
           <p>Explore</p>
-          <Link href="/shop">All moorties</Link>
-          <Link href="/shop">Available collection</Link>
-          <Link href="/custom-murti">Custom murti</Link>
-          <Link href="/artisans">Our artisans</Link>
-          <Link href="/shop">Featured works</Link>
-        </div>
-
-        <div className={styles.footerColumn}>
-          <p>Our world</p>
-          <Link href="/our-story">Our story</Link>
-          <Link href="/craftsmanship">Craftsmanship</Link>
-          <Link href="/guides/materials">Material guide</Link>
-          <Link href="/guides/sizing">Size guide</Link>
-          <Link href="/guides/care">Care guide</Link>
-        </div>
-
-        <div className={styles.footerColumn}>
-          <p>Assistance</p>
-          <Link href="/contact">Contact us</Link>
-          <Link href="/track-order">Track or discuss an order</Link>
-          <Link href="/shipping">Shipping & delivery</Link>
-          <Link href="/shipping#damage-protection">Damage guidance</Link>
-          <Link href="/faq">Frequently asked questions</Link>
+          <Link href="/shop">All Moorties</Link>
+          <Link href="/shop">Collection</Link>
+          <Link href="/custom-murti">Custom Murti</Link>
+          <Link href="/artisans">Artisans</Link>
+          <Link href="/shop">Featured</Link>
+          <Link href="/our-story">Our Story</Link>
+          <Link href="/guides">Guide</Link>
+          <Link href="/faq">FAQs</Link>
         </div>
       </div>
 
@@ -62,7 +50,6 @@ export async function SiteFooter() {
           <Link href="/terms">Terms</Link>
           <Link href="/returns">Returns</Link>
         </div>
-        <Link href="/contact">Gallery assistance</Link>
       </div>
     </footer>
   );

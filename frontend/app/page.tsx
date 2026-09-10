@@ -7,7 +7,6 @@ import {
   ArrowRight,
   ChevronDown,
   Gem,
-  MessageCircle,
   Search,
   Sparkles,
   Star,
@@ -321,7 +320,7 @@ function HomeDecorSection({ products, groups }: { products: ProductCard[]; group
   return (
     <DynamicTabsSection
       id="home-decor"
-      title="Shop by Home Decor"
+      title="Home Decor"
       products={products}
       groups={groups}
       groupBy="category"
@@ -467,7 +466,7 @@ function FinalCta() {
             target="_blank"
             rel="noreferrer"
           >
-            <MessageCircle aria-hidden="true" size={18} /> Connect on WhatsApp
+            <Image src="/brand/whatsapp-white-icon.svg" alt="" width={18} height={18} aria-hidden="true" /> Connect on WhatsApp
           </a>
         </div>
       </div>
@@ -517,7 +516,7 @@ export default async function Home() {
             />
             <DynamicTabsSection
               id="dream-mooti"
-              title="Shop by Dream Mooti"
+              title="Divine Mooti"
               groups={dreamMootiGroups}
               products={getProducts(dreamMooti)}
               groupBy="deity"
@@ -525,7 +524,7 @@ export default async function Home() {
               surface
             />
             <ProductRailSection
-              title="Shop Dream Temple"
+              title="Divine Temple"
               products={getProducts(dreamTemples)}
               actionHref="/shop?q=temple"
               carousel
