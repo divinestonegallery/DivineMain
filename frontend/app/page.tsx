@@ -44,6 +44,7 @@ const HOME_BLOCK = {
   dreamMooti: "shop_by_dream_moorti",
   dreamTemples: "dream_temples",
   categories: "shop_by_categories",
+  subcategories: "shop_by_subcategories",
   homeDecor: "shop_home_decors",
   reviews: "reviews",
 } as const;
@@ -71,6 +72,10 @@ function getGroups(data: HomeBlock["data"] | undefined): HomeDeityGroup[] {
 
 function getCategories(data: HomeBlock["data"] | undefined): TaxonomyItem[] {
   return Array.isArray(data?.categories) ? data.categories.filter(Boolean) : [];
+}
+
+function getSubcategories(data: HomeBlock["data"] | undefined): TaxonomyItem[] {
+  return Array.isArray(data?.subcategories) ? data.subcategories.filter(Boolean) : [];
 }
 
 function getReviews(data: HomeBlock["data"] | undefined): ReviewCard[] {
@@ -101,6 +106,11 @@ function taxonomyHref(item: TaxonomyItem) {
 function categoryFilterHref(item: TaxonomyItem) {
   const category = normalizeText(item.slug) || normalizeText(item.name);
   return `/shop?category=${encodeURIComponent(category)}`;
+}
+
+function deityFilterHref(item: TaxonomyItem) {
+  const deity = normalizeText(item.slug) || normalizeText(item.name);
+  return `/shop?deity=${encodeURIComponent(deity)}`;
 }
 
 function groupName(group: HomeDeityGroup) {
@@ -334,6 +344,46 @@ function CategoriesSection({ categories }: { categories: TaxonomyItem[] }) {
   );
 }
 
+function SubcategoriesSection({
+  title = "Shop by Categories",
+  subcategories,
+}: {
+  title?: string;
+  subcategories: TaxonomyItem[];
+}) {
+  return (
+    <section className={styles.categorySection}>
+      <div className="site-container">
+        <SectionHeading
+          title={title}
+          href="/shop"
+        />
+        {subcategories.length ? (
+          <HomeCarouselRail className={styles.categoryGrid} label={title}>
+            {subcategories.map((deity) => (
+              <Link className={styles.categoryCard} href={deityFilterHref(deity)} key={deity.id ?? deity.slug ?? deity.name}>
+                <span className={styles.categoryImage}>
+                  <MediaImage
+                    src={deity.image_url}
+                    alt={`${deity.name}`}
+                    sizes="(max-width: 680px) 90vw, (max-width: 1024px) 45vw, 31vw"
+                  />
+                </span>
+                <span>
+                  <strong className="font-display">{deity.name}</strong>
+                </span>
+                <ArrowRight aria-hidden="true" size={17} />
+              </Link>
+            ))}
+          </HomeCarouselRail>
+        ) : (
+          <EmptySection label={`${title} is waiting for backend items`} />
+        )}
+      </div>
+    </section>
+  );
+}
+
 function HomeDecorSection({ products, groups }: { products: ProductCard[]; groups: HomeDeityGroup[] }) {
   return (
     <DynamicTabsSection
@@ -511,10 +561,12 @@ export default async function Home() {
   const dreamMooti = getBlock(blocks, HOME_BLOCK.dreamMooti);
   const dreamTemples = getBlock(blocks, HOME_BLOCK.dreamTemples);
   const categories = getBlock(blocks, HOME_BLOCK.categories);
+  const subcategoriesBlock = getBlock(blocks, HOME_BLOCK.subcategories);
   const homeDecor = getBlock(blocks, HOME_BLOCK.homeDecor);
   const reviews = getBlock(blocks, HOME_BLOCK.reviews);
   const dreamMootiGroups = orderDreamMootiGroups(getGroups(dreamMooti));
   const categoryItems = getCategories(categories);
+  const subcategoryItems = getSubcategories(subcategoriesBlock);
 
   return (
     <ToastProvider>
@@ -525,6 +577,10 @@ export default async function Home() {
           <HomeApiError message={error} />
         ) : (
           <>
+            <SubcategoriesSection
+              title={subcategoriesBlock.title || "Shop by Categories"}
+              subcategories={subcategoryItems}
+            />
             <ProductRailSection
               id="popular-mooti"
               title="Popular Mooti"

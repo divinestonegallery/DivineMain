@@ -119,6 +119,7 @@ class MaterialRequestValidator(serializers.Serializer):
 
 class DietyRequestValidator(serializers.Serializer):
     name = serializers.CharField(max_length=255, required=False)
+    image_url = serializers.URLField(max_length=1024, required=False, allow_blank=True, allow_null=True)
     categories = serializers.ListField(child=serializers.IntegerField(min_value=1), required=False, allow_empty=True)
     is_active = serializers.BooleanField(required=False)
 
@@ -151,3 +152,14 @@ class CategoryImageUploadUrlValidator(serializers.Serializer):
             raise serializers.ValidationError('Use a plain filename without path characters.')
         return value
 
+
+class DeityImageUploadUrlValidator(serializers.Serializer):
+    """Validates a request to generate a presigned upload URL for a deity image."""
+    content_type = serializers.ChoiceField(choices=('image/jpeg', 'image/png', 'image/webp'))
+    file_size = serializers.IntegerField(min_value=1)
+    filename = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    def validate_filename(self, value):
+        if value and ('/' in value or '\\' in value or value.startswith('.')):
+            raise serializers.ValidationError('Use a plain filename without path characters.')
+        return value

@@ -42,4 +42,4 @@ class MaterialAdminSerializer(serializers.ModelSerializer):
 class DietyAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = Diety
-        fields = '__all__'
+        fields = ('id', 'name', 'slug', 'image_url', 'categories', 'is_active', 'created_at', 'updated_at')

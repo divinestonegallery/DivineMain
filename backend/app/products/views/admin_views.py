@@ -10,6 +10,7 @@ from app.products.services.admin_service import (
 from app.products.validators import (
     CategoryImageUploadUrlValidator,
     CategoryRequestValidator,
+    DeityImageUploadUrlValidator,
     DietyRequestValidator,
     MaterialRequestValidator,
     ProductImageFinalizeValidator,
@@ -275,3 +276,21 @@ class AdminDietyDetailView(AdminAPIView):
         if error:
             return get_response(ErrorResponse(message=error, status_code=404))
         return get_response(SuccessResponse(message='Deity deactivated successfully', data=data))
+
+
+class AdminDeityImageUploadUrlView(AdminAPIView):
+    """Generate a presigned PUT URL for uploading a deity image to R2.
+
+    POST body: { content_type, file_size, filename? }
+    After uploading, use the returned public_url as image_url when creating/updating the deity.
+    """
+    throttle_scope = 'uploads'
+
+    def post(self, request):
+        validator = DeityImageUploadUrlValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid upload request', err=validator.errors, status_code=400))
+        error, data = DietyAdminService.generate_upload_url(validator.validated_data, request.user.id)
+        if error:
+            return get_response(ErrorResponse(message=error, status_code=400))
+        return get_response(SuccessResponse(message='Deity image upload URL generated', data=data))

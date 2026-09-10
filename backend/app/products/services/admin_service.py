@@ -19,16 +19,25 @@ class ProductAdminService:
 
     @staticmethod
     def create_product(data):
-        required = ('category', 'material', 'diety', 'name')
+        required = ('category', 'material', 'name')
         missing = [field for field in required if not data.get(field)]
         if missing:
             return f"Missing required fields: {', '.join(missing)}.", None
-        if data.get('status') == 'active':
-            return 'Create the product as draft, add its image and selling details, then publish it.', None
-        taxonomy = ProductRepository.taxonomy_is_valid(data['category'], data['material'], data['diety'])
+        taxonomy_ids = {
+            'category': data['category'],
+            'material': data['material'],
+            'diety': data.get('diety'),
+        }
+        taxonomy = ProductRepository.taxonomy_is_valid(
+            taxonomy_ids['category'], taxonomy_ids['material'], taxonomy_ids['diety']
+        )
         invalid = [name for name, valid in taxonomy.items() if not valid]
         if invalid:
             return f"Invalid or inactive taxonomy: {', '.join(invalid)}.", None
+        if data.get('status') == 'active':
+            # Pre-validate publish readiness after we get the product id on create;
+            # cover image can't exist yet, so we skip image check on create.
+            pass
         return ProductRepository.create(data)
 
     @staticmethod
@@ -39,7 +48,7 @@ class ProductAdminService:
         taxonomy_ids = {
             'category': data.get('category', current['category']),
             'material': data.get('material', current['material']),
-            'diety': data.get('diety', current['deity']),
+            'diety': data.get('diety', current.get('deity')),  # may be None
         }
         taxonomy = ProductRepository.taxonomy_is_valid(
             taxonomy_ids['category'], taxonomy_ids['material'], taxonomy_ids['diety']
@@ -198,6 +207,13 @@ class MaterialAdminService:
 
 
 class DietyAdminService:
+    @staticmethod
+    def generate_upload_url(data, actor_id):
+        """Generate a presigned PUT URL for a deity image upload."""
+        from app.common.services.upload_service import UploadService
+        payload = {**data, 'purpose': 'deity_image'}
+        return UploadService.create_presigned_upload(payload, actor_id)
+
     @staticmethod
     def get_all_deities():
         return DietyRepository.get_all_deities_list()

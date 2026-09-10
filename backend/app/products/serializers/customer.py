@@ -50,7 +50,7 @@ class ProductCardSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source='name')
     category = serializers.CharField(source='category.name', read_only=True)
     material = serializers.CharField(source='material.name', read_only=True)
-    deity = serializers.CharField(source='diety.name', read_only=True)
+    deity = serializers.CharField(source='diety.name', read_only=True, allow_null=True, default=None)
     cover_photo = serializers.SerializerMethodField()
     availability = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
@@ -79,7 +79,7 @@ class ProductCardSerializer(serializers.ModelSerializer):
 class ProductDetailSerializer(serializers.ModelSerializer):
     category = serializers.CharField(source='category.name', read_only=True)
     material = serializers.CharField(source='material.name', read_only=True)
-    deity = serializers.CharField(source='diety.name', read_only=True)
+    deity = serializers.CharField(source='diety.name', read_only=True, allow_null=True, default=None)
     images = ProductImageCustomerSerializer(many=True, read_only=True)
     availability = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
@@ -114,4 +114,4 @@ class MaterialCustomerSerializer(serializers.ModelSerializer):
 class DietyCustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Diety
-        fields = ('id', 'name', 'slug')
+        fields = ('id', 'name', 'slug', 'image_url')

@@ -12,9 +12,9 @@ export type Product = {
   id: string;
   slug: string;
   name: string;
-  deity: string;
+  deity?: string | null;
   material: string;
-  price: ProductPrice;
+  price?: ProductPrice | null;
   currency: "INR";
   image: ProductImage;
   gallery?: ProductImage[];

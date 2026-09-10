@@ -53,7 +53,8 @@ def _product_queryset(public=False):
             is_active=True,
             category__is_active=True,
             material__is_active=True,
-            diety__is_active=True,
+        ).filter(
+            Q(diety__isnull=True) | Q(diety__is_active=True)
         )
     return queryset
 
@@ -194,18 +195,20 @@ class ProductRepository:
 
     @staticmethod
     def taxonomy_is_valid(category_id, material_id, deity_id):
-        return {
+        result = {
             'category': Category.objects.filter(id=category_id, is_active=True).exists(),
             'material': Material.objects.filter(id=material_id, is_active=True).exists(),
-            'diety': Diety.objects.filter(id=deity_id, is_active=True).exists(),
         }
+        if deity_id is not None:
+            result['diety'] = Diety.objects.filter(id=deity_id, is_active=True).exists()
+        return result
 
     @staticmethod
     def create(data):
         data = dict(data)
         data['category_id'] = data.pop('category')
         data['material_id'] = data.pop('material')
-        data['diety_id'] = data.pop('diety')
+        data['diety_id'] = data.pop('diety', None)  # diety is optional
         data['is_active'] = data.get('status', ProductStatus.DRAFT.value) != ProductStatus.ARCHIVED.value
 
         original_price = data.get('original_price')
@@ -264,10 +267,11 @@ class ProductRepository:
         product = Product.objects.select_related('category', 'material', 'diety').filter(id=product_id).first()
         if not product:
             return None
+        diety_active = product.diety is None or product.diety.is_active
         return {
             'status': product.status,
             'sales_mode': product.sales_mode,
-            'taxonomy_active': product.category.is_active and product.material.is_active and product.diety.is_active,
+            'taxonomy_active': product.category.is_active and product.material.is_active and diety_active,
             'has_cover': ProductImage.objects.filter(product_id=product_id, cover_photo=True).exists(),
             'image_count': ProductImage.objects.filter(product_id=product_id).count(),
         }
@@ -296,7 +300,8 @@ class ProductRepository:
             is_active=True,
             category__is_active=True,
             material__is_active=True,
-            diety__is_active=True,
+        ).filter(
+            Q(diety__isnull=True) | Q(diety__is_active=True)
         )
         rank_order = [
             F('is_featured').desc(),
@@ -343,7 +348,8 @@ class ProductRepository:
         def grouped(category_slug=None):
             candidates = [
                 product for product in products
-                if category_slug is None or product.category.slug == category_slug
+                if product.diety is not None  # skip products with no deity
+                and (category_slug is None or product.category.slug == category_slug)
             ]
             candidates.sort(key=lambda product: (
                 product.diety.name.lower(),
