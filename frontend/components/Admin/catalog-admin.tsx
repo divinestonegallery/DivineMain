@@ -138,13 +138,12 @@ function validateProduct(form: FormData) {
   return fieldErrors;
 }
 
-function productPayload(form: FormData, keywords: string[]) {
+function productPayload(form: FormData, keywords: string[], mode: ProductModalState["mode"] = "create") {
   const deityId = numericId(form, "deity");
   const payload: Record<string, unknown> = {
     name: text(form.get("name")),
     category: numericId(form, "category"),
     material: numericId(form, "material"),
-    deity: deityId > 0 ? deityId : null,
     short_description: text(form.get("short_description")),
     description: text(form.get("description")),
     keywords,
@@ -154,6 +153,12 @@ function productPayload(form: FormData, keywords: string[]) {
     sales_mode: text(form.get("sales_mode")),
     display_order: Number(form.get("display_order") || 999),
   };
+
+  if (deityId > 0) {
+    payload.deity = deityId;
+  } else if (mode === "edit") {
+    payload.deity = null;
+  }
 
   ["height", "min_weight", "max_weight", "original_price", "selling_price", "gst"].forEach((key) => {
     addOptionalText(payload, form, key);
@@ -339,7 +344,7 @@ function ProductModal({
         state.mode === "create" ? "/api/admin/products" : `/api/admin/products/${product?.id}`,
         {
           method: state.mode === "create" ? "POST" : "PATCH",
-          body: JSON.stringify(productPayload(form, keywords)),
+          body: JSON.stringify(productPayload(form, keywords, state.mode)),
         },
       );
       const savedWithImages = await attachUploadedProductImages(saved, uploadedImages);
