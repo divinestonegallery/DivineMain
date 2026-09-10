@@ -1,5 +1,6 @@
 // @ts-nocheck
 import type { Metadata } from "next";
+import Script from "next/script";
 import { JsonLd } from "@/components/common/json-ld";
 import { RouteScrollReset } from "@/components/common/route-scroll-reset";
 import { getSiteUrl } from "@/src/config/site";
@@ -73,6 +74,9 @@ export default function RootLayout({
       }
     >
       <body className="antialiased">
+        <Script id="scroll-restoration" strategy="beforeInteractive">
+          {`try { history.scrollRestoration = "manual"; if (!window.location.hash) { const root = document.documentElement; const previous = root.style.scrollBehavior; root.style.scrollBehavior = "auto"; window.scrollTo({ top: 0, left: 0, behavior: "auto" }); requestAnimationFrame(() => { root.style.scrollBehavior = previous; }); } } catch {}`}
+        </Script>
         <a className="skip-link" href="#main-content">Skip to main content</a>
         <RouteScrollReset />
         <JsonLd data={organizationSchema} />
