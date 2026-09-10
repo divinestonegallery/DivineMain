@@ -20,7 +20,7 @@ export interface PresignedImageUploadSession {
 }
 
 export type AdminUploadSession = PresignedImageUploadSession;
-export type AdminImageUploadTarget = "product" | "category";
+export type AdminImageUploadTarget = "product" | "category" | "deity";
 
 export const maxOriginalImageFileSize = 12 * 1024 * 1024;
 export const supportedUploadContentTypes = new Set<string>(["image/jpeg", "image/png", "image/webp"]);
@@ -81,9 +81,9 @@ export function friendlyUploadError(reason: unknown) {
 }
 
 function adminUploadUrlPath(target: AdminImageUploadTarget) {
-  return target === "category"
-    ? "/api/admin/products/categories/upload-url"
-    : "/api/admin/products/images/upload-url";
+  if (target === "category") return "/api/admin/products/categories/upload-url";
+  if (target === "deity") return "/api/admin/products/deities/upload-url";
+  return "/api/admin/products/images/upload-url";
 }
 
 export async function createAdminUploadSession(file: File, target: AdminImageUploadTarget = "product") {

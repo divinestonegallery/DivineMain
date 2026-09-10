@@ -46,7 +46,7 @@ type AdminProduct = {
   id: number;
   category: number;
   material: number;
-  deity: number;
+  deity?: number | null;
   name: string;
   slug: string;
   uid?: string;
@@ -82,7 +82,7 @@ type ProductModalState = { mode: "create" } | { mode: "edit"; product: AdminProd
 
 const emptyLookups: Lookups = { categories: [], materials: [], deities: [] };
 const availabilityOptions: AdminProduct["availability"][] = ["in_stock", "made_to_order", "out_of_stock"];
-const statusOptions: AdminProduct["status"][] = ["draft", "active", "archived"];
+const statusOptions: AdminProduct["status"][] = ["active", "draft", "archived"];
 const salesModeOptions: AdminProduct["sales_mode"][] = ["quote_only", "buy_and_quote", "direct_purchase"];
 const maxProductImages = 12;
 
@@ -94,8 +94,9 @@ function label(value?: string) {
   return (value || "not set").replaceAll("_", " ");
 }
 
-function lookupName(items: Taxonomy[], id?: number) {
-  return items.find((item) => item.id === id)?.name ?? "Not selected";
+function lookupName(items: Taxonomy[], id?: number | null) {
+  if (!id) return "";
+  return items.find((item) => item.id === id)?.name ?? "";
 }
 
 function coverImage(product: AdminProduct) {
@@ -104,7 +105,7 @@ function coverImage(product: AdminProduct) {
 
 function completion(product: AdminProduct) {
   const hasImage = Boolean(product.images?.length);
-  const hasTaxonomy = Boolean(product.category && product.material && product.deity);
+  const hasTaxonomy = Boolean(product.category && product.material);
   if (product.status === "active" && hasImage && hasTaxonomy) return "complete";
   return "incomplete";
 }
@@ -134,16 +135,16 @@ function validateProduct(form: FormData) {
   if (!text(form.get("name"))) fieldErrors.name = "Product name is required.";
   if (!numericId(form, "category")) fieldErrors.category = "Choose a category.";
   if (!numericId(form, "material")) fieldErrors.material = "Choose a material.";
-  if (!numericId(form, "deity")) fieldErrors.deity = "Choose a deity.";
   return fieldErrors;
 }
 
 function productPayload(form: FormData, keywords: string[]) {
+  const deityId = numericId(form, "deity");
   const payload: Record<string, unknown> = {
     name: text(form.get("name")),
     category: numericId(form, "category"),
     material: numericId(form, "material"),
-    deity: numericId(form, "deity"),
+    deity: deityId > 0 ? deityId : null,
     short_description: text(form.get("short_description")),
     description: text(form.get("description")),
     keywords,
@@ -209,20 +210,22 @@ function TaxonomySelect({
   items,
   currentId,
   createMode,
+  required = true,
   error,
 }: {
   name: "category" | "material" | "deity";
   label: string;
   items: Taxonomy[];
-  currentId?: number;
+  currentId?: number | null;
   createMode: boolean;
+  required?: boolean;
   error?: string;
 }) {
   const options = createMode ? items.filter((item) => item.is_active !== false) : items;
   return (
-    <AdminModalField label={selectLabel} required error={error}>
+    <AdminModalField label={selectLabel} required={required} error={error}>
       <select name={name} defaultValue={currentId ?? ""} aria-invalid={Boolean(error)}>
-        <option value="">Choose {selectLabel.toLowerCase()}</option>
+        <option value="">Choose {selectLabel.toLowerCase()}{required ? "" : " (optional)"}</option>
         {options.map((item) => (
           <option value={item.id} key={item.id}>
             {item.name}{item.is_active === false ? " (inactive)" : ""}
@@ -425,14 +428,14 @@ function ProductModal({
           <AdminFieldGrid>
             <TaxonomySelect name="category" label="Category" items={lookups.categories} currentId={product?.category} createMode={state.mode === "create"} error={getFieldError(fieldErrors, "category")} />
             <TaxonomySelect name="material" label="Material" items={lookups.materials} currentId={product?.material} createMode={state.mode === "create"} error={getFieldError(fieldErrors, "material")} />
-            <TaxonomySelect name="deity" label="Deity" items={lookups.deities} currentId={product?.deity} createMode={state.mode === "create"} error={getFieldError(fieldErrors, "deity", "diety")} />
+            <TaxonomySelect name="deity" label="Deity (Subcategory)" items={lookups.deities} currentId={product?.deity} createMode={state.mode === "create"} required={false} error={getFieldError(fieldErrors, "deity", "diety")} />
           </AdminFieldGrid>
         </AdminModalSection>
 
         <AdminModalSection title="Publishing">
           <AdminFieldGrid>
             <AdminModalField label="Status" error={getFieldError(fieldErrors, "status")}>
-              <select name="status" defaultValue={product?.status ?? "draft"} aria-invalid={Boolean(getFieldError(fieldErrors, "status"))}>
+              <select name="status" defaultValue={product?.status ?? "active"} aria-invalid={Boolean(getFieldError(fieldErrors, "status"))}>
                 {statusOptions.map((item) => <option value={item} key={item}>{label(item)}</option>)}
               </select>
             </AdminModalField>
@@ -587,7 +590,13 @@ export function CatalogAdmin() {
                 </span>
                 <span className={styles.productIdentity}>
                   <strong>{product.name}</strong>
-                  <small>{lookupName(lookups.categories, product.category)} - {lookupName(lookups.materials, product.material)} - {lookupName(lookups.deities, product.deity)}</small>
+                  <small>
+                    {[
+                      lookupName(lookups.categories, product.category),
+                      lookupName(lookups.materials, product.material),
+                      product.deity ? lookupName(lookups.deities, product.deity) : "",
+                    ].filter(Boolean).join(" - ")}
+                  </small>
                 </span>
                 <span className={`${styles.statusPill} ${styles[product.status]}`}>{label(product.status)}</span>
                 <span className={styles[completion(product)]}>{label(completion(product))}</span>

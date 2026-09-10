@@ -10,6 +10,9 @@ HOME_PAGE_DREAM_TEMPLES_BLOCK_TITLE = "Dream Temples"
 HOME_PAGE_CATEGORIES_BLOCK = "shop_by_categories"
 HOME_PAGE_CATEGORIES_BLOCK_TITLE = "Shop by Categories"
 
+HOME_PAGE_SUBCATEGORIES_BLOCK = "shop_by_subcategories"
+HOME_PAGE_SUBCATEGORIES_BLOCK_TITLE = "Shop by Categories"
+
 HOME_PAGE_HOME_DECORS_BLOCK = "shop_home_decors"
 HOME_PAGE_HOME_DECORS_BLOCK_TITLE = "Shop Home Decors"
 

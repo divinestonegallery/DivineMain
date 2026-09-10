@@ -81,6 +81,7 @@ class UploadService:
         folder = {
             'product_image': 'product-images',
             'category_image': 'category-images',
+            'deity_image': 'deity-images',
             'customization_reference': 'customization-references',
         }.get(data['purpose'], 'uploads')
         extension = UploadService.EXTENSIONS[content_type]

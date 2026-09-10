@@ -133,6 +133,7 @@ export interface HomeBlock {
     title?: string;
     products?: ProductCard[];
     categories?: TaxonomyItem[];
+    subcategories?: TaxonomyItem[];
     deities?: HomeDeityGroup[];
     dieties?: HomeDeityGroup[];
     reviews?: ReviewCard[];

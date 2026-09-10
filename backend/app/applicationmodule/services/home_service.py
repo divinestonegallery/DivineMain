@@ -16,8 +16,10 @@ from app.applicationmodule.constants import (
     HOME_PAGE_POPULAR_MOORTI_BLOCK_TITLE,
     HOME_PAGE_REVIEWS_BLOCK,
     HOME_PAGE_REVIEWS_BLOCK_TITLE,
+    HOME_PAGE_SUBCATEGORIES_BLOCK,
+    HOME_PAGE_SUBCATEGORIES_BLOCK_TITLE,
 )
-from app.products.repositories.product_repository import CategoryRepository, ProductRepository
+from app.products.repositories.product_repository import CategoryRepository, DietyRepository, ProductRepository
 from app.reviews.repositories.review_repository import ReviewRepository
 
 logger = logging.getLogger(__name__)
@@ -31,6 +33,7 @@ class HomeService:
             HOME_PAGE_DREAM_MOORTI_BLOCK,
             HOME_PAGE_DREAM_TEMPLES_BLOCK,
             HOME_PAGE_CATEGORIES_BLOCK,
+            HOME_PAGE_SUBCATEGORIES_BLOCK,
             HOME_PAGE_HOME_DECORS_BLOCK,
             HOME_PAGE_REVIEWS_BLOCK,
         ]
@@ -38,18 +41,20 @@ class HomeService:
     @staticmethod
     def get_home():
         try:
-            cache_key = 'application:home:v1'
+            cache_key = 'application:home:02'
             cached = cache.get(cache_key)
             if cached is not None:
                 return None, cached
 
             product_sections = ProductRepository.get_home_product_sections()
             _, categories = CategoryRepository.get_all_active_categories_list()
+            _, subcategories = DietyRepository.get_all_active_deities_list()
             data = {'blocks': [
                 {'type': HOME_PAGE_POPULAR_MOORTI_BLOCK, 'data': {'title': HOME_PAGE_POPULAR_MOORTI_BLOCK_TITLE, 'products': product_sections['popular']}},
                 {'type': HOME_PAGE_DREAM_MOORTI_BLOCK, 'data': {'title': HOME_PAGE_DREAM_MOORTI_BLOCK_TITLE, 'deities': product_sections['deities']}},
                 {'type': HOME_PAGE_DREAM_TEMPLES_BLOCK, 'data': {'title': HOME_PAGE_DREAM_TEMPLES_BLOCK_TITLE, 'products': product_sections['temples']}},
                 {'type': HOME_PAGE_CATEGORIES_BLOCK, 'data': {'title': HOME_PAGE_CATEGORIES_BLOCK_TITLE, 'categories': categories}},
+                {'type': HOME_PAGE_SUBCATEGORIES_BLOCK, 'data': {'title': HOME_PAGE_SUBCATEGORIES_BLOCK_TITLE, 'subcategories': subcategories}},
                 {'type': HOME_PAGE_HOME_DECORS_BLOCK, 'data': {'title': HOME_PAGE_HOME_DECORS_BLOCK_TITLE, 'deities': product_sections['home_decors']}},
                 {'type': HOME_PAGE_REVIEWS_BLOCK, 'data': {'title': HOME_PAGE_REVIEWS_BLOCK_TITLE, 'reviews': ReviewRepository.get_approved_reviews(10)}},
             ]}
