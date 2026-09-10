@@ -231,9 +231,9 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
 
   return (
     <div className={styles.gallery}>
-      <div className={styles.galleryMain}>
+      <div className={styles.galleryMain} onClick={openViewer}>
         <Image src={activeImage.src} alt={activeImage.alt} fill sizes="(max-width: 900px) 100vw, 55vw" priority unoptimized={isRemoteImage(activeImage.src)} />
-        <button type="button" aria-label="View larger image" onClick={openViewer}>
+        <button type="button" aria-label="View larger image" onClick={(event) => { event.stopPropagation(); openViewer(); }}>
           <Expand aria-hidden="true" size={19} />
         </button>
       </div>
@@ -251,14 +251,14 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
         ))}
       </div>
       {expanded ? (
-        <div className={styles.imageViewerOverlay} role="dialog" aria-modal="true" aria-label="Expanded product image" ref={overlayRef}>
+        <div className={styles.imageViewerOverlay} role="dialog" aria-modal="true" aria-label="Expanded product image" ref={overlayRef} onClick={closeViewer}>
           <button className={styles.imageViewerBackdrop} type="button" aria-label="Close image viewer" onClick={closeViewer} />
-          <button className={styles.imageViewerClose} type="button" aria-label="Close image viewer" onClick={closeViewer} ref={closeButtonRef}>
+          <button className={styles.imageViewerClose} type="button" aria-label="Close image viewer" onClick={(event) => { event.stopPropagation(); closeViewer(); }} ref={closeButtonRef}>
             <X aria-hidden="true" size={22} strokeWidth={1.8} />
           </button>
 
-          <div className={styles.imageViewerPanel}>
-            <div className={styles.imageViewerStageWrap}>
+          <div className={styles.imageViewerPanel} onClick={closeViewer}>
+            <div className={styles.imageViewerStageWrap} onClick={(event) => event.stopPropagation()}>
               {images.length > 1 ? (
                 <>
                   <button className={`${styles.imageViewerNavigationButton} ${styles.imageViewerPreviousButton}`} type="button" aria-label="Previous image" onClick={() => changeImage(-1)}>
@@ -285,7 +285,7 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
               </div>
             </div>
 
-            <div className={styles.imageViewerControls} aria-label="Image zoom controls">
+            <div className={styles.imageViewerControls} aria-label="Image zoom controls" onClick={(event) => event.stopPropagation()}>
               <button className={styles.imageViewerControlButton} type="button" aria-label="Zoom out" onClick={() => updateZoom("out")} disabled={zoom <= MIN_ZOOM}>
                 <ZoomOut aria-hidden="true" size={19} strokeWidth={1.8} />
               </button>
