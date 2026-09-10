@@ -20,9 +20,17 @@ def _build_price(obj):
     discount  = obj.discount_percentage
 
     gst_price = None
-    variant = obj.variants.filter(is_active=True).first()
-    if variant and variant.price_before_gst and selling:
-        gst_price = (selling - variant.price_before_gst).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    if hasattr(obj, '_variant_price_before_gst'):
+        price_before_gst = obj._variant_price_before_gst
+    else:
+        prefetched_variants = getattr(obj, '_prefetched_objects_cache', {}).get('variants')
+        if prefetched_variants is None:
+            variant = obj.variants.filter(is_active=True).first()
+        else:
+            variant = next((item for item in prefetched_variants if item.is_active), None)
+        price_before_gst = variant.price_before_gst if variant else None
+    if price_before_gst and selling:
+        gst_price = (selling - price_before_gst).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
     return {
         'original_price':      original,
@@ -42,7 +50,7 @@ class ProductCardSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source='name')
     category = serializers.CharField(source='category.name', read_only=True)
     material = serializers.CharField(source='material.name', read_only=True)
-    deity = serializers.CharField(source='diety.name', read_only=True)
+    deity = serializers.CharField(source='diety.name', read_only=True, allow_null=True, default=None)
     cover_photo = serializers.SerializerMethodField()
     availability = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
@@ -56,6 +64,8 @@ class ProductCardSerializer(serializers.ModelSerializer):
         )
 
     def get_cover_photo(self, obj):
+        if hasattr(obj, '_cover_photo_url'):
+            return obj._cover_photo_url
         cover = next((image for image in obj.images.all() if image.cover_photo), None)
         return cover.image_url if cover else None
 
@@ -69,7 +79,7 @@ class ProductCardSerializer(serializers.ModelSerializer):
 class ProductDetailSerializer(serializers.ModelSerializer):
     category = serializers.CharField(source='category.name', read_only=True)
     material = serializers.CharField(source='material.name', read_only=True)
-    deity = serializers.CharField(source='diety.name', read_only=True)
+    deity = serializers.CharField(source='diety.name', read_only=True, allow_null=True, default=None)
     images = ProductImageCustomerSerializer(many=True, read_only=True)
     availability = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
@@ -104,5 +114,4 @@ class MaterialCustomerSerializer(serializers.ModelSerializer):
 class DietyCustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Diety
-        fields = ('id', 'name', 'slug')
-
+        fields = ('id', 'name', 'slug', 'image_url')

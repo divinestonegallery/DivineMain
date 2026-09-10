@@ -36,6 +36,7 @@ class Material(BaseModel):
 class Diety(BaseModel):
     name = models.CharField(max_length=255)
     slug = models.CharField(max_length=255, unique=True)
+    image_url = models.URLField(max_length=1024, blank=True, null=True)
     categories = models.ManyToManyField(Category, related_name='dieties', blank=True)
     is_active = models.BooleanField(default=True)
     class Meta:
@@ -50,7 +51,7 @@ class Product(BaseModel):
 
     category = models.ForeignKey(Category, related_name='products', on_delete=models.PROTECT, null=False, blank=False)
     material = models.ForeignKey(Material, related_name='products', on_delete=models.PROTECT, null=False, blank=False)
-    diety = models.ForeignKey(Diety, related_name='products', on_delete=models.PROTECT, null=False, blank=False)
+    diety = models.ForeignKey(Diety, related_name='products', on_delete=models.PROTECT, null=True, blank=True)
     name = models.CharField(max_length=255, blank=False, null=False)
     slug = models.CharField(max_length=255, unique=True, blank=True, null=True)
     uid = models.CharField(max_length=255, unique=True, blank=True, null=True)

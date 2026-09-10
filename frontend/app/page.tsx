@@ -36,13 +36,14 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const HOME_BLOCK = {
   popularMooti: "popular_moorti",
   dreamMooti: "shop_by_dream_moorti",
   dreamTemples: "dream_temples",
   categories: "shop_by_categories",
+  subcategories: "shop_by_subcategories",
   homeDecor: "shop_home_decors",
   reviews: "reviews",
 } as const;
@@ -72,12 +73,25 @@ function getCategories(data: HomeBlock["data"] | undefined): TaxonomyItem[] {
   return Array.isArray(data?.categories) ? data.categories.filter(Boolean) : [];
 }
 
+function getSubcategories(data: HomeBlock["data"] | undefined): TaxonomyItem[] {
+  return Array.isArray(data?.subcategories) ? data.subcategories.filter(Boolean) : [];
+}
+
 function getReviews(data: HomeBlock["data"] | undefined): ReviewCard[] {
   return Array.isArray(data?.reviews) ? data.reviews.filter(Boolean) : [];
 }
 
 function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function shouldSkipImageOptimization(src: string) {
+  if (!/^https?:\/\//i.test(src)) return false;
+  try {
+    return !["media.divinestonegallery.com", "images.unsplash.com"].includes(new URL(src).hostname);
+  } catch {
+    return true;
+  }
 }
 
 function reviewComment(comment: string | null | undefined) {
@@ -91,6 +105,11 @@ function taxonomyHref(item: TaxonomyItem) {
 function categoryFilterHref(item: TaxonomyItem) {
   const category = normalizeText(item.slug) || normalizeText(item.name);
   return `/shop?category=${encodeURIComponent(category)}`;
+}
+
+function deityFilterHref(item: TaxonomyItem) {
+  const deity = normalizeText(item.slug) || normalizeText(item.name);
+  return `/shop?deity=${encodeURIComponent(deity)}`;
 }
 
 function groupName(group: HomeDeityGroup) {
@@ -153,8 +172,17 @@ function MediaImage({
     );
   }
 
-  const remote = /^https?:\/\//i.test(src);
-  return <Image className={styles.mediaImg} src={src} alt={alt} fill sizes={sizes} priority={priority} unoptimized={remote} />;
+  return (
+    <Image
+      className={styles.mediaImg}
+      src={src}
+      alt={alt}
+      fill
+      sizes={sizes}
+      priority={priority}
+      unoptimized={shouldSkipImageOptimization(src)}
+    />
+  );
 }
 
 function SectionHeading({
@@ -255,7 +283,7 @@ function ProductRailSection({
   carousel?: boolean;
 }) {
   const productCards = products.map((product, index) => (
-    <CatalogProductCard product={product} priority={index === 0} key={product.uid ?? product.slug ?? `${title}-${index}`} />
+    <CatalogProductCard product={product} key={product.uid ?? product.slug ?? `${title}-${index}`} />
   ));
 
   return (
@@ -290,13 +318,12 @@ function CategoriesSection({ categories }: { categories: TaxonomyItem[] }) {
         />
         {categories.length ? (
           <HomeCarouselRail className={styles.categoryGrid} label="Categories">
-            {categories.map((category, index) => (
+            {categories.map((category) => (
               <Link className={styles.categoryCard} href={categoryFilterHref(category)} key={category.id ?? category.slug ?? category.name}>
                 <span className={styles.categoryImage}>
                   <MediaImage
                     src={category.image_url}
                     alt={`${category.name} category`}
-                    priority={index === 0}
                     sizes="(max-width: 680px) 90vw, (max-width: 1024px) 45vw, 31vw"
                   />
                 </span>
@@ -310,6 +337,46 @@ function CategoriesSection({ categories }: { categories: TaxonomyItem[] }) {
           </HomeCarouselRail>
         ) : (
           <EmptySection label="Categories are waiting for backend items" />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function SubcategoriesSection({
+  title = "Shop by Categories",
+  subcategories,
+}: {
+  title?: string;
+  subcategories: TaxonomyItem[];
+}) {
+  return (
+    <section className={styles.categorySection}>
+      <div className="site-container">
+        <SectionHeading
+          title={title}
+          href="/shop"
+        />
+        {subcategories.length ? (
+          <HomeCarouselRail className={styles.categoryGrid} label={title}>
+            {subcategories.map((deity) => (
+              <Link className={styles.categoryCard} href={deityFilterHref(deity)} key={deity.id ?? deity.slug ?? deity.name}>
+                <span className={styles.categoryImage}>
+                  <MediaImage
+                    src={deity.image_url}
+                    alt={`${deity.name}`}
+                    sizes="(max-width: 680px) 90vw, (max-width: 1024px) 45vw, 31vw"
+                  />
+                </span>
+                <span>
+                  <strong className="font-display">{deity.name}</strong>
+                </span>
+                <ArrowRight aria-hidden="true" size={17} />
+              </Link>
+            ))}
+          </HomeCarouselRail>
+        ) : (
+          <EmptySection label={`${title} is waiting for backend items`} />
         )}
       </div>
     </section>
@@ -493,10 +560,12 @@ export default async function Home() {
   const dreamMooti = getBlock(blocks, HOME_BLOCK.dreamMooti);
   const dreamTemples = getBlock(blocks, HOME_BLOCK.dreamTemples);
   const categories = getBlock(blocks, HOME_BLOCK.categories);
+  const subcategoriesBlock = getBlock(blocks, HOME_BLOCK.subcategories);
   const homeDecor = getBlock(blocks, HOME_BLOCK.homeDecor);
   const reviews = getBlock(blocks, HOME_BLOCK.reviews);
   const dreamMootiGroups = orderDreamMootiGroups(getGroups(dreamMooti));
   const categoryItems = getCategories(categories);
+  const subcategoryItems = getSubcategories(subcategoriesBlock);
 
   return (
     <ToastProvider>
@@ -507,6 +576,10 @@ export default async function Home() {
           <HomeApiError message={error} />
         ) : (
           <>
+            <SubcategoriesSection
+              title={subcategoriesBlock.title || "Shop by Categories"}
+              subcategories={subcategoryItems}
+            />
             <ProductRailSection
               id="popular-mooti"
               title="Popular Mooti"

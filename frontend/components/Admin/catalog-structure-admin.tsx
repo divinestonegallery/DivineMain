@@ -81,10 +81,12 @@ function payloadFor(kind: CatalogStructureKind, form: FormData, imageUrl?: strin
   }
 
   if (kind === "deity") {
-    return {
+    const payload: TaxonomyPayload = {
       ...base,
       categories: form.getAll("categories").map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0),
     };
+    if (imageUrl !== undefined) payload.image_url = imageUrl;
+    return payload;
   }
 
   return base;
@@ -116,7 +118,7 @@ function TaxonomyModal({
   const spec = specs[kind];
   const selectedCategories = new Set((state.item?.categories ?? []).map(Number));
   const [selectedImages, setSelectedImages] = useState<AdminSelectedImage[]>([]);
-  const [existingCategoryImageRemoved, setExistingCategoryImageRemoved] = useState(false);
+  const [existingImageRemoved, setExistingImageRemoved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
@@ -128,19 +130,20 @@ function TaxonomyModal({
     setError(null);
     setFieldErrors(validation);
     if (Object.keys(validation).length) return;
-    if (kind === "category" && selectedImages.length > 1) {
-      setError("Please keep only one category image before saving.");
+    if ((kind === "category" || kind === "deity") && selectedImages.length > 1) {
+      setError(`Please keep only one ${spec.singular.toLowerCase()} image before saving.`);
       return;
     }
 
     setSubmitting(true);
     try {
       let imageUrl: string | undefined;
-      if (kind === "category" && selectedImages.length) {
-        const [upload] = await uploadPendingAdminImages(selectedImages, setSelectedImages, "category");
+      if ((kind === "category" || kind === "deity") && selectedImages.length) {
+        const target = kind === "category" ? "category" : "deity";
+        const [upload] = await uploadPendingAdminImages(selectedImages, setSelectedImages, target);
         if (!upload.upload.public_url) throw new Error("Upload completed, but the API did not return an image URL.");
         imageUrl = upload.upload.public_url;
-      } else if (kind === "category" && existingCategoryImageRemoved) {
+      } else if ((kind === "category" || kind === "deity") && existingImageRemoved) {
         imageUrl = "";
       }
 
@@ -189,29 +192,43 @@ function TaxonomyModal({
                 description="Upload or drag & drop a JPG, PNG, or WEBP image."
                 selectedImages={selectedImages}
                 onSelectedImagesChange={setSelectedImages}
-                existingImages={!existingCategoryImageRemoved && state.item?.image_url ? [{ id: state.item.id, image_url: state.item.image_url, alt_text: state.item.name }] : []}
+                existingImages={!existingImageRemoved && state.item?.image_url ? [{ id: state.item.id, image_url: state.item.image_url, alt_text: state.item.name }] : []}
                 multiple={false}
                 maxFiles={1}
                 disabled={submitting}
                 strictSingleImage
-                onRemoveExisting={() => setExistingCategoryImageRemoved(true)}
+                onRemoveExisting={() => setExistingImageRemoved(true)}
               />
             </>
           ) : null}
 
           {kind === "deity" ? (
-            <AdminCategoryPicker
-              label="Linked categories"
-              error={getFieldError(fieldErrors, "categories")}
-              hint="Optional: choose the categories where this deity should appear."
-            >
-              {categories.length ? categories.map((category) => (
-                <label className={adminEntityModalStyles.choicePill} key={category.id}>
-                  <input name="categories" type="checkbox" value={category.id} defaultChecked={selectedCategories.has(category.id)} />
-                  <span>{category.name}</span>
-                </label>
-              )) : <p className={adminEntityModalStyles.hint}>No categories are available yet.</p>}
-            </AdminCategoryPicker>
+            <>
+              <AdminCategoryPicker
+                label="Linked categories"
+                error={getFieldError(fieldErrors, "categories")}
+                hint="Optional: choose the categories where this deity should appear."
+              >
+                {categories.length ? categories.map((category) => (
+                  <label className={adminEntityModalStyles.choicePill} key={category.id}>
+                    <input name="categories" type="checkbox" value={category.id} defaultChecked={selectedCategories.has(category.id)} />
+                    <span>{category.name}</span>
+                  </label>
+                )) : <p className={adminEntityModalStyles.hint}>No categories are available yet.</p>}
+              </AdminCategoryPicker>
+              <AdminImageUpload
+                label="Deity Image"
+                description="Upload or drag & drop a JPG, PNG, or WEBP image."
+                selectedImages={selectedImages}
+                onSelectedImagesChange={setSelectedImages}
+                existingImages={!existingImageRemoved && state.item?.image_url ? [{ id: state.item.id, image_url: state.item.image_url, alt_text: state.item.name }] : []}
+                multiple={false}
+                maxFiles={1}
+                disabled={submitting}
+                strictSingleImage
+                onRemoveExisting={() => setExistingImageRemoved(true)}
+              />
+            </>
           ) : null}
 
           <AdminCheckboxField label="Active" error={getFieldError(fieldErrors, "is_active")}>

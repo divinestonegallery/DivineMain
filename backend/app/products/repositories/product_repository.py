@@ -4,9 +4,10 @@ import logging
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db import models
-from django.db.models import Prefetch, Q
+from django.db.models import Count, F, OuterRef, Prefetch, Q, Subquery, Window
+from django.db.models.functions import RowNumber
 
-from app.products.models import Category, Diety, Material, Product, ProductImage
+from app.products.models import Category, Diety, Material, Product, ProductImage, ProductVariant
 from app.products.serializers.admin import (
     CategoryAdminSerializer,
     DietyAdminSerializer,
@@ -41,8 +42,10 @@ def _pagination(queryset, page, page_size, serializer_class):
 
 def _product_queryset(public=False):
     images = ProductImage.objects.order_by('display_order', 'id')
+    variants = ProductVariant.objects.order_by('display_order', 'id')
     queryset = Product.objects.select_related('category', 'material', 'diety').prefetch_related(
         Prefetch('images', queryset=images),
+        Prefetch('variants', queryset=variants),
     )
     if public:
         queryset = queryset.filter(
@@ -50,9 +53,38 @@ def _product_queryset(public=False):
             is_active=True,
             category__is_active=True,
             material__is_active=True,
-            diety__is_active=True,
+        ).filter(
+            Q(diety__isnull=True) | Q(diety__is_active=True)
         )
     return queryset
+
+
+def _group_top_products_by_deity(limit_per_deity, **filters):
+    """Fetch the top products for every deity without issuing a query per deity."""
+    products = _product_queryset(public=True).filter(**filters).annotate(
+        _deity_rank=Window(
+            expression=RowNumber(),
+            partition_by=[F('diety_id')],
+            order_by=[F('is_featured').desc(), F('display_order').asc(), F('created_at').desc()],
+        ),
+    ).filter(_deity_rank__lte=limit_per_deity).order_by(
+        'diety__name', '-is_featured', 'display_order', '-created_at'
+    )
+
+    grouped = {}
+    for product in products:
+        group = grouped.setdefault(product.diety_id, {
+            'deity_id': product.diety_id,
+            'deity_name': product.diety.name,
+            'deity_slug': product.diety.slug,
+            'products': [],
+        })
+        group['products'].append(product)
+
+    return [
+        {**group, 'products': ProductCardSerializer(group['products'], many=True).data}
+        for group in grouped.values()
+    ]
 
 
 class ProductRepository:
@@ -69,12 +101,30 @@ class ProductRepository:
         """Return a sliced, serialized list of active public catalogue products."""
         try:
             filters = filters or {}
-            queryset = _product_queryset(public=True)
+            cover_photo = ProductImage.objects.filter(
+                product_id=OuterRef('pk'),
+                cover_photo=True,
+            ).order_by('display_order', 'id').values('image_url')[:1]
+            active_variant_price = ProductVariant.objects.filter(
+                product_id=OuterRef('pk'),
+                is_active=True,
+            ).order_by('display_order', 'id').values('price_before_gst')[:1]
+            queryset = Product.objects.select_related('category', 'material', 'diety').filter(
+                status=ProductStatus.ACTIVE.value,
+                is_active=True,
+                category__is_active=True,
+                material__is_active=True,
+                diety__is_active=True,
+            )
             queryset = ProductRepository._apply_filters(queryset, filters, include_status=False)
-            queryset = ProductRepository._apply_sort(queryset, sort).distinct()
+            queryset = ProductRepository._apply_sort(queryset, sort).annotate(
+                _cover_photo_url=Subquery(cover_photo),
+                _variant_price_before_gst=Subquery(active_variant_price),
+                _total_items=Window(expression=Count('id')),
+            )
 
-            total_items = queryset.count()
             rows = list(queryset[offset:offset + limit])
+            total_items = rows[0]._total_items if rows else queryset.count()
             return None, {
                 'items': ProductCardSerializer(rows, many=True).data,
                 'total_items': total_items,
@@ -115,7 +165,7 @@ class ProductRepository:
             queryset = queryset.filter(availability=params['availability'])
         if include_status and params.get('status'):
             queryset = queryset.filter(status=params['status'])
-        return queryset.distinct()
+        return queryset
 
     @staticmethod
     def _apply_sort(queryset, sort):
@@ -145,18 +195,25 @@ class ProductRepository:
 
     @staticmethod
     def taxonomy_is_valid(category_id, material_id, deity_id):
-        return {
+        result = {
             'category': Category.objects.filter(id=category_id, is_active=True).exists(),
             'material': Material.objects.filter(id=material_id, is_active=True).exists(),
-            'diety': Diety.objects.filter(id=deity_id, is_active=True).exists(),
         }
+        if deity_id is not None:
+            result['diety'] = Diety.objects.filter(id=deity_id, is_active=True).exists()
+        return result
 
     @staticmethod
     def create(data):
         data = dict(data)
         data['category_id'] = data.pop('category')
         data['material_id'] = data.pop('material')
-        data['diety_id'] = data.pop('diety')
+        diety_id = data.pop('diety', None)
+        if diety_id is None and 'deity' in data:
+            diety_id = data.pop('deity')
+        else:
+            data.pop('deity', None)
+        data['diety_id'] = diety_id
         data['is_active'] = data.get('status', ProductStatus.DRAFT.value) != ProductStatus.ARCHIVED.value
 
         original_price = data.get('original_price')
@@ -180,9 +237,14 @@ class ProductRepository:
         product = Product.objects.filter(id=product_id).first()
         if not product:
             return 'Product not found.', None
-        relation_fields = {'category', 'material', 'diety'}
+        relation_fields = {'category', 'material', 'diety', 'deity'}
         for key, value in data.items():
-            setattr(product, f'{key}_id' if key in relation_fields else key, value)
+            if key == 'deity':
+                setattr(product, 'diety_id', value)
+            elif key in relation_fields:
+                setattr(product, f'{key}_id', value)
+            else:
+                setattr(product, key, value)
         if 'status' in data:
             product.is_active = data['status'] != ProductStatus.ARCHIVED.value
         
@@ -215,29 +277,18 @@ class ProductRepository:
         product = Product.objects.select_related('category', 'material', 'diety').filter(id=product_id).first()
         if not product:
             return None
+        diety_active = product.diety is None or product.diety.is_active
         return {
             'status': product.status,
             'sales_mode': product.sales_mode,
-            'taxonomy_active': product.category.is_active and product.material.is_active and product.diety.is_active,
+            'taxonomy_active': product.category.is_active and product.material.is_active and diety_active,
             'has_cover': ProductImage.objects.filter(product_id=product_id, cover_photo=True).exists(),
             'image_count': ProductImage.objects.filter(product_id=product_id).count(),
         }
 
     @staticmethod
     def get_top_products_by_diety(limit_per_diety=5):
-        result = []
-        for deity in Diety.objects.filter(is_active=True).order_by('name'):
-            products = _product_queryset(public=True).filter(diety=deity).order_by(
-                '-is_featured', 'display_order', '-created_at'
-            )[:limit_per_diety]
-            if products:
-                result.append({
-                    'deity_id': deity.id,
-                    'deity_name': deity.name,
-                    'deity_slug': deity.slug,
-                    'products': ProductCardSerializer(products, many=True).data,
-                })
-        return result
+        return _group_top_products_by_deity(limit_per_diety)
 
     @staticmethod
     def get_popular_moorti_data():
@@ -246,24 +297,101 @@ class ProductRepository:
 
     @staticmethod
     def get_dream_temples_data():
-        products = _product_queryset(public=True).filter(category__slug='temple').order_by('-is_featured', 'display_order')[:10]
+        products = _product_queryset(public=True).filter(category__slug='temple').order_by(
+            '-is_featured', 'display_order', 'id'
+        )[:10]
         return None, ProductCardSerializer(products, many=True).data
 
     @staticmethod
+    def get_home_product_sections(limit_per_deity=5):
+        """Fetch every product needed by the homepage in three total queries."""
+        public_products = Product.objects.filter(
+            status=ProductStatus.ACTIVE.value,
+            is_active=True,
+            category__is_active=True,
+            material__is_active=True,
+        ).filter(
+            Q(diety__isnull=True) | Q(diety__is_active=True)
+        )
+        rank_order = [
+            F('is_featured').desc(),
+            F('display_order').asc(),
+            F('created_at').desc(),
+        ]
+        top_by_deity_ids = public_products.annotate(
+            _deity_rank=Window(
+                expression=RowNumber(),
+                partition_by=[F('diety_id')],
+                order_by=rank_order,
+            ),
+        ).filter(_deity_rank__lte=limit_per_deity).values('id')
+        home_decor_ids = public_products.filter(category__slug='home-decor').annotate(
+            _deity_rank=Window(
+                expression=RowNumber(),
+                partition_by=[F('diety_id')],
+                order_by=rank_order,
+            ),
+        ).filter(_deity_rank__lte=limit_per_deity).values('id')
+        popular_ids = public_products.filter(is_featured=True).order_by(
+            'display_order', '-created_at'
+        ).values('id')[:10]
+        temple_ids = public_products.filter(category__slug='temple').order_by(
+            '-is_featured', 'display_order', 'id'
+        ).values('id')[:10]
+
+        products = list(_product_queryset(public=True).filter(
+            Q(id__in=Subquery(popular_ids))
+            | Q(id__in=Subquery(temple_ids))
+            | Q(id__in=Subquery(top_by_deity_ids))
+            | Q(id__in=Subquery(home_decor_ids))
+        ))
+
+        popular = sorted(
+            (product for product in products if product.is_featured),
+            key=lambda product: (product.display_order, -product.created_at.timestamp()),
+        )[:10]
+        temples = sorted(
+            (product for product in products if product.category.slug == 'temple'),
+            key=lambda product: (-int(product.is_featured), product.display_order, product.id),
+        )[:10]
+
+        def grouped(category_slug=None):
+            candidates = [
+                product for product in products
+                if product.diety is not None  # skip products with no deity
+                and (category_slug is None or product.category.slug == category_slug)
+            ]
+            candidates.sort(key=lambda product: (
+                product.diety.name.lower(),
+                -int(product.is_featured),
+                product.display_order,
+                -product.created_at.timestamp(),
+            ))
+            groups = {}
+            for product in candidates:
+                items = groups.setdefault(product.diety_id, [])
+                if len(items) < limit_per_deity:
+                    items.append(product)
+            return [
+                {
+                    'deity_id': items[0].diety_id,
+                    'deity_name': items[0].diety.name,
+                    'deity_slug': items[0].diety.slug,
+                    'products': ProductCardSerializer(items, many=True).data,
+                }
+                for items in groups.values()
+            ]
+
+        return {
+            'popular': ProductCardSerializer(popular, many=True).data,
+            'temples': ProductCardSerializer(temples, many=True).data,
+            'deities': grouped(),
+            'home_decors': grouped('home-decor'),
+        }
+
+    @staticmethod
     def get_home_decors_by_diety(limit_per_diety=5):
-        result = []
-        for deity in Diety.objects.filter(is_active=True).order_by('name'):
-            products = _product_queryset(public=True).filter(
-                category__slug='home-decor', diety=deity
-            ).order_by('-is_featured', 'display_order', '-created_at')[:limit_per_diety]
-            if products:
-                result.append({
-                    'deity_id': deity.id,
-                    'deity_name': deity.name,
-                    'deity_slug': deity.slug,
-                    'products': ProductCardSerializer(products, many=True).data,
-                })
-        return result
+        return _group_top_products_by_deity(limit_per_diety, category__slug='home-decor')
 
 
 

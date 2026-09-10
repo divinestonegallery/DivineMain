@@ -37,7 +37,7 @@ export function DynamicCategoryTabs({
         content: (
           <HomeCarouselRail className={styles.productRail} label={`${groupName(g) || "Collection"} products`}>
             {g.products.map((product, pIndex) => (
-              <CatalogProductCard product={product} priority={pIndex === 0} key={product.uid ?? product.slug ?? `${idPrefix}-${pIndex}`} />
+              <CatalogProductCard product={product} key={product.uid ?? product.slug ?? `${idPrefix}-${pIndex}`} />
             ))}
           </HomeCarouselRail>
         )
@@ -73,7 +73,7 @@ export function DynamicCategoryTabs({
           content: (
             <HomeCarouselRail className={styles.productRail} label="All products">
               {products.map((product, index) => (
-                <CatalogProductCard product={product} priority={index === 0} key={product.uid ?? product.slug ?? `${idPrefix}-${index}`} />
+                <CatalogProductCard product={product} key={product.uid ?? product.slug ?? `${idPrefix}-${index}`} />
               ))}
             </HomeCarouselRail>
           ),
@@ -104,7 +104,7 @@ export function DynamicCategoryTabs({
         content: (
           <HomeCarouselRail className={styles.productRail} label={`${key} products`}>
             {groupProducts.map((product, index) => (
-              <CatalogProductCard product={product} priority={index === 0} key={product.uid ?? product.slug ?? `${idPrefix}-${index}`} />
+              <CatalogProductCard product={product} key={product.uid ?? product.slug ?? `${idPrefix}-${index}`} />
             ))}
           </HomeCarouselRail>
         ),

@@ -15,7 +15,7 @@ class ProductImageAdminSerializer(serializers.ModelSerializer):
 
 class ProductAdminSerializer(serializers.ModelSerializer):
     images = ProductImageAdminSerializer(many=True, read_only=True)
-    deity = serializers.IntegerField(source='diety_id', read_only=True)
+    deity = serializers.IntegerField(source='diety_id', read_only=True, allow_null=True)
 
     class Meta:
         model = Product
@@ -42,4 +42,4 @@ class MaterialAdminSerializer(serializers.ModelSerializer):
 class DietyAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = Diety
-        fields = '__all__'
+        fields = ('id', 'name', 'slug', 'image_url', 'categories', 'is_active', 'created_at', 'updated_at')

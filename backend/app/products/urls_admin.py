@@ -4,6 +4,7 @@ from .views.admin_views import (
     AdminCategoryListCreateView, AdminCategoryDetailView,
     AdminMaterialListCreateView, AdminMaterialDetailView,
     AdminDietyListCreateView, AdminDietyDetailView,
+    AdminDeityImageUploadUrlView,
     AdminProductImageListCreateView, AdminProductImageDetailView,
     AdminProductImageReorderView,
     AdminProductImageUploadUrlView,
@@ -30,5 +31,6 @@ urlpatterns = [
 
     # Deities
     path('/deities', AdminDietyListCreateView.as_view(), name='admin-deity-list'),
+    path('/deities/upload-url', AdminDeityImageUploadUrlView.as_view(), name='admin-deity-image-upload-url'),
     path('/deities/<int:diety_id>', AdminDietyDetailView.as_view(), name='admin-deity-detail'),
 ]
