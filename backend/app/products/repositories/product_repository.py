@@ -208,7 +208,12 @@ class ProductRepository:
         data = dict(data)
         data['category_id'] = data.pop('category')
         data['material_id'] = data.pop('material')
-        data['diety_id'] = data.pop('diety', None)  # diety is optional
+        diety_id = data.pop('diety', None)
+        if diety_id is None and 'deity' in data:
+            diety_id = data.pop('deity')
+        else:
+            data.pop('deity', None)
+        data['diety_id'] = diety_id
         data['is_active'] = data.get('status', ProductStatus.DRAFT.value) != ProductStatus.ARCHIVED.value
 
         original_price = data.get('original_price')
@@ -232,9 +237,14 @@ class ProductRepository:
         product = Product.objects.filter(id=product_id).first()
         if not product:
             return 'Product not found.', None
-        relation_fields = {'category', 'material', 'diety'}
+        relation_fields = {'category', 'material', 'diety', 'deity'}
         for key, value in data.items():
-            setattr(product, f'{key}_id' if key in relation_fields else key, value)
+            if key == 'deity':
+                setattr(product, 'diety_id', value)
+            elif key in relation_fields:
+                setattr(product, f'{key}_id', value)
+            else:
+                setattr(product, key, value)
         if 'status' in data:
             product.is_active = data['status'] != ProductStatus.ARCHIVED.value
         

@@ -6,8 +6,8 @@ from framework.utils import enum_choices
 class ProductRequestValidator(serializers.Serializer):
     category = serializers.IntegerField(min_value=1, required=False)
     material = serializers.IntegerField(min_value=1, required=False)
-    diety = serializers.IntegerField(min_value=1, required=False)
-    deity = serializers.IntegerField(min_value=1, required=False)
+    diety = serializers.IntegerField(min_value=1, required=False, allow_null=True)
+    deity = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     name = serializers.CharField(max_length=255, required=False)
     short_description = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
     description = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -49,7 +49,7 @@ class ProductRequestValidator(serializers.Serializer):
     def validate(self, attrs):
         if attrs.get('deity') and attrs.get('diety') and attrs['deity'] != attrs['diety']:
             raise serializers.ValidationError('deity and legacy diety values must match.')
-        if attrs.get('deity'):
+        if 'deity' in attrs:
             attrs['diety'] = attrs.pop('deity')
         return attrs
 
