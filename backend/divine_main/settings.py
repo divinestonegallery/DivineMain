@@ -24,8 +24,18 @@ def optional_environment(name):
         return ""
     return value
 
-# Core settings
-DEBUG = os.getenv('DEBUG', 'true').lower() == 'true'
+
+def boolean_environment(name, default=False):
+    """Read a boolean environment value without treating any non-empty text as true."""
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+# Core settings. Keep production safe when the deployment environment does not
+# explicitly provide DEBUG; local development can opt in with DEBUG=true in the
+# ignored .env file.
+DEBUG = boolean_environment('DEBUG', False)
 IS_TESTING = 'test' in sys.argv
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'default-insecure-key-for-dev')
 ALLOWED_HOSTS = csv_environment(
@@ -53,6 +63,7 @@ INSTALLED_APPS = [
     'app.reviews',
     'app.contactus',
     'app.faq',
+    'app.orders',
 ]
 
 MIDDLEWARE = [
@@ -86,17 +97,29 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'divine_main.wsgi.application'
+TEST_RUNNER = 'divine_main.test_runner.ProjectTestRunner'
 
 # Database Setup (Neon PostgreSQL)
 import dj_database_url
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-}
+# Never point Django's test runner at the configured Neon database. Tests get
+# an isolated in-memory SQLite database so they cannot create or delete remote
+# test databases and remain deterministic on developer machines and CI.
+if IS_TESTING:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        },
+    }
+else:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL', f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -128,6 +151,13 @@ if DEBUG:
     for local_origin in ('http://localhost:3000', 'http://127.0.0.1:3000'):
         if local_origin not in CORS_ALLOWED_ORIGINS:
             CORS_ALLOWED_ORIGINS.append(local_origin)
+
+# Keep CSRF protection aligned with the browser origins allowed above. This is
+# especially important when HTTPS is terminated by Nginx or another proxy.
+CSRF_TRUSTED_ORIGINS = csv_environment(
+    'CSRF_TRUSTED_ORIGINS',
+    ','.join(CORS_ALLOWED_ORIGINS),
+)
 
 # DRF configuration
 REST_FRAMEWORK = {
@@ -215,15 +245,15 @@ UPLOAD_SESSION_RETENTION_DAYS = int(os.getenv('UPLOAD_SESSION_RETENTION_DAYS', '
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv('DATA_UPLOAD_MAX_MEMORY_SIZE', str(2 * 1024 * 1024)))
 FILE_UPLOAD_MAX_MEMORY_SIZE = DATA_UPLOAD_MAX_MEMORY_SIZE
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = not DEBUG and os.getenv('SECURE_SSL_REDIRECT', 'true').lower() == 'true'
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
+SECURE_SSL_REDIRECT = False if (DEBUG or IS_TESTING) else boolean_environment('SECURE_SSL_REDIRECT', True)
+SESSION_COOKIE_SECURE = boolean_environment('SESSION_COOKIE_SECURE', not DEBUG)
+CSRF_COOKIE_SECURE = boolean_environment('CSRF_COOKIE_SECURE', not DEBUG)
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
-SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '0' if DEBUG else '31536000'))
-SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
-SECURE_HSTS_PRELOAD = not DEBUG
+SECURE_HSTS_SECONDS = 0 if (DEBUG or IS_TESTING) else int(os.getenv('SECURE_HSTS_SECONDS', '31536000'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = boolean_environment('SECURE_HSTS_INCLUDE_SUBDOMAINS', not DEBUG)
+SECURE_HSTS_PRELOAD = boolean_environment('SECURE_HSTS_PRELOAD', not DEBUG)
 
 CACHES = {
     'default': {

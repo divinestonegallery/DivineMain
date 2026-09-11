@@ -1,6 +1,7 @@
 import secrets
 import string
 
+from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -57,7 +58,13 @@ class Product(BaseModel):
     uid = models.CharField(max_length=255, unique=True, blank=True, null=True)
     short_description = models.CharField(max_length=500, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-    keywords = ArrayField(models.CharField(max_length=100), blank=True, default=list)
+    # PostgreSQL uses an ArrayField in production. SQLite has no array type,
+    # so tests use JSON storage while retaining the same list-shaped API value.
+    keywords = (
+        models.JSONField(blank=True, default=list)
+        if getattr(settings, 'IS_TESTING', False)
+        else ArrayField(models.CharField(max_length=100), blank=True, default=list)
+    )
     height = models.CharField(max_length=100, blank=True, null=True)
     min_weight = models.CharField(max_length=100, blank=True, null=True)
     max_weight = models.CharField(max_length=100, blank=True, null=True)

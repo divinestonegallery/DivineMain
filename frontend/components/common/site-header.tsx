@@ -404,7 +404,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
 
           <div className={styles.headerCenter}>
             <nav className={styles.desktopNav} aria-label="Main navigation">
-              <Link href="/guide" className={styles.navLink}>
+              <Link href="/guides" className={styles.navLink}>
                 <span>Guide</span>
               </Link>
               <Link href="/artisans" className={styles.navLink}>
@@ -718,7 +718,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               <div className={styles.mobileSection}>
                 <p className={styles.mobileSectionHeader}>Other</p>
                 <div className={styles.mobileSectionList}>
-                  <Link href="/guide" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/guides" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
                     <span>Guide</span>
                     <ChevronRight size={18} strokeWidth={1.5} />
                   </Link>

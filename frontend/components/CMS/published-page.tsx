@@ -1,9 +1,9 @@
 // @ts-nocheck
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { CookieConsent } from "@/components/common/cookie-consent";
+import { ResilientImage } from "@/components/common/resilient-image";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
 import { ToastProvider } from "@/components/ui/toast";
@@ -65,12 +65,12 @@ function Block({ section, first, homeHero }: { section: PublishedSection; first:
           <div className={styles.actions}>{action(section.ctaLabel, section.ctaHref)}{action(section.secondaryCtaLabel, section.secondaryCtaHref, true)}</div>
           <span className={styles.proof}><Sparkles size={16} />Fourth-generation marble atelier · Alwar, Rajasthan</span>
         </div>
-        {!homeHero && image ? <div className={styles.heroImage}><Image src={image} alt={section.mediaAltText ?? section.heading ?? "Divine Stone Gallery marble moorti"} fill loading="eager" sizes="(max-width: 850px) 100vw, 48vw" /></div> : null}
+      {!homeHero && image ? <div className={styles.heroImage}><ResilientImage src={image} alt={section.mediaAltText ?? section.heading ?? "Divine Stone Gallery marble moorti"} fill loading="eager" sizes="(max-width: 850px) 100vw, 48vw" fallback={<span className={styles.cmsImageFallback} role="img" aria-label="Gallery image unavailable">Image coming soon</span>} /></div> : null}
       </div>
     </section>
   );
-  if (section.blockType === "collection" || section.blockType === "feature_grid" || section.blockType === "faq") return <section className={styles.section} data-tone={section.styleVariant}><div className="site-container"><header className={styles.heading}><div><small>{section.eyebrow}</small><h2 className="font-display">{section.heading}</h2></div><p>{section.body}</p></header><div className={section.blockType === "faq" ? styles.faq : styles.cards}>{rows.map((item, index) => { const content = <>{item.image ? <span className={styles.cardImage}><Image src={item.image} alt={item.title ?? ""} fill sizes="(max-width: 700px) 50vw, 25vw" /></span> : null}<strong className="font-display">{item.title}</strong><p>{item.body}</p></>; return item.href ? <Link href={item.href} key={`${item.title}-${index}`}>{content}</Link> : <article key={`${item.title}-${index}`}>{content}</article>; })}</div><div className={styles.sectionAction}>{action(section.ctaLabel, section.ctaHref)}</div></div></section>;
-  return <section className={styles.split} data-tone={section.styleVariant} data-media={section.mediaPosition}><div className="site-container">{image ? <div className={styles.splitImage}><Image src={image} alt={section.mediaAltText ?? section.heading ?? "Marble sculpture"} fill sizes="(max-width: 850px) 100vw, 48vw" /></div> : null}<div className={styles.splitCopy}><small>{section.eyebrow}</small><h2 className="font-display">{section.heading}</h2><p>{section.body}</p><div className={styles.actions}>{action(section.ctaLabel, section.ctaHref)}{action(section.secondaryCtaLabel, section.secondaryCtaHref, true)}</div></div></div></section>;
+  if (section.blockType === "collection" || section.blockType === "feature_grid" || section.blockType === "faq") return <section className={styles.section} data-tone={section.styleVariant}><div className="site-container"><header className={styles.heading}><div><small>{section.eyebrow}</small><h2 className="font-display">{section.heading}</h2></div><p>{section.body}</p></header><div className={section.blockType === "faq" ? styles.faq : styles.cards}>{rows.map((item, index) => { const content = <>{item.image ? <span className={styles.cardImage}><ResilientImage src={item.image} alt={item.title ?? ""} fill sizes="(max-width: 700px) 50vw, 25vw" fallback={<span className={styles.cmsImageFallback} role="img" aria-label="Gallery image unavailable">Image coming soon</span>} /></span> : null}<strong className="font-display">{item.title}</strong><p>{item.body}</p></>; return item.href ? <Link href={item.href} key={`${item.title}-${index}`}>{content}</Link> : <article key={`${item.title}-${index}`}>{content}</article>; })}</div><div className={styles.sectionAction}>{action(section.ctaLabel, section.ctaHref)}</div></div></section>;
+  return <section className={styles.split} data-tone={section.styleVariant} data-media={section.mediaPosition}><div className="site-container">{image ? <div className={styles.splitImage}><ResilientImage src={image} alt={section.mediaAltText ?? section.heading ?? "Marble sculpture"} fill sizes="(max-width: 850px) 100vw, 48vw" fallback={<span className={styles.cmsImageFallback} role="img" aria-label="Gallery image unavailable">Image coming soon</span>} /></div> : null}<div className={styles.splitCopy}><small>{section.eyebrow}</small><h2 className="font-display">{section.heading}</h2><p>{section.body}</p><div className={styles.actions}>{action(section.ctaLabel, section.ctaHref)}{action(section.secondaryCtaLabel, section.secondaryCtaHref, true)}</div></div></div></section>;
 }
 
 export function PublishedPageView({ page, animateLogo = false, protectedContent }: { page: PublishedPage; animateLogo?: boolean; protectedContent?: ReactNode }) {
