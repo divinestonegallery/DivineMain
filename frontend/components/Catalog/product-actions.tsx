@@ -1,7 +1,8 @@
 // @ts-nocheck
 "use client";
 
-import { MessageCircle, Phone, Share2 } from "lucide-react";
+import Image from "next/image";
+import { Phone, Share2 } from "lucide-react";
 import { buttonClassName, Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import type { ProductPrice } from "@/api/products";
@@ -67,7 +68,7 @@ export function ProductActions({
         </div>
         <div className={styles.primaryActions}>
           <a className={buttonClassName({ size: "md", className: styles.whatsappButton })} href={whatsappHref} target="_blank" rel="noreferrer">
-            <MessageCircle aria-hidden="true" size={18} /> Enquire on WhatsApp
+            <Image src="/brand/whatsapp.svg" alt="" width={18} height={18} aria-hidden="true" /> Enquire on WhatsApp
           </a>
           <a className={buttonClassName({ variant: "outline", size: "md", className: styles.callButton })} href="tel:+919166138566">
             <Phone aria-hidden="true" size={18} /> Call {brand.phone}
@@ -84,7 +85,7 @@ export function ProductActions({
       <div className={styles.mobileEnquiryBar}>
         <span><small>Interested in this work?</small><strong>Request details</strong></span>
         <a href={whatsappHref} target="_blank" rel="noreferrer">
-          <MessageCircle aria-hidden="true" size={17} /> WhatsApp
+          <Image src="/brand/whatsapp.svg" alt="" width={17} height={17} aria-hidden="true" /> WhatsApp
         </a>
       </div>
     </>

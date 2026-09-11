@@ -10,8 +10,7 @@ import {
   Search,
   Sparkles,
   X,
-  ChevronRight,
-  MessageCircle
+  ChevronRight
 } from "lucide-react";
 import { FormEvent, MouseEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { AccountControl } from "@/components/Auth/account-control";
@@ -405,7 +404,15 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
 
           <div className={styles.headerCenter}>
             <nav className={styles.desktopNav} aria-label="Main navigation">
-
+              <Link href="/guide" className={styles.navLink}>
+                <span>Guide</span>
+              </Link>
+              <Link href="/artisans" className={styles.navLink}>
+                <span>Artisans</span>
+              </Link>
+              <Link href="/our-story" className={styles.navLink}>
+                <span>Our Story</span>
+              </Link>
               {/* <button
                 ref={shopTriggerRef}
                 className={styles.navLink}
@@ -711,8 +718,16 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               <div className={styles.mobileSection}>
                 <p className={styles.mobileSectionHeader}>Other</p>
                 <div className={styles.mobileSectionList}>
+                  <Link href="/guide" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                    <span>Guide</span>
+                    <ChevronRight size={18} strokeWidth={1.5} />
+                  </Link>
+                  <Link href="/artisans" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                    <span>Artisans</span>
+                    <ChevronRight size={18} strokeWidth={1.5} />
+                  </Link>
                   <Link href="/our-story" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
-                    <span>About Us</span>
+                    <span>Our Story</span>
                     <ChevronRight size={18} strokeWidth={1.5} />
                   </Link>
                   <Link href="/contact" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
@@ -742,7 +757,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                     <span>YouTube</span>
                   </a>
                   <a href="https://wa.me/919166138566?text=Namaste%2C%20I%20would%20like%20help%20choosing%20a%20moorti." target="_blank" rel="noreferrer" className={styles.mobileSocialLinkText}>
-                    <span className={styles.mobileSocialIcon} aria-hidden="true"><MessageCircle size={22} strokeWidth={1.7} /></span>
+                    <span className={styles.mobileSocialIcon} aria-hidden="true"><Image src="/brand/whatsapp.svg" alt="" width={22} height={22} /></span>
                     <span>WhatsApp</span>
                   </a>
                 </div>

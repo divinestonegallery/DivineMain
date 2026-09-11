@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Expand, RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, Expand, RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import type { ProductImage } from "@/src/types/product";
@@ -72,6 +72,11 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
     setActiveIndex(index);
     resetViewer();
   }, [resetViewer]);
+
+  const changeImage = useCallback((direction: -1 | 1) => {
+    setActiveIndex((currentIndex) => (currentIndex + direction + images.length) % images.length);
+    resetViewer();
+  }, [images.length, resetViewer]);
 
   const updateZoom = useCallback((direction: "in" | "out") => {
     setZoom((currentZoom) => {
@@ -185,6 +190,18 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
         return;
       }
 
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        changeImage(-1);
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        changeImage(1);
+        return;
+      }
+
       if (event.key === "+" || event.key === "=") {
         event.preventDefault();
         updateZoom("in");
@@ -208,15 +225,15 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", handleResize);
     };
-  }, [closeViewer, expanded, getClampedPan, resetViewer, updateZoom, zoom]);
+  }, [changeImage, closeViewer, expanded, getClampedPan, resetViewer, updateZoom, zoom]);
 
   if (!activeImage) return null;
 
   return (
     <div className={styles.gallery}>
-      <div className={styles.galleryMain}>
+      <div className={styles.galleryMain} onClick={openViewer}>
         <Image src={activeImage.src} alt={activeImage.alt} fill sizes="(max-width: 900px) 100vw, 55vw" priority unoptimized={isRemoteImage(activeImage.src)} />
-        <button type="button" aria-label="View larger image" onClick={openViewer}>
+        <button type="button" aria-label="View larger image" onClick={(event) => { event.stopPropagation(); openViewer(); }}>
           <Expand aria-hidden="true" size={19} />
         </button>
       </div>
@@ -234,29 +251,41 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
         ))}
       </div>
       {expanded ? (
-        <div className={styles.imageViewerOverlay} role="dialog" aria-modal="true" aria-label="Expanded product image" ref={overlayRef}>
+        <div className={styles.imageViewerOverlay} role="dialog" aria-modal="true" aria-label="Expanded product image" ref={overlayRef} onClick={closeViewer}>
           <button className={styles.imageViewerBackdrop} type="button" aria-label="Close image viewer" onClick={closeViewer} />
-          <button className={styles.imageViewerClose} type="button" aria-label="Close image viewer" onClick={closeViewer} ref={closeButtonRef}>
+          <button className={styles.imageViewerClose} type="button" aria-label="Close image viewer" onClick={(event) => { event.stopPropagation(); closeViewer(); }} ref={closeButtonRef}>
             <X aria-hidden="true" size={22} strokeWidth={1.8} />
           </button>
 
-          <div className={styles.imageViewerPanel}>
-            <div className={styles.imageViewerStage} ref={stageRef}>
-              <div
-                className={styles.imageViewerImage}
-                data-zoomed={zoom > MIN_ZOOM}
-                data-dragging={panning}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerEnd}
-                onPointerCancel={handlePointerEnd}
-                style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
-              >
-                <Image src={activeImage.src} alt={activeImage.alt} fill sizes="(max-width: 680px) 92vw, 60vw" unoptimized={isRemoteImage(activeImage.src)} />
+          <div className={styles.imageViewerPanel} onClick={closeViewer}>
+            <div className={styles.imageViewerStageWrap} onClick={(event) => event.stopPropagation()}>
+              {images.length > 1 ? (
+                <>
+                  <button className={`${styles.imageViewerNavigationButton} ${styles.imageViewerPreviousButton}`} type="button" aria-label="Previous image" onClick={() => changeImage(-1)}>
+                    <ChevronLeft aria-hidden="true" size={20} strokeWidth={1.8} />
+                  </button>
+                  <button className={`${styles.imageViewerNavigationButton} ${styles.imageViewerNextButton}`} type="button" aria-label="Next image" onClick={() => changeImage(1)}>
+                    <ChevronRight aria-hidden="true" size={20} strokeWidth={1.8} />
+                  </button>
+                </>
+              ) : null}
+              <div className={styles.imageViewerStage} ref={stageRef}>
+                <div
+                  className={styles.imageViewerImage}
+                  data-zoomed={zoom > MIN_ZOOM}
+                  data-dragging={panning}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerEnd}
+                  onPointerCancel={handlePointerEnd}
+                  style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
+                >
+                  <Image src={activeImage.src} alt={activeImage.alt} fill sizes="(max-width: 680px) 92vw, 60vw" unoptimized={isRemoteImage(activeImage.src)} />
+                </div>
               </div>
             </div>
 
-            <div className={styles.imageViewerControls} aria-label="Image zoom controls">
+            <div className={styles.imageViewerControls} aria-label="Image zoom controls" onClick={(event) => event.stopPropagation()}>
               <button className={styles.imageViewerControlButton} type="button" aria-label="Zoom out" onClick={() => updateZoom("out")} disabled={zoom <= MIN_ZOOM}>
                 <ZoomOut aria-hidden="true" size={19} strokeWidth={1.8} />
               </button>

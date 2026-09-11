@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { MessageCircle } from "lucide-react";
+import Image from "next/image";
 import styles from "./site-shell.module.css";
 
 export function WhatsAppAssistance({ elevated = false }: { elevated?: boolean }) {
@@ -11,7 +11,7 @@ export function WhatsAppAssistance({ elevated = false }: { elevated?: boolean })
       rel="noreferrer"
       aria-label="Chat with Divine Stone Gallery on WhatsApp"
     >
-      <MessageCircle aria-hidden="true" size={21} strokeWidth={1.7} />
+      <Image src="/brand/whatsapp.svg" alt="" width={21} height={21} aria-hidden="true" />
       <span>Need guidance?</span>
     </a>
   );

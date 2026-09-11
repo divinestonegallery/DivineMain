@@ -609,17 +609,14 @@
 }
 
 .productInfo h3 {
-  display: -webkit-box;
-  min-height: calc(2 * 1.2em);
+  display: block;
   margin: 0.4rem 0 0;
   overflow: hidden;
   font-size: clamp(1.05rem, 1.5vw, 1.35rem);
   font-weight: 400;
   line-height: 1.2;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .productInfo > p {

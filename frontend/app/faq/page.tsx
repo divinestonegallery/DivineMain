@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ArrowRight, CircleHelp, Gem, MessageCircle, PackageCheck, Sparkles } from "lucide-react";
+import { ArrowRight, CircleHelp, Gem, PackageCheck, Sparkles } from "lucide-react";
 import { getFAQs, type FAQGroups, type FAQItem } from "@/api/faq";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
@@ -76,7 +77,7 @@ function FAQShell({ children }: { children: ReactNode }) {
         </section>
         <section className={styles.cta}>
           <div className="site-container">
-            <MessageCircle aria-hidden="true" size={26} />
+            <Image src="/brand/whatsapp.svg" alt="" width={26} height={26} aria-hidden="true" />
             <p className={styles.eyebrow}>Still have a question?</p>
             <h2 className="font-display">Ask our gallery about your specific work or space.</h2>
             <div>

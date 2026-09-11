@@ -47,14 +47,22 @@
 
 .productHero {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 1fr);
-  gap: clamp(1.5rem, 4vw, 4rem);
+  grid-template-columns: minmax(0, 1.1fr) minmax(390px, 0.9fr);
+  align-items: start;
+  gap: clamp(1.5rem, 3vw, 3rem);
   padding-block: clamp(1rem, 2vw, 2rem) 1rem;
 }
 
 .galleryWrap {
   min-width: 0;
   align-self: start;
+}
+
+@media (min-width: 981px) {
+  .galleryWrap {
+    width: min(100%, calc(80dvh - 7.2rem + 76px));
+    justify-self: center;
+  }
 }
 
 .imagePromise {
@@ -435,17 +443,15 @@
 }
 
 .relatedGrid h3 {
-  display: -webkit-box;
+  display: block;
   min-height: calc(2 * 1.2em);
   margin: 0.4rem 0 0;
   overflow: hidden;
   font-size: clamp(1.15rem, 2vw, 1.4rem);
   font-weight: 400;
   line-height: 1.2;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .relatedMeta {
