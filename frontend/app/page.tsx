@@ -22,6 +22,7 @@ import { getHome } from "@/api/products";
 import type { HomeBlock, HomeData, HomeDeityGroup, ProductCard, ReviewCard, TaxonomyItem } from "@/api/products";
 import styles from "./page.module.css";
 
+import { HeroSearchForm } from "@/components/common/hero-search-form";
 import { DynamicCategoryTabs } from "./dynamic-category-tabs";
 import { HomeCarouselRail } from "./home-carousel-rail";
 
@@ -489,13 +490,7 @@ function HeroSection({ quickLinks }: { quickLinks: Array<{ label: string; href: 
       <span className={styles.heroVeil} aria-hidden="true" />
       <div className={`${styles.heroInner} site-container`}>
         <div className={styles.heroCopy}>
-          <form className={styles.heroSearch} action="/shop" data-hero-search>
-            <Search aria-hidden="true" size={24} strokeWidth={1.6} />
-            <input name="q" type="search" placeholder="Search for Ganesh, marble temple or home decor" aria-label="Search the Divine Stone catalogue" />
-            <button type="submit" aria-label="Search catalogue">
-              <Search aria-hidden="true" size={22} strokeWidth={1.8} />
-            </button>
-          </form>
+          <HeroSearchForm />
           {quickLinks.length ? (
             <div className={styles.heroQuickLinks} aria-label="Popular searches">
               <span>Most Popular Mooti</span>
