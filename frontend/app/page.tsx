@@ -112,6 +112,17 @@ function deityFilterHref(item: TaxonomyItem) {
   return `/shop?deity=${encodeURIComponent(deity)}`;
 }
 
+function groupFilterHref(group: HomeDeityGroup) {
+  const deity = (
+    normalizeText(group.deity_slug) ||
+    normalizeText(group.diety_slug) ||
+    normalizeText(group.deity_name) ||
+    normalizeText(group.diety_name) ||
+    normalizeText(group.products?.[0]?.deity)
+  );
+  return deity ? `/shop?deity=${encodeURIComponent(deity)}` : "/shop";
+}
+
 function groupName(group: HomeDeityGroup) {
   return (
     normalizeText(group.deity_name) ||
@@ -138,9 +149,9 @@ function heroQuickLinks(groups: HomeDeityGroup[], categories: TaxonomyItem[]) {
   const links = [
     ...groups.map((group) => {
       const name = groupName(group);
-      return { label: name, href: `/shop?q=${encodeURIComponent(name)}` };
+      return { label: name, href: groupFilterHref(group) };
     }),
-    ...categories.map((category) => ({ label: category.name, href: taxonomyHref(category) })),
+    ...categories.map((category) => ({ label: category.name, href: categoryFilterHref(category) })),
   ];
 
   const seen = new Set<string>();
