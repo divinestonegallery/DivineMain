@@ -404,7 +404,15 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
 
           <div className={styles.headerCenter}>
             <nav className={styles.desktopNav} aria-label="Main navigation">
-
+              <Link href="/guide" className={styles.navLink}>
+                <span>Guide</span>
+              </Link>
+              <Link href="/artisans" className={styles.navLink}>
+                <span>Artisans</span>
+              </Link>
+              <Link href="/our-story" className={styles.navLink}>
+                <span>Our Story</span>
+              </Link>
               {/* <button
                 ref={shopTriggerRef}
                 className={styles.navLink}
@@ -710,8 +718,16 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               <div className={styles.mobileSection}>
                 <p className={styles.mobileSectionHeader}>Other</p>
                 <div className={styles.mobileSectionList}>
+                  <Link href="/guide" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                    <span>Guide</span>
+                    <ChevronRight size={18} strokeWidth={1.5} />
+                  </Link>
+                  <Link href="/artisans" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                    <span>Artisans</span>
+                    <ChevronRight size={18} strokeWidth={1.5} />
+                  </Link>
                   <Link href="/our-story" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
-                    <span>About Us</span>
+                    <span>Our Story</span>
                     <ChevronRight size={18} strokeWidth={1.5} />
                   </Link>
                   <Link href="/contact" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>

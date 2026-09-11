@@ -610,7 +610,6 @@
 
 .productInfo h3 {
   display: block;
-  min-height: calc(2 * 1.2em);
   margin: 0.4rem 0 0;
   overflow: hidden;
   font-size: clamp(1.05rem, 1.5vw, 1.35rem);
