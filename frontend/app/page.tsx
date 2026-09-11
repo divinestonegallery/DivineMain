@@ -160,7 +160,7 @@ function heroQuickLinks(groups: HomeDeityGroup[], categories: TaxonomyItem[]) {
     if (!link.label || seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).slice(0, 7);
+  }).slice(0, 5);
 }
 
 function MediaImage({
