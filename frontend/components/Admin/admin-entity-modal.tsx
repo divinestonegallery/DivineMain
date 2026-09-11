@@ -68,10 +68,10 @@ export function AdminEntityModal({
   const title = `${mode === "create" ? "Create" : "Edit"} ${entityLabel}`;
   const submitText = submitLabel ?? (mode === "create" ? "Create" : "Save Changes");
   const submittingText = mode === "create" ? "Creating..." : "Saving...";
-  const close = submitting ? () => undefined : onClose;
+  const safeClose = submitting ? () => undefined : onClose;
 
   return (
-    <Modal open={open} title={title} onClose={close} panelClassName={size === "wide" ? styles.widePanel : ""}>
+    <Modal open={open} title={title} onClose={safeClose} panelClassName={size === "wide" ? styles.widePanel : ""}>
       <div className={styles.modalContent}>
         {error ? (
           <div className={styles.errorBanner} role="alert">
@@ -81,7 +81,7 @@ export function AdminEntityModal({
         ) : null}
         {children}
         <div className={styles.footer}>
-          <Button variant="outline" type="button" onClick={onClose} disabled={submitting}>Cancel</Button>
+          <Button variant="outline" type="button" onClick={safeClose} disabled={submitting}>Cancel</Button>
           <Button type="submit" form={formId} disabled={submitting || submitDisabled}>{submitting ? submittingText : submitText}</Button>
         </div>
       </div>

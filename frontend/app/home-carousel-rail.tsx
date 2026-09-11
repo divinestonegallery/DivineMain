@@ -86,7 +86,7 @@ export function HomeCarouselRail({
     const rail = railRef.current;
     if (!rail) return;
 
-    const { step, maxIndex, currentIndex } = carouselMetrics(rail, autoplay);
+    const { step } = carouselMetrics(rail, autoplay);
     if (step <= 0) {
       rail.scrollBy({ left: direction * rail.clientWidth * 0.8, behavior: prefersReducedMotion() ? "auto" : "smooth" });
       return;
@@ -100,9 +100,13 @@ export function HomeCarouselRail({
       return;
     }
 
-    const nextIndex = Math.min(maxIndex, Math.max(0, currentIndex + direction));
+    const maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
+    const nextLeft = direction < 0
+      ? Math.max(0, rail.scrollLeft - step)
+      : Math.min(maxScroll, rail.scrollLeft + step);
+
     rail.scrollTo({
-      left: nextIndex * step,
+      left: nextLeft,
       behavior: prefersReducedMotion() ? "auto" : "smooth",
     });
   }, [autoplay]);
