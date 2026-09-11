@@ -4,6 +4,18 @@ import django.contrib.postgres.fields
 from django.db import migrations, models
 
 
+class PostgresOnlyRunSQL(migrations.RunSQL):
+    """Keep the PostgreSQL array conversion out of SQLite test databases."""
+
+    def database_forwards(self, app_label, schema_editor, from_state, to_state):
+        if schema_editor.connection.vendor == "postgresql":
+            super().database_forwards(app_label, schema_editor, from_state, to_state)
+
+    def database_backwards(self, app_label, schema_editor, from_state, to_state):
+        if schema_editor.connection.vendor == "postgresql":
+            super().database_backwards(app_label, schema_editor, from_state, to_state)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -21,7 +33,7 @@ class Migration(migrations.Migration):
         # This SQL:
         #   1. Clears empty strings to NULL so they become '{}'
         #   2. Casts the column to varchar[] using a USING expression
-        migrations.RunSQL(
+        PostgresOnlyRunSQL(
             sql="""
                 UPDATE products_product SET keywords = NULL WHERE keywords = '' OR keywords IS NULL;
                 ALTER TABLE products_product

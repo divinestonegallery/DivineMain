@@ -64,15 +64,7 @@ export default function RootLayout({
   };
 
   return (
-    <html
-      lang="en"
-      style={
-        {
-          "--font-brand-display":
-            "'Iowan Old Style', Baskerville, 'Times New Roman', serif",
-        } as React.CSSProperties
-      }
-    >
+    <html lang="en">
       <body className="antialiased">
         <Script id="scroll-restoration" strategy="beforeInteractive">
           {`try { history.scrollRestoration = "manual"; if (!window.location.hash) { const root = document.documentElement; const previous = root.style.scrollBehavior; root.style.scrollBehavior = "auto"; window.scrollTo({ top: 0, left: 0, behavior: "auto" }); requestAnimationFrame(() => { root.style.scrollBehavior = previous; }); } } catch {}`}

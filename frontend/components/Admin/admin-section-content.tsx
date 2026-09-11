@@ -796,6 +796,8 @@ function ReferenceImageViewer({ src }: { src: string }) {
         onClick={() => { if (scale === fitScale) setExpanded(true); }}
         title={scale > 1 ? "Drag to inspect the reference image" : "Click to expand or scroll to zoom"}
       >
+        {/* Native img is required here because the zoom viewer measures and transforms the element directly. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           className={styles.referenceImage}
           src={src}

@@ -1,7 +1,6 @@
 // @ts-nocheck
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
@@ -13,6 +12,7 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
+import { ResilientImage } from "@/components/common/resilient-image";
 import { Modal } from "@/components/ui/modal";
 import type { PublicCatalogOption } from "@/api/catalog/repository";
 import type { ProductListResult } from "@/api/products";
@@ -110,12 +110,7 @@ function FilterControls({
 }
 
 function shouldSkipImageOptimization(src: string) {
-  if (!/^https?:\/\//i.test(src)) return false;
-  try {
-    return !["media.divinestonegallery.com", "images.unsplash.com"].includes(new URL(src).hostname);
-  } catch {
-    return true;
-  }
+  return /^https?:\/\//i.test(src);
 }
 
 function ProductCard({ item, priority = false }: { item: CatalogItem; priority?: boolean }) {
@@ -125,13 +120,14 @@ function ProductCard({ item, priority = false }: { item: CatalogItem; priority?:
     <article className={styles.productCard}>
       <div className={styles.productMedia}>
         <Link href={`/products/${item.slug}`} aria-label={`View ${item.name}`}>
-          <Image
+          <ResilientImage
             src={item.image}
             alt={`${item.name}, hand-carved marble work`}
             fill
             sizes="(max-width: 680px) 50vw, (max-width: 1050px) 33vw, 25vw"
             priority={priority}
             unoptimized={shouldSkipImageOptimization(item.image)}
+            fallback={<span className={styles.productImagePlaceholder} role="img" aria-label={`${item.name} image unavailable`}>Image coming soon</span>}
           />
         </Link>
         {item.height > 0 ? <span className={styles.heightBadge}>{item.height}&quot;</span> : null}

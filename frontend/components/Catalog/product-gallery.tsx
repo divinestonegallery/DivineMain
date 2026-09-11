@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { ChevronLeft, ChevronRight, Expand, RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import type { ProductImage } from "@/src/types/product";
+import { ResilientImage } from "@/components/common/resilient-image";
 import styles from "./product.module.css";
 
 const MIN_ZOOM = 1;
@@ -229,10 +229,16 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
 
   if (!activeImage) return null;
 
+  const imageFallback = (
+    <span className={styles.imageFallback} role="img" aria-label="Product image unavailable">
+      Image coming soon
+    </span>
+  );
+
   return (
     <div className={styles.gallery}>
       <div className={styles.galleryMain} onClick={openViewer}>
-        <Image src={activeImage.src} alt={activeImage.alt} fill sizes="(max-width: 900px) 100vw, 55vw" priority unoptimized={isRemoteImage(activeImage.src)} />
+        <ResilientImage src={activeImage.src} alt={activeImage.alt} fill sizes="(max-width: 900px) 100vw, 55vw" priority unoptimized={isRemoteImage(activeImage.src)} fallback={imageFallback} />
         <button type="button" aria-label="View larger image" onClick={(event) => { event.stopPropagation(); openViewer(); }}>
           <Expand aria-hidden="true" size={19} />
         </button>
@@ -246,7 +252,7 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
             aria-pressed={index === activeIndex}
             onClick={() => handleThumbnailClick(index)}
           >
-            <Image src={image.src} alt="" fill sizes="90px" unoptimized={isRemoteImage(image.src)} />
+            <ResilientImage src={image.src} alt="" fill sizes="90px" unoptimized={isRemoteImage(image.src)} fallback={imageFallback} />
           </button>
         ))}
       </div>
@@ -280,7 +286,7 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
                   onPointerCancel={handlePointerEnd}
                   style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
                 >
-                  <Image src={activeImage.src} alt={activeImage.alt} fill sizes="(max-width: 680px) 92vw, 60vw" unoptimized={isRemoteImage(activeImage.src)} />
+                  <ResilientImage src={activeImage.src} alt={activeImage.alt} fill sizes="(max-width: 680px) 92vw, 60vw" unoptimized={isRemoteImage(activeImage.src)} fallback={imageFallback} />
                 </div>
               </div>
             </div>

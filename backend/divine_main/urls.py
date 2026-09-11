@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/v1/faqs', include('app.faq.urls_customer')),
     path('api/v1/application', include('app.applicationmodule.urls')),
     path('api/v1/common', include('app.common.urls')),
+    path('api/v1/orders', include('app.orders.urls_customer')),
 
     # Admin APIs
     path('api/admin/products', include('app.products.urls_admin')),
@@ -26,6 +27,7 @@ urlpatterns = [
     path('api/admin/contact', include('app.contactus.urls_admin')),
     path('api/admin/faqs', include('app.faq.urls_admin')),
     path('api/admin/staff', include('app.accounts.urls_admin')),
+    path('api/admin/orders', include('app.orders.urls_admin')),
 
     # Webhooks
     path('api/webhooks/accounts', include('app.accounts.urls_webhooks')),

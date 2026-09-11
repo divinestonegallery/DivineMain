@@ -12,6 +12,7 @@ import {
   Star,
 } from "lucide-react";
 import { CookieConsent } from "@/components/common/cookie-consent";
+import { ResilientImage } from "@/components/common/resilient-image";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
 import { ProductCard as CatalogProductCard } from "@/components/Catalog/product-card";
@@ -86,12 +87,9 @@ function normalizeText(value: unknown) {
 }
 
 function shouldSkipImageOptimization(src: string) {
-  if (!/^https?:\/\//i.test(src)) return false;
-  try {
-    return !["media.divinestonegallery.com", "images.unsplash.com"].includes(new URL(src).hostname);
-  } catch {
-    return true;
-  }
+  // R2 is already served through a CDN; bypassing Next's optimizer avoids an
+  // extra proxy request and lets ResilientImage handle stale media directly.
+  return /^https?:\/\//i.test(src);
 }
 
 function reviewComment(comment: string | null | undefined) {
@@ -173,7 +171,7 @@ function MediaImage({
   }
 
   return (
-    <Image
+    <ResilientImage
       className={styles.mediaImg}
       src={src}
       alt={alt}
@@ -181,6 +179,12 @@ function MediaImage({
       sizes={sizes}
       priority={priority}
       unoptimized={shouldSkipImageOptimization(src)}
+      fallback={(
+        <span className={styles.mediaPlaceholder} role="img" aria-label={`${alt} image unavailable`}>
+          <Gem aria-hidden="true" size={28} strokeWidth={1.35} />
+          <small>Image coming soon</small>
+        </span>
+      )}
     />
   );
 }

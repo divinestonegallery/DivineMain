@@ -14,6 +14,7 @@
   --border: #d9cdbd;
   --success: #4e6b50;
   --danger: #a1483d;
+  --font-brand-display: "Iowan Old Style", Baskerville, "Times New Roman", serif;
 
   /* Layout and motion */
   --container-width: 80rem;

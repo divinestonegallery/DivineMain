@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { cache } from "react";
 import {
   ArrowRight,
@@ -9,6 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { CookieConsent } from "@/components/common/cookie-consent";
+import { ResilientImage } from "@/components/common/resilient-image";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
 import { JsonLd } from "@/components/common/json-ld";
@@ -132,7 +134,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
   const { product, error } = await loadProduct(slug);
 
-  if (!product) return <ProductState error={error} />;
+  if (!product) {
+    // A product detail cannot be rendered without a catalog record. Returning
+    // the framework 404 keeps missing or unavailable slugs out of search indexes
+    // instead of serving a misleading successful page response.
+    notFound();
+  }
 
   const related = await getRelatedPublicCatalogItems(product).catch((reason) => {
     console.error("Related product API request failed:", reason);
@@ -271,7 +278,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               {related.map((item: CatalogItem) => (
                 <article key={item.id} className={styles.relatedCard}>
                   <Link className={styles.relatedImage} href={`/products/${item.slug}`}>
-                    <Image src={item.image} alt={item.imageAlt} fill sizes="(max-width: 680px) 50vw, 33vw" unoptimized={/^https?:\/\//i.test(item.image)} />
+                    <ResilientImage src={item.image} alt={item.imageAlt} fill sizes="(max-width: 680px) 50vw, 33vw" unoptimized={/^https?:\/\//i.test(item.image)} fallback={<span className={styles.relatedImageFallback} role="img" aria-label={`${item.name} image unavailable`}>Image coming soon</span>} />
                   </Link>
                   <div className={styles.relatedContent}>
                     <span className={styles.relatedCategory}>{item.category}</span>

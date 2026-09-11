@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Gem } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +5,7 @@ import type { Product } from "@/src/types/product";
 import type { BackendProductImage, ProductCard as ApiProductCard, ProductPrice as ProductPriceValue } from "@/api/products";
 import { ProductPrice } from "./product-price";
 import { ProductRating } from "./product-rating";
+import { ResilientImage } from "@/components/common/resilient-image";
 import styles from "./product.module.css";
 
 type ProductCardInput = Product | (ApiProductCard & {
@@ -24,12 +24,7 @@ function text(value: unknown) {
 }
 
 function shouldSkipImageOptimization(src: string) {
-  if (!/^https?:\/\//i.test(src)) return false;
-  try {
-    return !["media.divinestonegallery.com", "images.unsplash.com"].includes(new URL(src).hostname);
-  } catch {
-    return true;
-  }
+  return /^https?:\/\//i.test(src);
 }
 
 function normalizePriceValue(value: unknown) {
@@ -104,13 +99,19 @@ export function ProductCard({ product, priority = false, href }: { product: Prod
       <div className={styles.productMedia}>
         <Link href={productHref} aria-label={`View ${name}`}>
           {image ? (
-            <Image
+            <ResilientImage
               src={image.src}
               alt={image.alt}
               fill
               sizes="(max-width: 680px) 72vw, (max-width: 1024px) 38vw, 24vw"
               priority={priority}
               unoptimized={shouldSkipImageOptimization(image.src)}
+              fallback={(
+                <span className={styles.productImagePlaceholder} role="img" aria-label={`${name} image unavailable`}>
+                  <Gem aria-hidden="true" size={28} strokeWidth={1.35} />
+                  <small>Image coming soon</small>
+                </span>
+              )}
             />
           ) : (
             <span className={styles.productImagePlaceholder}>
