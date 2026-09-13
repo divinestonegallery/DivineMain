@@ -331,6 +331,8 @@ function ProductModal({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) return;
+
     const form = new FormData(event.currentTarget);
     const validation = validateProduct(form);
     setError(null);

@@ -22,6 +22,7 @@ import { getHome } from "@/api/products";
 import type { HomeBlock, HomeData, HomeDeityGroup, ProductCard, ReviewCard, TaxonomyItem } from "@/api/products";
 import styles from "./page.module.css";
 
+import { HeroSearchForm } from "@/components/common/hero-search-form";
 import { DynamicCategoryTabs } from "./dynamic-category-tabs";
 import { HomeCarouselRail } from "./home-carousel-rail";
 
@@ -112,6 +113,17 @@ function deityFilterHref(item: TaxonomyItem) {
   return `/shop?deity=${encodeURIComponent(deity)}`;
 }
 
+function groupFilterHref(group: HomeDeityGroup) {
+  const deity = (
+    normalizeText(group.deity_slug) ||
+    normalizeText(group.diety_slug) ||
+    normalizeText(group.deity_name) ||
+    normalizeText(group.diety_name) ||
+    normalizeText(group.products?.[0]?.deity)
+  );
+  return deity ? `/shop?deity=${encodeURIComponent(deity)}` : "/shop";
+}
+
 function groupName(group: HomeDeityGroup) {
   return (
     normalizeText(group.deity_name) ||
@@ -138,9 +150,9 @@ function heroQuickLinks(groups: HomeDeityGroup[], categories: TaxonomyItem[]) {
   const links = [
     ...groups.map((group) => {
       const name = groupName(group);
-      return { label: name, href: `/shop?q=${encodeURIComponent(name)}` };
+      return { label: name, href: groupFilterHref(group) };
     }),
-    ...categories.map((category) => ({ label: category.name, href: taxonomyHref(category) })),
+    ...categories.map((category) => ({ label: category.name, href: categoryFilterHref(category) })),
   ];
 
   const seen = new Set<string>();
@@ -149,7 +161,7 @@ function heroQuickLinks(groups: HomeDeityGroup[], categories: TaxonomyItem[]) {
     if (!link.label || seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).slice(0, 7);
+  }).slice(0, 5);
 }
 
 function MediaImage({
@@ -478,13 +490,7 @@ function HeroSection({ quickLinks }: { quickLinks: Array<{ label: string; href: 
       <span className={styles.heroVeil} aria-hidden="true" />
       <div className={`${styles.heroInner} site-container`}>
         <div className={styles.heroCopy}>
-          <form className={styles.heroSearch} action="/shop" data-hero-search>
-            <Search aria-hidden="true" size={24} strokeWidth={1.6} />
-            <input name="q" type="search" placeholder="Search for Ganesh, marble temple or home decor" aria-label="Search the Divine Stone catalogue" />
-            <button type="submit" aria-label="Search catalogue">
-              <Search aria-hidden="true" size={22} strokeWidth={1.8} />
-            </button>
-          </form>
+          <HeroSearchForm />
           {quickLinks.length ? (
             <div className={styles.heroQuickLinks} aria-label="Popular searches">
               <span>Most Popular Mooti</span>

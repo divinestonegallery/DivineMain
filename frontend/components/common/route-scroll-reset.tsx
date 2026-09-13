@@ -1,13 +1,13 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
 export function RouteScrollReset() {
   const pathname = usePathname();
   const lastPathname = useRef<string | null>(null);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (lastPathname.current === pathname) return;
     lastPathname.current = pathname;
 
@@ -39,7 +39,7 @@ export function RouteScrollReset() {
     };
   }, [pathname]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const previousRestoration = window.history.scrollRestoration;
     window.history.scrollRestoration = "manual";
 

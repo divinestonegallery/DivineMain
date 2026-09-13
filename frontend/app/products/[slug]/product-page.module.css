@@ -375,7 +375,7 @@
 }
 
 .relatedSection {
-  padding-block: clamp(5rem, 9vw, 8rem);
+  padding-block: clamp(5rem, 9vw, 8rem) 0;
   background: var(--surface);
 }
 
@@ -444,8 +444,8 @@
 
 .relatedGrid h3 {
   display: block;
-  min-height: calc(2 * 1.2em);
-  margin: 0.4rem 0 0;
+  min-height: 0;
+  margin: 0.25rem 0 0;
   overflow: hidden;
   font-size: clamp(1.15rem, 2vw, 1.4rem);
   font-weight: 400;
@@ -455,7 +455,7 @@
 }
 
 .relatedMeta {
-  margin: 0.4rem 0 0;
+  margin: 0.2rem 0 0;
   color: var(--ink-muted);
   font-size: 0.75rem;
 }

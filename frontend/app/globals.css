@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  /* Static brand display font stack, initialized the same on server and client. */
+  --font-brand-display: 'Iowan Old Style', Baskerville, 'Times New Roman', serif;
+
   /* Divine Stone Gallery brand colours */
   --background: #f4f0e8;
   --foreground: #211f1b;
