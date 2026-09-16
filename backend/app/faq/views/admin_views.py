@@ -1,4 +1,5 @@
 from rest_framework import status
+from drf_spectacular.utils import extend_schema
 
 from app.faq.services.admin_service import FAQAdminService
 from app.faq.validators import FAQValidator
@@ -8,6 +9,7 @@ from framework.utils import get_response
 
 
 class AdminFAQListView(AdminAPIView):
+    @extend_schema(operation_id='admin_faqs_list')
     def get(self, request):
         error, data = FAQAdminService.list_all_faqs()
         if error:
@@ -25,6 +27,7 @@ class AdminFAQListView(AdminAPIView):
 
 
 class AdminFAQDetailView(AdminAPIView):
+    @extend_schema(operation_id='admin_faq_detail_retrieve')
     def get(self, request, faq_id):
         error, data = FAQAdminService.get_faq_details_by_id(faq_id)
         if error:

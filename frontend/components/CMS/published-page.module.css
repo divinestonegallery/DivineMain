@@ -3,6 +3,7 @@
 .heroCopy, .splitCopy { display: grid; gap: 1rem; align-content: center; }.hero small, .section small, .split small { color: #9c6f2c; font-size: .68rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
 .hero h1 { max-width: 760px; margin: 0; font-size: clamp(3rem, 7vw, 6.7rem); font-weight: 400; line-height: .94; }.hero p, .split p, .heading > p { color: inherit; line-height: 1.75; opacity: .72; }
 .heroImage, .splitImage { position: relative; min-height: clamp(400px, 55vw, 650px); overflow: hidden; border-radius: 48% 48% 1.2rem 1.2rem; background: #d8c6ae; }.heroImage img, .splitImage img { object-fit: cover; }
+.cmsImageFallback { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; color: var(--ink-muted); background: radial-gradient(circle at 50% 26%, rgb(216 189 138 / 0.24), transparent 9rem), var(--surface-muted); font-size: 0.66rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; }
 .actions { display: flex; flex-wrap: wrap; gap: .65rem; }.primary, .secondary { display: inline-flex; align-items: center; gap: .4rem; padding: .8rem 1.1rem; border: 1px solid #2d2924; border-radius: 99px; color: white; background: #2d2924; font-size: .75rem; }.secondary { color: inherit; background: transparent; }.proof { display: flex; align-items: center; gap: .4rem; font-size: .72rem; opacity: .72; }
 
 .videoHero {

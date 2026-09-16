@@ -5,6 +5,18 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
+class PostgresOnlyAlterField(migrations.AlterField):
+    """Preserve the PostgreSQL ArrayField state without SQLite DDL."""
+
+    def database_forwards(self, app_label, schema_editor, from_state, to_state):
+        if schema_editor.connection.vendor == "postgresql":
+            super().database_forwards(app_label, schema_editor, from_state, to_state)
+
+    def database_backwards(self, app_label, schema_editor, from_state, to_state):
+        if schema_editor.connection.vendor == "postgresql":
+            super().database_backwards(app_label, schema_editor, from_state, to_state)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -22,7 +34,7 @@ class Migration(migrations.Migration):
             name='diety',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='products', to='products.diety'),
         ),
-        migrations.AlterField(
+        PostgresOnlyAlterField(
             model_name='product',
             name='keywords',
             field=django.contrib.postgres.fields.ArrayField(base_field=models.CharField(max_length=100), blank=True, default=list, size=None),

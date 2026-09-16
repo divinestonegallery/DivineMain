@@ -247,7 +247,7 @@ function ConnectedAccountHub() {
     }
 
     return <MyProfilePanel onProfileLoaded={setSavedProfile} />;
-  }, [activeSection, effectiveUser, isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn]);
 
   async function handleLogout() {
     setLoggingOut(true);

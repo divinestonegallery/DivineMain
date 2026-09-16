@@ -1,4 +1,5 @@
 from rest_framework import status
+from drf_spectacular.utils import extend_schema
 
 from app.accounts.services.staff_service import StaffService
 from app.accounts.validators import StaffInviteValidator, StaffListValidator, StaffUpdateValidator
@@ -33,3 +34,37 @@ class StaffView(OwnerAPIView):
             code = 404 if error == 'Staff member not found.' else 400
             return get_response(ErrorResponse(message=error, status_code=code))
         return get_response(SuccessResponse(data=data, message='Staff access updated'))
+
+
+class StaffListView(StaffView):
+    """Collection endpoint with stable OpenAPI operation IDs."""
+
+    @extend_schema(exclude=True)
+    def patch(self, request, customer_id=None):
+        return self.http_method_not_allowed(request)
+
+    put = patch
+
+    @extend_schema(operation_id='admin_staff_list')
+    def get(self, request, customer_id=None):
+        return super().get(request, customer_id=customer_id)
+
+    @extend_schema(operation_id='admin_staff_create')
+    def post(self, request, customer_id=None):
+        return super().post(request, customer_id=customer_id)
+
+
+class StaffDetailView(StaffView):
+    """Detail endpoint with stable OpenAPI operation IDs."""
+
+    @extend_schema(exclude=True)
+    def post(self, request, customer_id=None):
+        return self.http_method_not_allowed(request)
+
+    @extend_schema(operation_id='admin_staff_detail_retrieve')
+    def get(self, request, customer_id=None):
+        return super().get(request, customer_id=customer_id)
+
+    @extend_schema(operation_id='admin_staff_update')
+    def patch(self, request, customer_id):
+        return super().patch(request, customer_id=customer_id)

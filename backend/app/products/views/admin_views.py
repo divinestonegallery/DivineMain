@@ -1,4 +1,5 @@
 from rest_framework import status
+from drf_spectacular.utils import extend_schema
 
 from app.products.services.admin_service import (
     CategoryAdminService,
@@ -26,6 +27,7 @@ from framework.utils import get_response
 
 
 class AdminProductCreateView(AdminAPIView):
+    @extend_schema(operation_id='admin_products_list')
     def get(self, request):
         validator = ProductListValidator(data=request.query_params)
         if not validator.is_valid():
@@ -46,6 +48,7 @@ class AdminProductCreateView(AdminAPIView):
 
 
 class AdminProductDetailView(AdminAPIView):
+    @extend_schema(operation_id='admin_product_detail_retrieve')
     def get(self, request, product_id):
         error, data = ProductAdminService.get_product(product_id)
         if error:
@@ -153,6 +156,7 @@ class AdminCategoryImageUploadUrlView(AdminAPIView):
         return get_response(SuccessResponse(message='Category image upload URL generated', data=data))
 
 class AdminCategoryListCreateView(AdminAPIView):
+    @extend_schema(operation_id='admin_categories_list')
     def get(self, request):
         error, data = CategoryAdminService.get_all_categories()
         if error:
@@ -170,6 +174,7 @@ class AdminCategoryListCreateView(AdminAPIView):
 
 
 class AdminCategoryDetailView(AdminAPIView):
+    @extend_schema(operation_id='admin_category_detail_retrieve')
     def get(self, request, category_id):
         error, data = CategoryAdminService.get_category_by_id(category_id)
         if error:
@@ -195,6 +200,7 @@ class AdminCategoryDetailView(AdminAPIView):
 
 
 class AdminMaterialListCreateView(AdminAPIView):
+    @extend_schema(operation_id='admin_materials_list')
     def get(self, request):
         error, data = MaterialAdminService.get_all_materials()
         if error:
@@ -212,6 +218,7 @@ class AdminMaterialListCreateView(AdminAPIView):
 
 
 class AdminMaterialDetailView(AdminAPIView):
+    @extend_schema(operation_id='admin_material_detail_retrieve')
     def get(self, request, material_id):
         error, data = MaterialAdminService.get_material_by_id(material_id)
         if error:
@@ -237,6 +244,7 @@ class AdminMaterialDetailView(AdminAPIView):
 
 
 class AdminDietyListCreateView(AdminAPIView):
+    @extend_schema(operation_id='admin_deities_list')
     def get(self, request):
         error, data = DietyAdminService.get_all_deities()
         if error:
@@ -254,6 +262,7 @@ class AdminDietyListCreateView(AdminAPIView):
 
 
 class AdminDietyDetailView(AdminAPIView):
+    @extend_schema(operation_id='admin_deity_detail_retrieve')
     def get(self, request, diety_id):
         error, data = DietyAdminService.get_deity_by_id(diety_id)
         if error:

@@ -6,7 +6,7 @@ from rest_framework.exceptions import AuthenticationFailed, ValidationError
 
 logger = logging.getLogger(__name__)
 
-ACCESS_TOKEN_LIFETIME_SECONDS = getattr(settings, 'AUTH_ACCESS_TOKEN_LIFETIME', 3600)  # 1 hour
+ACCESS_TOKEN_LIFETIME_SECONDS = getattr(settings, 'AUTH_ACCESS_TOKEN_LIFETIME', 86400)  # 1 day
 REFRESH_TOKEN_LIFETIME_SECONDS = getattr(settings, 'AUTH_REFRESH_TOKEN_LIFETIME', 30 * 86400)  # 30 days
 RESET_TOKEN_LIFETIME_SECONDS = getattr(settings, 'AUTH_RESET_TOKEN_LIFETIME', 900)  # 15 minutes
 TOKEN_ISSUER = getattr(settings, 'AUTH_TOKEN_ISSUER', 'divinestonegallery-backend')

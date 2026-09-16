@@ -27,6 +27,7 @@
 .item { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 1rem; align-items: center; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md); }
 .itemImage { position: relative; aspect-ratio: 4 / 5; overflow: hidden; border-radius: var(--radius-sm); background: var(--surface-muted); }
 .itemImage img { object-fit: contain; }
+.itemImageFallback { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-muted); background: var(--surface-muted); font-size: 0.6rem; text-align: center; }
 .item > div { min-width: 0; }
 .item small, .item p { color: var(--ink-muted); font-size: 0.65rem; }
 .item h3 { display: block; min-height: calc(2 * 1.15em); margin: 0.3rem 0 0; overflow: hidden; font-size: 1.45rem; font-weight: 400; line-height: 1.15; white-space: nowrap; text-overflow: ellipsis; }

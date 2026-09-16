@@ -1,12 +1,12 @@
 // @ts-nocheck
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { ArrowRight, CheckCircle2, LockKeyhole, PackageCheck, ShieldCheck } from "lucide-react";
 import { sendContactMessage } from "@/api/contact";
 import { buttonClassName } from "@/components/ui/button";
+import { ResilientImage } from "@/components/common/resilient-image";
 import type { CatalogItem } from "@/components/Catalog/catalog-data";
 import { useEnquiryBag } from "@/components/Customer/device-collections";
 import styles from "./checkout.module.css";
@@ -25,7 +25,7 @@ function SelectedItems({ items }: { items: CatalogItem[] }) {
       {items.map((item) => (
         <article className={styles.item} key={item.id}>
           <Link className={styles.itemImage} href={`/products/${item.slug}`}>
-            <Image src={item.image} alt={item.imageAlt} fill sizes="92px" unoptimized={isRemoteImage(item.image)} />
+            <ResilientImage src={item.image} alt={item.imageAlt} fill sizes="92px" unoptimized={isRemoteImage(item.image)} fallback={<span className={styles.itemImageFallback} role="img" aria-label={`${item.name} image unavailable`}>Image coming soon</span>} />
           </Link>
           <div>
             <small>{item.deity} - {item.material}</small>

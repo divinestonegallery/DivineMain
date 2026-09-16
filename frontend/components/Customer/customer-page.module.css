@@ -238,6 +238,7 @@
 .bagThumb img {
   object-fit: contain;
 }
+.bagImageFallback { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-muted); background: var(--surface-muted); font-size: 0.6rem; text-align: center; }
 
 .bagItem h2 {
   display: block;
