@@ -29,8 +29,6 @@ export async function generateMetadata(): Promise<Metadata> {
   const page = await getPublishedPage("artisans");
   return { title: page?.seoTitle ? { absolute: page.seoTitle } : "Artisans & Marble Murti Craftsmanship", description: page?.seoDescription ?? "Explore the hand-carved marble murti craft practiced by Divine Stone Gallery's fourth-generation master moortikars in Alwar, Rajasthan.", alternates: { canonical: "/artisans" } };
 }
-export const dynamic = "force-dynamic";
-
 const stages = [
   { icon: PencilRuler, title: "Understanding the sacred form", copy: "The deity, intended placement, scale and desired character establish the direction of the work." },
   { icon: Ruler, title: "Setting the proportions", copy: "The overall balance, posture and relationship between elements are considered before detail takes over." },

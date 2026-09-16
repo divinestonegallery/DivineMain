@@ -1,11 +1,10 @@
 // @ts-nocheck
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
-import { ResetPasswordForm } from "@/components/Auth/reset-password-form";
+import { ResetPasswordQueryForm } from "@/components/Auth/reset-password-query-form";
 import styles from "@/components/Auth/auth.module.css";
-
-type ResetSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export const metadata: Metadata = {
   title: "Reset Password",
@@ -14,14 +13,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-function firstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0]?.trim() ?? "" : value?.trim() ?? "";
-}
-
-export default async function ResetPasswordPage({ searchParams }: { searchParams: ResetSearchParams }) {
-  const params = await searchParams;
-  const token = firstParam(params.token) || firstParam(params.reset_token) || firstParam(params.t);
-
+export default function ResetPasswordPage() {
   return (
     <>
       <SiteHeader />
@@ -29,7 +21,9 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
         <section className={styles.authSection}>
           <div className={`${styles.resetLayout} site-container`}>
             <div className={styles.authPanel}>
-              <ResetPasswordForm token={token} />
+              <Suspense fallback={null}>
+                <ResetPasswordQueryForm />
+              </Suspense>
             </div>
           </div>
         </section>

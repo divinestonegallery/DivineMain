@@ -5,7 +5,6 @@ import { OrderHistory } from "@/components/Checkout/order-history";
 import { CustomerPageShell } from "@/components/Customer/customer-page-shell";
 import styles from "@/components/Customer/customer-page.module.css";
 
-export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Your Orders",
   description: "Review Divine Stone Gallery order and payment progress.",
