@@ -47,47 +47,30 @@ export function VisionSection() {
         </ScrollReveal>
 
         <div className={styles.visionTreeContainer}>
-          {/* Animated SVG Lines */}
-          <svg className={styles.visionLines} viewBox="-400 -50 800 300" preserveAspectRatio="xMidYMid meet">
-            <defs>
-              <linearGradient id="lineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="var(--gold-soft)" stopOpacity="1" />
-                <stop offset="100%" stopColor="var(--gold-deep)" stopOpacity="0.2" />
-              </linearGradient>
-            </defs>
-            {visionNodes.map((node, i) => (
-              <path
-                key={node.id}
-                d={`M 0 0 C 0 80, ${node.x * 0.8} 60, ${node.x} ${node.y}`}
-                fill="none"
-                stroke="url(#lineGrad)"
-                strokeWidth="2"
-                className={isDrawn ? styles.drawLine : styles.hiddenLine}
-                style={{ transitionDelay: `${i * 200}ms` }}
-              />
-            ))}
-          </svg>
-
           {/* Central Root Node */}
-          <div className={`${styles.visionNode} ${styles.visionRoot} ${isDrawn ? styles.nodeVisible : ""}`}>
-            <h3 className="font-display">Sacred Foundation</h3>
-            <p>Rooted in four generations of craftsmanship</p>
+          <div className={styles.treeRoot}>
+            <div className={`${styles.visionNode} ${styles.visionRoot} ${isDrawn ? styles.nodeVisible : ""}`}>
+              <h3 className="font-display">Sacred Foundation</h3>
+              <p>Rooted in four generations of craftsmanship</p>
+            </div>
           </div>
 
           {/* Child Nodes */}
-          {visionNodes.map((node, i) => (
-            <div
-              key={node.id}
-              className={`${styles.visionNode} ${isDrawn ? styles.nodeVisible : ""}`}
-              style={{
-                transform: `translate(${node.x}px, ${node.y}px)`,
-                transitionDelay: `${400 + i * 200}ms`,
-              }}
-            >
-              <h4 className="font-display">{node.title}</h4>
-              <p>{node.desc}</p>
-            </div>
-          ))}
+          <div className={styles.treeBranches}>
+            {visionNodes.map((node, i) => (
+              <div key={node.id} className={styles.treeBranch}>
+                <div
+                  className={`${styles.visionNode} ${isDrawn ? styles.nodeVisible : ""}`}
+                  style={{
+                    transitionDelay: `${400 + i * 200}ms`,
+                  }}
+                >
+                  <h4 className="font-display">{node.title}</h4>
+                  <p>{node.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

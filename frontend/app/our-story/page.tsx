@@ -1,6 +1,5 @@
 // @ts-nocheck
 import type { Metadata } from "next";
-import { Breadcrumbs } from "@/components/common/breadcrumbs";
 import { CookieConsent } from "@/components/common/cookie-consent";
 import { SiteFooter } from "@/components/common/site-footer";
 import { SiteHeader } from "@/components/common/site-header";
@@ -33,10 +32,6 @@ function StaticOurStoryPage() {
     <ToastProvider>
       <SiteHeader />
       <main id="main-content" tabIndex={-1}>
-        <div className="site-container" style={{ paddingTop: 'clamp(2rem, 5vw, 4rem)' }}>
-          <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Our Story" }]} />
-        </div>
-
         <AboutHero />
         <OurStorySection />
         <VisionSection />
