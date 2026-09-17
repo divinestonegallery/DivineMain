@@ -26,8 +26,6 @@ export async function generateMetadata(): Promise<Metadata> {
   const page = await getPublishedPage("our-story");
   return { title: page?.seoTitle ? { absolute: page.seoTitle } : "Our Story | Four Generations of Marble Murti Craft", description: page?.seoDescription ?? "Discover the family heritage behind Divine Stone Gallery, continuing the tradition of Agnihotri Moorti Art established in Alwar, Rajasthan in 1960.", alternates: { canonical: "/our-story" } };
 }
-export const dynamic = "force-dynamic";
-
 const values = [
   {
     icon: HandHeart,

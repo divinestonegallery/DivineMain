@@ -3,7 +3,11 @@ import { notFound } from "next/navigation";
 import { getPublishedPage } from "@/api/cms/public-repository";
 import { PublishedPageView } from "@/components/CMS/published-page";
 
-export const dynamic = "force-dynamic";
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params; const page = await getPublishedPage(slug);
