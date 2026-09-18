@@ -55,7 +55,7 @@ export function AuthModal() {
         setIsOpen(true);
         setMode("login");
         setPendingPath(detail?.pendingPath ?? null);
-        setPrompt(detail?.reason === "custom-murti" ? "Please login or create an account to use Custom Mooti." : "");
+        setPrompt(detail?.reason === "custom-murti" ? "Please login or create an account to use Custom Moorti." : "");
         setError("");
         setSuccess("");
         setShowPassword(false);
