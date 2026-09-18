@@ -126,11 +126,13 @@ class ProductRepository:
                 Q(diety__isnull=True) | Q(diety__is_active=True)
             )
             queryset = ProductRepository._apply_filters(queryset, filters, include_status=False)
-            queryset = ProductRepository._apply_sort(queryset, sort).annotate(
+            # Annotate FIRST so price sort can reference _variant_price_before_gst
+            queryset = queryset.annotate(
                 _cover_photo_url=Subquery(cover_photo),
                 _variant_price_before_gst=Subquery(active_variant_price),
                 _total_items=Window(expression=Count('id')),
             )
+            queryset = ProductRepository._apply_sort(queryset, sort)
 
             rows = list(queryset[offset:offset + limit])
             total_items = rows[0]._total_items if rows else queryset.count()
@@ -178,6 +180,16 @@ class ProductRepository:
 
     @staticmethod
     def _apply_sort(queryset, sort):
+        if sort == 'price_asc':
+            # Use annotated subquery price if available (customer listing), else fall back to selling_price
+            annotations = [f.name for f in queryset.query.annotation_select.values()]
+            if '_variant_price_before_gst' in str(queryset.query.annotations):
+                return queryset.order_by(F('_variant_price_before_gst').asc(nulls_last=True), 'display_order')
+            return queryset.order_by(F('selling_price').asc(nulls_last=True), 'display_order')
+        if sort == 'price_desc':
+            if '_variant_price_before_gst' in str(queryset.query.annotations):
+                return queryset.order_by(F('_variant_price_before_gst').desc(nulls_last=True), 'display_order')
+            return queryset.order_by(F('selling_price').desc(nulls_last=True), 'display_order')
         orders = {
             'newest': ('-created_at',),
             'oldest': ('created_at',),
