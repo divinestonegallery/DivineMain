@@ -39,6 +39,7 @@ class ProductRequestValidator(serializers.Serializer):
         choices=enum_choices(SalesMode), required=False,
     )
     display_order = serializers.IntegerField(min_value=0, required=False)
+    home_page_display_order = serializers.IntegerField(min_value=0, required=False)
     height = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
     min_weight = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
     max_weight = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
@@ -108,7 +109,6 @@ class ProductImageReorderValidator(serializers.Serializer):
 class CategoryRequestValidator(serializers.Serializer):
     name = serializers.CharField(max_length=255, required=False)
     description = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    image_url = serializers.URLField(max_length=1024, required=False, allow_blank=True, allow_null=True)
     is_active = serializers.BooleanField(required=False)
 
 
@@ -119,9 +119,9 @@ class MaterialRequestValidator(serializers.Serializer):
 
 class DietyRequestValidator(serializers.Serializer):
     name = serializers.CharField(max_length=255, required=False)
-    image_url = serializers.URLField(max_length=1024, required=False, allow_blank=True, allow_null=True)
     categories = serializers.ListField(child=serializers.IntegerField(min_value=1), required=False, allow_empty=True)
     is_active = serializers.BooleanField(required=False)
+    display_order = serializers.IntegerField(min_value=0, required=False)
 
     def validate_categories(self, value):
         if len(value) != len(set(value)):
@@ -153,6 +153,15 @@ class CategoryImageUploadUrlValidator(serializers.Serializer):
         return value
 
 
+class CategoryImageFinalizeValidator(serializers.Serializer):
+    """Validates a request to finalize (attach) a category image upload."""
+    object_key = serializers.RegexField(
+        regex=r'^category-images/[a-f0-9]{32}\.(jpg|jpeg|png|webp)$',
+        max_length=500,
+    )
+    alt_text = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+
 class DeityImageUploadUrlValidator(serializers.Serializer):
     """Validates a request to generate a presigned upload URL for a deity image."""
     content_type = serializers.ChoiceField(choices=('image/jpeg', 'image/png', 'image/webp'))
@@ -163,3 +172,12 @@ class DeityImageUploadUrlValidator(serializers.Serializer):
         if value and ('/' in value or '\\' in value or value.startswith('.')):
             raise serializers.ValidationError('Use a plain filename without path characters.')
         return value
+
+
+class DietyImageFinalizeValidator(serializers.Serializer):
+    """Validates a request to finalize (attach) a deity image upload."""
+    object_key = serializers.RegexField(
+        regex=r'^deity-images/[a-f0-9]{32}\.(jpg|jpeg|png|webp)$',
+        max_length=500,
+    )
+    alt_text = serializers.CharField(max_length=255, required=False, allow_blank=True)

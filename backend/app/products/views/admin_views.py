@@ -10,8 +10,10 @@ from app.products.services.admin_service import (
 )
 from app.products.validators import (
     CategoryImageUploadUrlValidator,
+    CategoryImageFinalizeValidator,
     CategoryRequestValidator,
     DeityImageUploadUrlValidator,
+    DietyImageFinalizeValidator,
     DietyRequestValidator,
     MaterialRequestValidator,
     ProductImageFinalizeValidator,
@@ -142,7 +144,7 @@ class AdminCategoryImageUploadUrlView(AdminAPIView):
     """Generate a presigned PUT URL for uploading a category image to R2.
 
     POST body: { content_type, file_size, filename? }
-    After uploading, use the returned public_url as image_url when creating/updating the category.
+    After uploading, finalise with POST /products/categories/<id>/finalize-image.
     """
     throttle_scope = 'uploads'
 
@@ -154,6 +156,17 @@ class AdminCategoryImageUploadUrlView(AdminAPIView):
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(message='Category image upload URL generated', data=data))
+
+
+class AdminCategoryImageFinalizeView(AdminAPIView):
+    def post(self, request, category_id):
+        validator = CategoryImageFinalizeValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid category image', err=validator.errors, status_code=400))
+        error, data = CategoryAdminService.finalize_image(category_id, validator.validated_data, request.user.id)
+        if error:
+            return get_response(ErrorResponse(message=error, status_code=400))
+        return get_response(SuccessResponse(message='Category image attached successfully', data=data, status_code=status.HTTP_201_CREATED))
 
 class AdminCategoryListCreateView(AdminAPIView):
     @extend_schema(operation_id='admin_categories_list')
@@ -291,7 +304,7 @@ class AdminDeityImageUploadUrlView(AdminAPIView):
     """Generate a presigned PUT URL for uploading a deity image to R2.
 
     POST body: { content_type, file_size, filename? }
-    After uploading, use the returned public_url as image_url when creating/updating the deity.
+    After uploading, finalise with POST /products/deities/<id>/finalize-image.
     """
     throttle_scope = 'uploads'
 
@@ -303,3 +316,14 @@ class AdminDeityImageUploadUrlView(AdminAPIView):
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(message='Deity image upload URL generated', data=data))
+
+
+class AdminDietyImageFinalizeView(AdminAPIView):
+    def post(self, request, diety_id):
+        validator = DietyImageFinalizeValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid deity image', err=validator.errors, status_code=400))
+        error, data = DietyAdminService.finalize_image(diety_id, validator.validated_data, request.user.id)
+        if error:
+            return get_response(ErrorResponse(message=error, status_code=400))
+        return get_response(SuccessResponse(message='Deity image attached successfully', data=data, status_code=status.HTTP_201_CREATED))

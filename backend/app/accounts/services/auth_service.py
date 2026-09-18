@@ -45,6 +45,30 @@ class AuthService:
         if not clerk_user_id:
             return 'Failed to obtain Clerk user ID.', None
 
+        # Check if email verification is required by Clerk
+        email_addresses = clerk_user.get('email_addresses', [])
+        email_id = None
+        is_verified = False
+        for ea in email_addresses:
+            if ea.get('email_address', '').lower() == email.lower():
+                email_id = ea.get('id')
+                if ea.get('verification', {}).get('status') == 'verified':
+                    is_verified = True
+                break
+        if not email_id and email_addresses:
+            email_id = email_addresses[0].get('id')
+            if email_addresses[0].get('verification', {}).get('status') == 'verified':
+                is_verified = True
+
+        if email_id and not is_verified:
+            prep_err, prep_data = ClerkClient.prepare_email_verification(email_id)
+            if not prep_err:
+                return None, {
+                    'requires_verification': True,
+                    'email': email,
+                    'message': 'Please verify your email address with the OTP sent.',
+                }
+
         # 2. Sync local Customer record
         sync_result = CustomerRepository.sync_customer(
             clerk_id=clerk_user_id,
@@ -59,6 +83,57 @@ class AuthService:
 
         return None, {
             'user': customer_dict,
+            **tokens,
+        }
+
+    @classmethod
+    def verify_signup(cls, data):
+        email = data['email']
+        code = data['code']
+        name = data.get('name', '')
+        phone = data.get('phone', '')
+
+        # 1. Lookup user in Clerk
+        error, clerk_user = ClerkClient.get_user_by_email(email)
+        if error or not clerk_user:
+            return 'Invalid email or OTP.', None
+
+        clerk_user_id = clerk_user.get('id')
+        email_addresses = clerk_user.get('email_addresses', [])
+        email_id = None
+        for ea in email_addresses:
+            if ea.get('email_address', '').lower() == email.lower():
+                email_id = ea.get('id')
+                break
+        if not email_id and email_addresses:
+            email_id = email_addresses[0].get('id')
+
+        if not email_id:
+            return 'Email address not found.', None
+
+        # 2. Verify OTP code with Clerk (verification_id is optional)
+        ver_err, is_verified = ClerkClient.attempt_email_verification(email_id, code)
+        if ver_err or not is_verified:
+            return ver_err or 'Invalid or expired OTP.', None
+
+        # 3. Create/Sync local customer
+        sync_result = CustomerRepository.sync_customer(
+            clerk_id=clerk_user_id,
+            email=email,
+            name=name if name else None,
+            phone=phone if phone else None,
+        )
+        customer_dict = sync_result.get('customer')
+
+        if not customer_dict.get('is_active', True):
+            return 'User account is inactive.', None
+
+        # 4. Generate tokens
+        tokens = TokenService.generate_token_pair(customer_dict)
+
+        return None, {
+            'user': customer_dict,
+            'message': 'Account verified and created successfully.',
             **tokens,
         }
 

@@ -8,6 +8,7 @@ from app.accounts.validators import (
     ResetPasswordValidator,
     SignupValidator,
     UpdateProfileValidator,
+    VerifySignupValidator,
 )
 from framework.core.base_apiviews import AuthenticatedAPIView, OpenAPIView
 from framework.core.responses import ErrorResponse, SuccessResponse
@@ -24,7 +25,20 @@ class SignupView(OpenAPIView):
         error, data = AuthService.signup(validator.validated_data)
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
-        return get_response(SuccessResponse(data=data, message='User registered successfully', status_code=status.HTTP_201_CREATED))
+        return get_response(SuccessResponse(data=data, message=data.get('message', 'User registered successfully'), status_code=status.HTTP_201_CREATED))
+
+
+class VerifySignupView(OpenAPIView):
+    throttle_scope = 'auth'
+
+    def post(self, request):
+        validator = VerifySignupValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Validation failed', err=validator.errors, status_code=400))
+        error, data = AuthService.verify_signup(validator.validated_data)
+        if error:
+            return get_response(ErrorResponse(message=error, status_code=400))
+        return get_response(SuccessResponse(data=data, message=data.get('message', 'Account verified successfully'), status_code=status.HTTP_201_CREATED))
 
 
 class LoginView(OpenAPIView):

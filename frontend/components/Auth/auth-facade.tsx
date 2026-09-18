@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import React, { createContext, FormEvent, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { ACCESS_TOKEN_KEY, clearAuthSession, getAuthEmailError, getCurrentUser, login, logoutCurrentSession, onAuthSessionChange, register, requestPasswordReset } from "@/api/auth";
+import { ACCESS_TOKEN_KEY, clearAuthSession, getAuthEmailError, getCurrentUser, login, logoutCurrentSession, onAuthSessionChange, register, requestPasswordReset, verifySignup as verifySignupApi } from "@/api/auth";
 import { markLoginAfterLogout } from "@/components/Auth/auth-redirect";
 import styles from "./auth.module.css";
 
@@ -14,6 +14,7 @@ const AuthContext = createContext({
   refresh: async () => {},
   signIn: async (_credentials: any) => null,
   signUp: async (_credentials: any) => null,
+  verifySignup: async (_credentials: any) => null,
   signOut: async () => {},
 });
 
@@ -26,6 +27,7 @@ export function useAuth() {
     getToken: async () => (typeof window === "undefined" ? null : window.localStorage.getItem(ACCESS_TOKEN_KEY)),
     signIn: context.signIn,
     signUp: context.signUp,
+    verifySignup: context.verifySignup,
     signOut: context.signOut,
     refresh: context.refresh,
   };
@@ -109,6 +111,16 @@ export function ClerkProvider({ children, routerPush, afterSignOutUrl = "/" }: {
 
   const signUp = useCallback(async (credentials: any) => {
     const data = await register(credentials);
+    // If it requires verification, don't set user or refresh yet
+    if (data?.requires_verification) {
+      return data;
+    }
+    if (!setUserFromAuthResponse(data)) await refresh();
+    return data;
+  }, [refresh, setUserFromAuthResponse]);
+
+  const verifySignup = useCallback(async (credentials: any) => {
+    const data = await verifySignupApi(credentials);
     if (!setUserFromAuthResponse(data)) await refresh();
     return data;
   }, [refresh, setUserFromAuthResponse]);
@@ -133,7 +145,7 @@ export function ClerkProvider({ children, routerPush, afterSignOutUrl = "/" }: {
     return onAuthSessionChange(() => void refresh());
   }, [refresh]);
 
-  const value = useMemo(() => ({ isLoaded, isSignedIn: Boolean(user), user, refresh, signIn, signUp, signOut }), [isLoaded, refresh, signIn, signOut, signUp, user]);
+  const value = useMemo(() => ({ isLoaded, isSignedIn: Boolean(user), user, refresh, signIn, signUp, verifySignup, signOut }), [isLoaded, refresh, signIn, signOut, signUp, verifySignup, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -233,9 +245,10 @@ export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account
 }
 
 export function SignUp({ signInUrl = "/", fallbackRedirectUrl = "/account" }: any) {
-  const { signUp } = useContext(AuthContext);
+  const { signUp, refresh, verifySignup } = useContext(AuthContext);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -244,12 +257,16 @@ export function SignUp({ signInUrl = "/", fallbackRedirectUrl = "/account" }: an
     const form = new FormData(event.currentTarget);
 
     try {
-      await signUp({
+      const result = await signUp({
         name: form.get("name"),
         email: form.get("email"),
         phone: form.get("phone"),
         password: form.get("password"),
       });
+      if (result?.requires_verification) {
+        setVerifyEmail(String(form.get("email") || ""));
+        return;
+      }
       await refresh();
       window.location.href = authRedirect(fallbackRedirectUrl);
     } catch (reason) {
@@ -257,6 +274,39 @@ export function SignUp({ signInUrl = "/", fallbackRedirectUrl = "/account" }: an
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function submitVerify(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    const form = new FormData(event.currentTarget);
+
+    try {
+      await verifySignup({ email: verifyEmail, code: form.get("code") });
+      await refresh();
+      window.location.href = authRedirect(fallbackRedirectUrl);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Verification failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (verifyEmail) {
+    return (
+      <form className={styles.backendAuthForm} onSubmit={submitVerify}>
+        <h3 className="font-display">Verify Account</h3>
+        <p className={styles.authHelpText}>Enter the 6-digit code sent to {verifyEmail}.</p>
+        <label>
+          <span>OTP Code</span>
+          <input name="code" type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" required disabled={submitting} />
+        </label>
+        {error ? <p className={styles.authError}>{error}</p> : null}
+        <button type="submit" disabled={submitting}>{submitting ? "Verifying..." : "Verify Account"}</button>
+        <p className={styles.authSwitch}><button className={styles.inlineAuthAction} type="button" disabled={submitting} onClick={() => { setVerifyEmail(""); setError(""); }}>Back</button></p>
+      </form>
+    );
   }
 
   return (
