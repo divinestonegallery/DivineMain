@@ -9,13 +9,14 @@ import { useAuth } from "@/components/Auth/auth-facade";
 import { consumeLoginAfterLogout } from "@/components/Auth/auth-redirect";
 import styles from "./auth.module.css";
 
-type AuthModalMode = "login" | "signup" | "forgot" | "reset";
+type AuthModalMode = "login" | "signup" | "forgot" | "reset" | "verify_signup";
 
 const modalCopy: Record<AuthModalMode, { title: string; subtitle: string }> = {
   login: { title: "Welcome Back", subtitle: "Sign in to continue" },
   signup: { title: "Create Account", subtitle: "Join us and start shopping" },
   forgot: { title: "Forgot Password", subtitle: "Enter your registered email address and we'll help you reset your password." },
   reset: { title: "Verify OTP", subtitle: "We've sent a OTP to your email." },
+  verify_signup: { title: "Verify Account", subtitle: "We've sent an OTP to your email." },
 };
 
 export function AuthModal() {
@@ -26,11 +27,13 @@ export function AuthModal() {
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [signupName, setSignupName] = useState("");
+  const [signupPhone, setSignupPhone] = useState("");
   const [verificationId, setVerificationId] = useState("");
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
 
-  const { isSignedIn, refresh, signIn, signUp } = useAuth();
+  const { isSignedIn, refresh, signIn, signUp, verifySignup } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const modalRef = useRef<HTMLDivElement>(null);
@@ -68,6 +71,8 @@ export function AuthModal() {
     setPendingPath(null);
     setPrompt("");
     setResetEmail("");
+    setSignupName("");
+    setSignupPhone("");
     setVerificationId("");
     setShowPassword(false);
   }
@@ -137,11 +142,20 @@ export function AuthModal() {
     }
 
     try {
-      await signUp({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result: any = await signUp({
         name: form.get("name"),
         email: form.get("email"),
         password: password,
       });
+      if (result?.requires_verification) {
+        setResetEmail(String(form.get("email")));
+        setSignupName(String(form.get("name") || ""));
+        setSignupPhone(String(form.get("phone") || ""));
+        setMode("verify_signup");
+        setSuccess(result.message || "An OTP has been sent to your email.");
+        return;
+      }
       await refresh();
       const nextPath = pendingPath;
       closeModal();
@@ -241,6 +255,33 @@ export function AuthModal() {
       setVerificationId("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to reset your password. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifySignup(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    const form = new FormData(e.currentTarget);
+    const code = String(form.get("code") || "").trim();
+
+    if (!/^\d{6}$/.test(code)) {
+      setError("Please enter the 6-digit OTP from your email.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await verifySignup({ email: resetEmail, code, name: signupName, phone: signupPhone });
+      await refresh();
+      const nextPath = pendingPath;
+      closeModal();
+      if (nextPath) router.push(nextPath);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to verify your account. Please check the OTP and try again.");
     } finally {
       setLoading(false);
     }
@@ -397,6 +438,34 @@ export function AuthModal() {
 
                   <div className={styles.modalFooter}>
                     <p>Remembered your password? <button type="button" disabled={loading} onClick={() => switchMode("login")}>Back to Login</button></p>
+                  </div>
+                </form>
+              ) : mode === "verify_signup" ? (
+                <form className={styles.modalForm} onSubmit={handleVerifySignup}>
+                  <p className={styles.authHelpText}>Enter the 6-digit code sent to {resetEmail} to verify your account.</p>
+                  <label>
+                    <span>OTP</span>
+                    <input
+                      name="code"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
+                      autoComplete="one-time-code"
+                      required
+                      disabled={loading}
+                    />
+                  </label>
+
+                  {error && <div className={styles.modalError}>{error}</div>}
+                  {success && <div className={styles.modalSuccess}>{success}</div>}
+
+                  <button type="submit" className={styles.modalSubmit} disabled={loading}>
+                    {loading ? "Verifying..." : "VERIFY ACCOUNT"}
+                  </button>
+
+                  <div className={styles.modalFooter}>
+                    <p><button type="button" disabled={loading} onClick={() => switchMode("signup")}>Back to Sign Up</button></p>
                   </div>
                 </form>
               ) : (

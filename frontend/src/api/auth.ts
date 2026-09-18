@@ -93,13 +93,34 @@ export async function login(credentials: any) {
 
 export async function register(userData: any) {
   try {
-    const data = await fetchApi<any>("/auth/signup", {
+    const payload = await fetchApi<any>("/auth/signup", {
       method: "POST",
       body: JSON.stringify({ ...userData, email: normalizeAuthEmail(userData?.email) }),
     });
-    return persistAuthSession(data);
+    const data = payload?.data ?? payload;
+    if (data?.requires_verification) {
+      return data;
+    }
+    return persistAuthSession(payload);
   } catch (error: any) {
     throw new Error(error.message || "Failed to register");
+  }
+}
+
+export async function verifySignup({ email, code, name, phone }: { email: string; code: string; name?: string; phone?: string }) {
+  try {
+    const payload = await fetchApi<any>("/auth/verify-signup", {
+      method: "POST",
+      body: JSON.stringify({
+        email: normalizeAuthEmail(email),
+        code: String(code || "").trim(),
+        ...(name ? { name } : {}),
+        ...(phone ? { phone } : {}),
+      }),
+    });
+    return persistAuthSession(payload);
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to verify account");
   }
 }
 

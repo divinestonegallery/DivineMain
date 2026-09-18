@@ -10,43 +10,115 @@ from django.db.models.functions import Lower
 from app.common.models import BaseModel
 from app.products.enums import Availability, ProductStatus, SalesMode
 from framework.utils import enum_choices
+
+
 def create_random_uid(size=8, chars=string.digits + string.ascii_uppercase):
     return ''.join(secrets.choice(chars) for _ in range(size))
+
 
 class Category(BaseModel):
     name = models.CharField(max_length=255)
     slug = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=True)
-    image_url = models.URLField(max_length=1024, blank=True, null=True)
     is_active = models.BooleanField(default=True)
+
     class Meta:
         constraints = [models.UniqueConstraint(Lower('name'), name='unique_category_name_ci')]
+
     def __str__(self):
         return self.name
+
 
 class Material(BaseModel):
     name = models.CharField(max_length=255)
     slug = models.CharField(max_length=255, unique=True)
     is_active = models.BooleanField(default=True)
+
     class Meta:
         constraints = [models.UniqueConstraint(Lower('name'), name='unique_material_name_ci')]
-    
+
     def __str__(self):
         return self.name
+
 
 class Diety(BaseModel):
     name = models.CharField(max_length=255)
     slug = models.CharField(max_length=255, unique=True)
-    image_url = models.URLField(max_length=1024, blank=True, null=True)
     categories = models.ManyToManyField(Category, related_name='dieties', blank=True)
     is_active = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(default=999, db_index=True)
+
     class Meta:
         verbose_name = 'Deity'
         verbose_name_plural = 'Deities'
         constraints = [models.UniqueConstraint(Lower('name'), name='unique_deity_name_ci')]
-    
+
     def __str__(self):
         return self.name
+
+
+class Image(BaseModel):
+    """Central image record — stores R2 object metadata shared across all entity types.
+
+    All image uploads go through this table first. Entity-specific junction
+    models (CategoryImage, DietyImage, ProductImage) link back to this table,
+    ensuring upload sessions are always marked 'attached' and the cleanup job
+    never deletes a live image.
+    """
+    image_url = models.URLField(max_length=1024)
+    object_key = models.CharField(max_length=500, blank=True, null=True)
+    alt_text = models.CharField(max_length=255, blank=True)
+    content_type = models.CharField(max_length=100, blank=True)
+    file_size = models.PositiveIntegerField(blank=True, null=True)
+    width = models.PositiveIntegerField(blank=True, null=True)
+    height = models.PositiveIntegerField(blank=True, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=('object_key',),
+                condition=models.Q(object_key__isnull=False),
+                name='unique_image_object_key',
+            ),
+        ]
+
+    def __str__(self):
+        return self.object_key or self.image_url
+
+
+class CategoryImage(BaseModel):
+    """One-to-one link between a Category and its Image."""
+    category = models.OneToOneField(
+        Category,
+        related_name='category_image',
+        on_delete=models.CASCADE,
+    )
+    image = models.ForeignKey(
+        Image,
+        related_name='category_images',
+        on_delete=models.PROTECT,
+    )
+
+    def __str__(self):
+        return f"Image for category: {self.category.name}"
+
+
+class DietyImage(BaseModel):
+    """One-to-one link between a Diety and its Image."""
+    diety = models.OneToOneField(
+        Diety,
+        related_name='diety_image',
+        on_delete=models.CASCADE,
+    )
+    image = models.ForeignKey(
+        Image,
+        related_name='diety_images',
+        on_delete=models.PROTECT,
+    )
+
+    def __str__(self):
+        return f"Image for deity: {self.diety.name}"
+
 
 class Product(BaseModel):
 
@@ -78,21 +150,17 @@ class Product(BaseModel):
     status = models.CharField(max_length=20, choices=enum_choices(ProductStatus), default=ProductStatus.DRAFT.value, db_index=True)
     sales_mode = models.CharField(max_length=30, choices=enum_choices(SalesMode), default=SalesMode.QUOTE_ONLY.value)
     display_order = models.PositiveIntegerField(default=999, db_index=True)
+    home_page_display_order = models.PositiveIntegerField(default=999, db_index=True)
 
     def __str__(self):
         return self.name
 
+
 class ProductImage(BaseModel):
     product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE)
-    image_url = models.URLField(max_length=1024, blank=True, null=True) # Used if storing direct R2 URL
-    object_key = models.CharField(max_length=500, blank=True, null=True) # Used if storing R2 object key
-    alt_text = models.CharField(max_length=255, blank=True, null=True)
+    image = models.ForeignKey(Image, related_name='product_images', on_delete=models.PROTECT)
     display_order = models.IntegerField(default=0)
     cover_photo = models.BooleanField(default=False)
-    content_type = models.CharField(max_length=100, blank=True)
-    file_size = models.PositiveIntegerField(blank=True, null=True)
-    width = models.PositiveIntegerField(blank=True, null=True)
-    height = models.PositiveIntegerField(blank=True, null=True)
 
     class Meta:
         ordering = ('display_order', 'id')
@@ -105,11 +173,6 @@ class ProductImage(BaseModel):
                 fields=('product',),
                 condition=models.Q(cover_photo=True),
                 name='one_cover_image_per_product',
-            ),
-            models.UniqueConstraint(
-                fields=('object_key',),
-                condition=models.Q(object_key__isnull=False),
-                name='unique_product_image_object_key',
             ),
         ]
 

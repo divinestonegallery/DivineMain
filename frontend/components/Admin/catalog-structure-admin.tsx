@@ -28,8 +28,9 @@ type TaxonomyItem = {
   name: string;
   slug?: string;
   description?: string | null;
-  image_url?: string | null;
+  image?: { image_url?: string | null; alt_text?: string | null } | null;
   categories?: number[];
+  display_order?: number;
   is_active?: boolean;
 };
 
@@ -37,8 +38,8 @@ type TaxonomyPayload = {
   name: string;
   is_active: boolean;
   description?: string;
-  image_url?: string;
   categories?: number[];
+  display_order?: number;
 };
 
 type TaxonomyState = Record<CatalogStructureKind, TaxonomyItem[]>;
@@ -65,28 +66,26 @@ function upsertTaxonomyItem(items: TaxonomyItem[], saved: TaxonomyItem) {
   return sortTaxonomy(exists ? items.map((item) => item.id === saved.id ? saved : item) : [saved, ...items]);
 }
 
-function payloadFor(kind: CatalogStructureKind, form: FormData, imageUrl?: string): TaxonomyPayload {
+function payloadFor(kind: CatalogStructureKind, form: FormData): TaxonomyPayload {
   const base: TaxonomyPayload = {
     name: text(form.get("name")),
     is_active: form.get("is_active") === "on",
   };
 
   if (kind === "category") {
-    const payload: TaxonomyPayload = {
+    return {
       ...base,
       description: text(form.get("description")),
     };
-    if (imageUrl !== undefined) payload.image_url = imageUrl;
-    return payload;
   }
 
   if (kind === "deity") {
-    const payload: TaxonomyPayload = {
+    const displayOrder = form.get("display_order");
+    return {
       ...base,
       categories: form.getAll("categories").map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0),
+      ...(displayOrder !== null && displayOrder !== "" ? { display_order: Number(displayOrder) } : {}),
     };
-    if (imageUrl !== undefined) payload.image_url = imageUrl;
-    return payload;
   }
 
   return base;
@@ -137,24 +136,34 @@ function TaxonomyModal({
 
     setSubmitting(true);
     try {
-      let imageUrl: string | undefined;
-      if ((kind === "category" || kind === "deity") && selectedImages.length) {
-        const target = kind === "category" ? "category" : "deity";
-        const [upload] = await uploadPendingAdminImages(selectedImages, setSelectedImages, target);
-        if (!upload.upload.public_url) throw new Error("Upload completed, but the API did not return an image URL.");
-        imageUrl = upload.upload.public_url;
-      } else if ((kind === "category" || kind === "deity") && existingImageRemoved) {
-        imageUrl = "";
-      }
-
+      // 1. Save the category/deity (name, is_active, etc.) first
       const saved = await apiRequest<TaxonomyItem>(
         state.mode === "create" ? spec.endpoint : `${spec.endpoint}/${state.item?.id}`,
         {
           method: state.mode === "create" ? "POST" : "PATCH",
-          body: JSON.stringify(payloadFor(kind, form, imageUrl)),
+          body: JSON.stringify(payloadFor(kind, form)),
         },
       );
-      onSaved(kind, saved);
+
+      // 2. If a new image was selected, upload then call finalize-image
+      if ((kind === "category" || kind === "deity") && selectedImages.length) {
+        const target = kind === "category" ? "category" : "deity";
+        const [upload] = await uploadPendingAdminImages(selectedImages, setSelectedImages, target);
+        if (!upload.upload.object_key) throw new Error("Upload completed, but the API did not return an object key.");
+        const finalizeEndpoint = kind === "category"
+          ? `${spec.endpoint}/${saved.id}/finalize-image`
+          : `${spec.endpoint}/${saved.id}/finalize-image`;
+        await apiRequest(finalizeEndpoint, {
+          method: "POST",
+          body: JSON.stringify({ object_key: upload.upload.object_key }),
+        });
+        // Refresh image from backend after finalize
+        const refreshed = await apiRequest<TaxonomyItem>(`${spec.endpoint}/${saved.id}`);
+        onSaved(kind, refreshed);
+      } else {
+        onSaved(kind, saved);
+      }
+
       showToast(`${spec.singular} ${state.mode === "create" ? "created" : "updated"}.`);
       onClose();
     } catch (reason) {
@@ -192,7 +201,7 @@ function TaxonomyModal({
                 description="Upload or drag & drop a JPG, PNG, or WEBP image."
                 selectedImages={selectedImages}
                 onSelectedImagesChange={setSelectedImages}
-                existingImages={!existingImageRemoved && state.item?.image_url ? [{ id: state.item.id, image_url: state.item.image_url, alt_text: state.item.name }] : []}
+                existingImages={!existingImageRemoved && state.item?.image?.image_url ? [{ id: state.item.id, image_url: state.item.image.image_url, alt_text: state.item.image.alt_text ?? state.item.name }] : []}
                 multiple={false}
                 maxFiles={1}
                 disabled={submitting}
@@ -221,7 +230,7 @@ function TaxonomyModal({
                 description="Upload or drag & drop a JPG, PNG, or WEBP image."
                 selectedImages={selectedImages}
                 onSelectedImagesChange={setSelectedImages}
-                existingImages={!existingImageRemoved && state.item?.image_url ? [{ id: state.item.id, image_url: state.item.image_url, alt_text: state.item.name }] : []}
+                existingImages={!existingImageRemoved && state.item?.image?.image_url ? [{ id: state.item.id, image_url: state.item.image.image_url, alt_text: state.item.image.alt_text ?? state.item.name }] : []}
                 multiple={false}
                 maxFiles={1}
                 disabled={submitting}
@@ -229,6 +238,12 @@ function TaxonomyModal({
                 onRemoveExisting={() => setExistingImageRemoved(true)}
               />
             </>
+          ) : null}
+
+          {kind === "deity" ? (
+            <AdminModalField label="Display Order" error={getFieldError(fieldErrors, "display_order")}>
+              <input name="display_order" type="number" min="0" defaultValue={state.item?.display_order ?? 999} />
+            </AdminModalField>
           ) : null}
 
           <AdminCheckboxField label="Active" error={getFieldError(fieldErrors, "is_active")}>

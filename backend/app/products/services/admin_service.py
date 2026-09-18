@@ -156,6 +156,28 @@ class CategoryAdminService:
         return UploadService.create_presigned_upload(payload, actor_id)
 
     @staticmethod
+    def finalize_image(category_id, data, actor_id):
+        """Validate and attach a category image upload. Marks the session as attached."""
+        from app.common.repositories import UploadRepository
+        from app.common.services.upload_service import UploadService
+
+        session = UploadRepository.claim_pending_session(data['object_key'], actor_id)
+        if not session or session['purpose'] != 'category_image':
+            return 'Upload session is invalid, expired or already used.', None
+        error, metadata = UploadService.inspect_image(data['object_key'], session)
+        if error:
+            UploadService.delete_object(data['object_key'])
+            UploadRepository.mark_rejected(data['object_key'])
+            return error, None
+        image_data = {
+            **metadata,
+            'object_key': data['object_key'],
+            'image_url': UploadService.public_url(data['object_key']),
+            'alt_text': data.get('alt_text', ''),
+        }
+        return CategoryRepository.set_category_image(category_id, image_data)
+
+    @staticmethod
     def get_all_categories():
         return CategoryRepository.get_all_categories_list()
 
@@ -213,6 +235,28 @@ class DietyAdminService:
         from app.common.services.upload_service import UploadService
         payload = {**data, 'purpose': 'deity_image'}
         return UploadService.create_presigned_upload(payload, actor_id)
+
+    @staticmethod
+    def finalize_image(deity_id, data, actor_id):
+        """Validate and attach a deity image upload. Marks the session as attached."""
+        from app.common.repositories import UploadRepository
+        from app.common.services.upload_service import UploadService
+
+        session = UploadRepository.claim_pending_session(data['object_key'], actor_id)
+        if not session or session['purpose'] != 'deity_image':
+            return 'Upload session is invalid, expired or already used.', None
+        error, metadata = UploadService.inspect_image(data['object_key'], session)
+        if error:
+            UploadService.delete_object(data['object_key'])
+            UploadRepository.mark_rejected(data['object_key'])
+            return error, None
+        image_data = {
+            **metadata,
+            'object_key': data['object_key'],
+            'image_url': UploadService.public_url(data['object_key']),
+            'alt_text': data.get('alt_text', ''),
+        }
+        return DietyRepository.set_deity_image(deity_id, image_data)
 
     @staticmethod
     def get_all_deities():

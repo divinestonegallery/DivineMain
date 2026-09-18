@@ -41,6 +41,22 @@ class SignupValidator(serializers.Serializer):
         return value.strip() if value else ''
 
 
+class VerifySignupValidator(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=50)
+    name = serializers.CharField(max_length=255, required=False, allow_blank=True, default='')
+    phone = serializers.CharField(max_length=30, required=False, allow_blank=True, default='')
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+    def validate_name(self, value):
+        return value.strip() if value else ''
+
+    def validate_phone(self, value):
+        return value.strip() if value else ''
+
+
 class LoginValidator(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(min_length=8, max_length=128, write_only=True)

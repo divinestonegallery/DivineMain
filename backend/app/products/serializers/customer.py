@@ -2,7 +2,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from rest_framework import serializers
 
-from app.products.models import Category, Diety, Material, Product, ProductImage
+from app.products.models import Category, CategoryImage, Diety, DietyImage, Material, Product, ProductImage
 
 
 def _build_price(obj):
@@ -41,6 +41,11 @@ def _build_price(obj):
 
 
 class ProductImageCustomerSerializer(serializers.ModelSerializer):
+    image_url = serializers.CharField(source='image.image_url', read_only=True)
+    alt_text = serializers.CharField(source='image.alt_text', read_only=True)
+    width = serializers.IntegerField(source='image.width', read_only=True)
+    height = serializers.IntegerField(source='image.height', read_only=True)
+
     class Meta:
         model = ProductImage
         fields = ('image_url', 'alt_text', 'display_order', 'cover_photo', 'width', 'height')
@@ -66,8 +71,8 @@ class ProductCardSerializer(serializers.ModelSerializer):
     def get_cover_photo(self, obj):
         if hasattr(obj, '_cover_photo_url'):
             return obj._cover_photo_url
-        cover = next((image for image in obj.images.all() if image.cover_photo), None)
-        return cover.image_url if cover else None
+        cover = next((pi for pi in obj.images.all() if pi.cover_photo), None)
+        return cover.image.image_url if cover else None
 
     def get_availability(self, obj):
         return obj.availability
@@ -100,9 +105,17 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
 
 class CategoryCustomerSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Category
         fields = ('id', 'name', 'slug', 'description', 'image_url')
+
+    def get_image_url(self, obj):
+        try:
+            return obj.category_image.image.image_url
+        except (CategoryImage.DoesNotExist, AttributeError):
+            return None
 
 
 class MaterialCustomerSerializer(serializers.ModelSerializer):
@@ -112,6 +125,14 @@ class MaterialCustomerSerializer(serializers.ModelSerializer):
 
 
 class DietyCustomerSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Diety
         fields = ('id', 'name', 'slug', 'image_url')
+
+    def get_image_url(self, obj):
+        try:
+            return obj.diety_image.image.image_url
+        except (DietyImage.DoesNotExist, AttributeError):
+            return None

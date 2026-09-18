@@ -64,6 +64,7 @@ type AdminProduct = {
   status: "draft" | "active" | "archived";
   sales_mode: "quote_only" | "buy_and_quote" | "direct_purchase";
   display_order?: number;
+  home_page_display_order?: number;
   images?: ProductImage[];
 };
 
@@ -152,6 +153,7 @@ function productPayload(form: FormData, keywords: string[], mode: ProductModalSt
     status: text(form.get("status")),
     sales_mode: text(form.get("sales_mode")),
     display_order: Number(form.get("display_order") || 999),
+    home_page_display_order: Number(form.get("home_page_display_order") || 999),
   };
 
   if (deityId > 0) {
@@ -458,6 +460,9 @@ function ProductModal({
             </AdminModalField>
             <AdminModalField label="Display order" error={getFieldError(fieldErrors, "display_order")}>
               <input name="display_order" type="number" min="0" defaultValue={product?.display_order ?? 999} aria-invalid={Boolean(getFieldError(fieldErrors, "display_order"))} />
+            </AdminModalField>
+            <AdminModalField label="Homepage order" error={getFieldError(fieldErrors, "home_page_display_order")}>
+              <input name="home_page_display_order" type="number" min="0" defaultValue={product?.home_page_display_order ?? 999} aria-invalid={Boolean(getFieldError(fieldErrors, "home_page_display_order"))} />
             </AdminModalField>
             <AdminCheckboxField label="Featured on home" error={getFieldError(fieldErrors, "is_featured")}>
               <input name="is_featured" type="checkbox" defaultChecked={Boolean(product?.is_featured)} />

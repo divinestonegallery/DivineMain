@@ -9,6 +9,8 @@ from .views.admin_views import (
     AdminProductImageReorderView,
     AdminProductImageUploadUrlView,
     AdminCategoryImageUploadUrlView,
+    AdminCategoryImageFinalizeView,
+    AdminDietyImageFinalizeView,
 )
 
 urlpatterns = [
@@ -24,6 +26,7 @@ urlpatterns = [
     path('/categories', AdminCategoryListCreateView.as_view(), name='admin-category-list'),
     path('/categories/upload-url', AdminCategoryImageUploadUrlView.as_view(), name='admin-category-image-upload-url'),
     path('/categories/<int:category_id>', AdminCategoryDetailView.as_view(), name='admin-category-detail'),
+    path('/categories/<int:category_id>/finalize-image', AdminCategoryImageFinalizeView.as_view(), name='admin-category-image-finalize'),
 
     # Materials
     path('/materials', AdminMaterialListCreateView.as_view(), name='admin-material-list'),
@@ -33,4 +36,5 @@ urlpatterns = [
     path('/deities', AdminDietyListCreateView.as_view(), name='admin-deity-list'),
     path('/deities/upload-url', AdminDeityImageUploadUrlView.as_view(), name='admin-deity-image-upload-url'),
     path('/deities/<int:diety_id>', AdminDietyDetailView.as_view(), name='admin-deity-detail'),
+    path('/deities/<int:diety_id>/finalize-image', AdminDietyImageFinalizeView.as_view(), name='admin-deity-image-finalize'),
 ]
