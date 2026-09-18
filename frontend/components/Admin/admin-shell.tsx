@@ -47,7 +47,7 @@ const groups: Array<{ label: string; items: NavItem[] }> = [
       { label: "Review", href: "/admin/review", icon: Star, description: "Moderate customer reviews" },
       { label: "FAQs", href: "/admin/faqs", icon: CircleHelp, description: "Manage frequently asked questions" },
       { label: "Contact", href: "/admin/contact", icon: Mail, description: "Manage contact submissions" },
-      { label: "Custom Mooti", href: "/admin/custom-mooti", icon: Sparkles, description: "Track custom moorti enquiries" },
+      { label: "Custom Moorti", href: "/admin/custom-moorti", icon: Sparkles, description: "Track custom moorti enquiries" },
       { label: "Staff", href: "/admin/staff", icon: ShieldCheck, description: "Manage staff and administrators" },
     ],
   },

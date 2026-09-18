@@ -41,8 +41,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export const revalidate = 60;
 
 const HOME_BLOCK = {
-  popularMooti: "popular_moorti",
-  dreamMooti: "shop_by_dream_moorti",
+  popularMoorti: "popular_moorti",
+  dreamMoorti: "shop_by_dream_moorti",
   dreamTemples: "dream_temples",
   categories: "shop_by_categories",
   subcategories: "shop_by_subcategories",
@@ -50,7 +50,7 @@ const HOME_BLOCK = {
   reviews: "reviews",
 } as const;
 
-const preferredDreamMootiOrder = ["ganesh", "hanuman", "radha krishna"];
+const preferredDreamMoortiOrder = ["ganesh", "hanuman", "radha krishna"];
 
 const reviewDate = new Intl.DateTimeFormat("en-IN", {
   month: "short",
@@ -131,12 +131,12 @@ function groupName(group: HomeDeityGroup) {
   );
 }
 
-function orderDreamMootiGroups(groups: HomeDeityGroup[]) {
+function orderDreamMoortiGroups(groups: HomeDeityGroup[]) {
   return [...groups].sort((a, b) => {
     const aName = groupName(a).toLowerCase();
     const bName = groupName(b).toLowerCase();
-    const aIndex = preferredDreamMootiOrder.findIndex((name) => aName.includes(name));
-    const bIndex = preferredDreamMootiOrder.findIndex((name) => bName.includes(name));
+    const aIndex = preferredDreamMoortiOrder.findIndex((name) => aName.includes(name));
+    const bIndex = preferredDreamMoortiOrder.findIndex((name) => bName.includes(name));
     if (aIndex === -1 && bIndex === -1) return aName.localeCompare(bName);
     if (aIndex === -1) return 1;
     if (bIndex === -1) return -1;
@@ -497,7 +497,7 @@ function HeroSection({ quickLinks }: { quickLinks: Array<{ label: string; href: 
           <HeroSearchForm />
           {quickLinks.length ? (
             <div className={styles.heroQuickLinks} aria-label="Popular searches">
-              <span>Most Popular Mooti</span>
+              <span>Most Popular Moorti</span>
               <div>
                 {quickLinks.map((link, index) => (
                   <Link href={link.href} key={link.href} data-featured={index === 0 ? "true" : undefined}>
@@ -518,7 +518,7 @@ function HeroSection({ quickLinks }: { quickLinks: Array<{ label: string; href: 
             </Link>
           </div>
         </div>
-        <Link className={styles.heroScrollCue} href="#popular-mooti" aria-label="Scroll to Popular Mooti">
+        <Link className={styles.heroScrollCue} href="#popular-moorti" aria-label="Scroll to Popular Moorti">
           <ChevronDown aria-hidden="true" size={21} />
         </Link>
       </div>
@@ -566,14 +566,14 @@ export default async function Home() {
   const { home, error } = await loadHomeData();
   const blocks = home.blocks ?? [];
 
-  const popular = getBlock(blocks, HOME_BLOCK.popularMooti);
-  const dreamMooti = getBlock(blocks, HOME_BLOCK.dreamMooti);
+  const popular = getBlock(blocks, HOME_BLOCK.popularMoorti);
+  const dreamMoorti = getBlock(blocks, HOME_BLOCK.dreamMoorti);
   const dreamTemples = getBlock(blocks, HOME_BLOCK.dreamTemples);
   const categories = getBlock(blocks, HOME_BLOCK.categories);
   const subcategoriesBlock = getBlock(blocks, HOME_BLOCK.subcategories);
   const homeDecor = getBlock(blocks, HOME_BLOCK.homeDecor);
   const reviews = getBlock(blocks, HOME_BLOCK.reviews);
-  const dreamMootiGroups = orderDreamMootiGroups(getGroups(dreamMooti));
+  const dreamMoortiGroups = orderDreamMoortiGroups(getGroups(dreamMoorti));
   const categoryItems = getCategories(categories);
   const subcategoryItems = getSubcategories(subcategoriesBlock);
 
@@ -581,7 +581,7 @@ export default async function Home() {
     <ToastProvider>
       <SiteHeader animateLogo />
       <main id="main-content" tabIndex={-1}>
-        <HeroSection quickLinks={error ? [] : heroQuickLinks(dreamMootiGroups, categoryItems)} />
+        <HeroSection quickLinks={error ? [] : heroQuickLinks(dreamMoortiGroups, categoryItems)} />
         {error ? (
           <HomeApiError message={error} />
         ) : (
@@ -591,17 +591,17 @@ export default async function Home() {
               subcategories={subcategoryItems}
             />
             <ProductRailSection
-              id="popular-mooti"
-              title="Popular Mooti"
+              id="popular-moorti"
+              title="Popular Moorti"
               products={getProducts(popular)}
               actionHref="/shop"
               carousel
             />
             <DynamicTabsSection
-              id="dream-mooti"
-              title="Divine Mooti"
-              groups={dreamMootiGroups}
-              products={getProducts(dreamMooti)}
+              id="dream-moorti"
+              title="Divine Moorti"
+              groups={dreamMoortiGroups}
+              products={getProducts(dreamMoorti)}
               groupBy="deity"
               actionHref="/shop"
               surface
