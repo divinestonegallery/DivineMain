@@ -12,7 +12,7 @@ import {
   X,
   ChevronRight
 } from "lucide-react";
-import { FormEvent, MouseEvent, useCallback, useEffect, useId, useRef, useState } from "react";
+import { FormEvent, MouseEvent, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { AccountControl } from "@/components/Auth/account-control";
 import { AuthModal } from "@/components/Auth/auth-modal";
 import { useAuth, useUser } from "@/components/Auth/auth-facade";
@@ -176,7 +176,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
     if (megaMenuOpen && !megaMenuClosing) setMegaMenuClosing(true);
   }, [megaMenuClosing, megaMenuOpen]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 0);
     };
