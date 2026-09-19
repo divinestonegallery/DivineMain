@@ -592,14 +592,14 @@ export default async function Home() {
             />
             <ProductRailSection
               id="popular-mooti"
-              title="Popular Mooti"
+              title="Popular Moorti"
               products={getProducts(popular)}
               actionHref="/shop"
               carousel
             />
             <DynamicTabsSection
               id="dream-mooti"
-              title="Divine Mooti"
+              title="Divine Moorti"
               groups={dreamMootiGroups}
               products={getProducts(dreamMooti)}
               groupBy="deity"

@@ -113,6 +113,34 @@
   background: var(--foreground);
 }
 
+.subcategoryNavigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: -0.45rem 0 1.2rem;
+  padding-left: 0.35rem;
+}
+
+.subcategoryNavigation button {
+  min-height: 32px;
+  padding: 0.42rem 0.7rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  color: var(--ink-muted);
+  background: transparent;
+  font-size: 0.66rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.subcategoryNavigation button:hover,
+.subcategoryNavigation button:focus-visible,
+.subcategoryNavigation .activeSubcategory {
+  border-color: var(--border);
+  color: var(--foreground);
+  background: var(--surface-muted);
+}
+
 .sortControl {
   position: relative;
   z-index: 5;

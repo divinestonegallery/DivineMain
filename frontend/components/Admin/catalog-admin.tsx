@@ -659,6 +659,7 @@ export function CatalogAdmin() {
   const [lookups, setLookups] = useState<Lookups>(emptyLookups);
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [subcategoryFilter, setSubcategoryFilter] = useState("all");
   const [sort, setSort] = useState<SortValue>("featured");
   const [modal, setModal] = useState<ProductModalState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -686,15 +687,38 @@ export function CatalogAdmin() {
     return () => window.clearTimeout(task);
   }, [load]);
 
+  const availableSubcategories = useMemo(() => {
+    if (categoryFilter === "all") return [];
+    const categoryProductIds = new Set(
+      products
+        .filter((product) => String(product.category) === categoryFilter && product.deity)
+        .map((product) => String(product.deity)),
+    );
+    return lookups.deities.filter((deity) => categoryProductIds.has(String(deity.id)));
+  }, [categoryFilter, lookups.deities, products]);
+
   const filteredProducts = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const matchingProducts = products.filter((product) => {
       const matchesCategory = categoryFilter === "all" || String(product.category) === categoryFilter;
+      const matchesSubcategory = subcategoryFilter === "all" || String(product.deity) === subcategoryFilter;
       const matchesSearch = !needle || `${product.name} ${product.slug} ${product.uid}`.toLowerCase().includes(needle);
-      return matchesCategory && matchesSearch;
+      return matchesCategory && matchesSubcategory && matchesSearch;
     });
     return sortProducts(matchingProducts, sort);
-  }, [categoryFilter, products, query, sort]);
+  }, [categoryFilter, products, query, sort, subcategoryFilter]);
+
+  useEffect(() => {
+    const subcategoryIsValid = availableSubcategories.some((subcategory) => String(subcategory.id) === subcategoryFilter);
+    if (subcategoryFilter !== "all" && (categoryFilter === "all" || !subcategoryIsValid)) {
+      setSubcategoryFilter("all");
+    }
+  }, [availableSubcategories, categoryFilter, subcategoryFilter]);
+
+  function selectCategory(value: string) {
+    setCategoryFilter(value);
+    setSubcategoryFilter("all");
+  }
 
   const saveProduct = useCallback((product: AdminProduct, mode: ProductModalState["mode"]) => {
     setProducts((current) => upsertProduct(current, product, mode));
@@ -730,15 +754,26 @@ export function CatalogAdmin() {
 
       <div className={styles.categoryToolbar}>
         <nav className={styles.categoryNavigation} aria-label="Filter products by category">
-          <button className={categoryFilter === "all" ? styles.activeCategory : ""} type="button" aria-pressed={categoryFilter === "all"} onClick={() => setCategoryFilter("all")}>View All</button>
+          <button className={categoryFilter === "all" ? styles.activeCategory : ""} type="button" aria-pressed={categoryFilter === "all"} onClick={() => selectCategory("all")}>View All</button>
           {lookups.categories.map((category) => (
-            <button className={categoryFilter === String(category.id) ? styles.activeCategory : ""} type="button" aria-pressed={categoryFilter === String(category.id)} onClick={() => setCategoryFilter(String(category.id))} key={category.id}>
+            <button className={categoryFilter === String(category.id) ? styles.activeCategory : ""} type="button" aria-pressed={categoryFilter === String(category.id)} onClick={() => selectCategory(String(category.id))} key={category.id}>
               {category.name}
             </button>
           ))}
         </nav>
         <AdminSortDropdown value={sort} onChange={setSort} />
       </div>
+
+      {availableSubcategories.length ? (
+        <nav className={styles.subcategoryNavigation} aria-label="Filter products by subcategory">
+          <button className={subcategoryFilter === "all" ? styles.activeSubcategory : ""} type="button" aria-pressed={subcategoryFilter === "all"} onClick={() => setSubcategoryFilter("all")}>All Subcategories</button>
+          {availableSubcategories.map((subcategory) => (
+            <button className={subcategoryFilter === String(subcategory.id) ? styles.activeSubcategory : ""} type="button" aria-pressed={subcategoryFilter === String(subcategory.id)} onClick={() => setSubcategoryFilter(String(subcategory.id))} key={subcategory.id}>
+              {subcategory.name}
+            </button>
+          ))}
+        </nav>
+      ) : null}
 
       <div className={styles.summary}>
         <strong>{filteredProducts.length}</strong>
