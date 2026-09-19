@@ -507,7 +507,7 @@
 
 .productGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(1rem, 2.2vw, 2rem) clamp(0.8rem, 1.8vw, 1.5rem);
 }
 
@@ -534,6 +534,20 @@
 .paginationControls button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.paginationPageButton {
+  min-width: 42px;
+}
+
+.paginationPageButtonActive {
+  border-color: var(--foreground);
+  color: white;
+  background: var(--foreground);
+}
+
+.paginationEllipsis {
+  padding-inline: 0.2rem;
 }
 
 .productCard {

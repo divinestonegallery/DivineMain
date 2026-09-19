@@ -48,6 +48,15 @@ const sortOptions: Array<{ label: string; value: SortValue }> = [
   { label: "Price: high to low", value: "price_desc" },
 ];
 
+type PaginationItem = number | "ellipsis";
+
+function paginationItems(totalPages: number, currentPage: number): PaginationItem[] {
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1);
+  if (currentPage <= 4) return [1, 2, 3, 4, 5, "ellipsis", totalPages];
+  if (currentPage >= totalPages - 3) return [1, "ellipsis", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  return [1, "ellipsis", currentPage - 1, currentPage, currentPage + 1, "ellipsis", totalPages];
+}
+
 function mergeOptions(options: PublicCatalogOption[], currentValue: string) {
   const seen = new Set<string>();
   const merged = [allOption, ...options]
@@ -320,6 +329,14 @@ export function ShopCatalog({
   const totalPages = pagination.total_pages ?? 0;
   const hasPreviousPage = Boolean(pagination.has_previous_page ?? page > 1);
   const hasNextPage = Boolean(pagination.has_next_page ?? (totalPages ? page < totalPages : false));
+  const resultsAreaRef = useRef<HTMLDivElement>(null);
+  const previousPageRef = useRef(page);
+
+  useEffect(() => {
+    if (previousPageRef.current === page) return;
+    previousPageRef.current = page;
+    resultsAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [page]);
 
   const updateUrl = useCallback((updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -410,7 +427,7 @@ export function ShopCatalog({
               </div>
             </aside>
 
-            <div className={styles.resultsArea}>
+            <div className={styles.resultsArea} ref={resultsAreaRef}>
               <div className={styles.resultsCount} role="status" aria-busy={isPending}>
                 <span>{isPending ? "Updating collection..." : `${totalItems} ${totalItems === 1 ? "Result" : "Results"}`}</span>
               </div>
@@ -432,7 +449,21 @@ export function ShopCatalog({
                   {totalPages > 1 ? (
                     <div className={styles.paginationControls} aria-label="Catalogue pagination">
                       <button type="button" onClick={() => goToPage(page - 1)} disabled={!hasPreviousPage || isPending}>Previous</button>
-                      <span>Page {page} of {totalPages}</span>
+                      {paginationItems(totalPages, page).map((item, index) => item === "ellipsis" ? (
+                        <span className={styles.paginationEllipsis} key={`ellipsis-${index}`} aria-hidden="true">...</span>
+                      ) : (
+                        <button
+                          type="button"
+                          key={`page-${item}`}
+                          className={`${styles.paginationPageButton} ${item === page ? styles.paginationPageButtonActive : ""}`}
+                          aria-current={item === page ? "page" : undefined}
+                          aria-label={`Go to page ${item}`}
+                          onClick={() => goToPage(item)}
+                          disabled={isPending}
+                        >
+                          {item}
+                        </button>
+                      ))}
                       <button type="button" onClick={() => goToPage(page + 1)} disabled={!hasNextPage || isPending}>Next</button>
                     </div>
                   ) : null}
