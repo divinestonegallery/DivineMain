@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search } from "lucide-react";
+import { Check, ChevronDown, ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search } from "lucide-react";
 import { ApiError, apiRequest } from "@/api/client";
 import {
   AdminImageUpload,
@@ -80,6 +80,16 @@ type Lookups = {
 };
 
 type ProductModalState = { mode: "create" } | { mode: "edit"; product: AdminProduct };
+type SortValue = "featured" | "display_order" | "price_asc" | "price_desc" | "name_asc" | "name_desc";
+
+const sortOptions: Array<{ label: string; value: SortValue }> = [
+  { label: "Featured", value: "featured" },
+  { label: "Gallery order", value: "display_order" },
+  { label: "Price: low to high", value: "price_asc" },
+  { label: "Price: high to low", value: "price_desc" },
+  { label: "Name: A-Z", value: "name_asc" },
+  { label: "Name: Z-A", value: "name_desc" },
+];
 
 const emptyLookups: Lookups = { categories: [], materials: [], deities: [] };
 const availabilityOptions: AdminProduct["availability"][] = ["in_stock", "made_to_order", "out_of_stock"];
@@ -183,6 +193,133 @@ function upsertImage(images: ProductImage[] | undefined, saved: ProductImage) {
 
 function removeImage(images: ProductImage[] | undefined, imageId: number) {
   return (images ?? []).filter((image) => image.id !== imageId);
+}
+
+function sortProducts(products: AdminProduct[], sort: SortValue) {
+  return [...products].sort((first, second) => {
+    if (sort === "featured") {
+      const featuredDifference = Number(second.is_featured) - Number(first.is_featured);
+      if (featuredDifference) return featuredDifference;
+      return Number(first.display_order ?? 999) - Number(second.display_order ?? 999);
+    }
+
+    if (sort === "display_order") return Number(first.display_order ?? 999) - Number(second.display_order ?? 999);
+    if (sort === "name_asc") return first.name.localeCompare(second.name);
+    if (sort === "name_desc") return second.name.localeCompare(first.name);
+
+    const firstPrice = Number(first.selling_price);
+    const secondPrice = Number(second.selling_price);
+    const firstValue = Number.isFinite(firstPrice) ? firstPrice : Number.POSITIVE_INFINITY;
+    const secondValue = Number.isFinite(secondPrice) ? secondPrice : Number.POSITIVE_INFINITY;
+    return sort === "price_asc" ? firstValue - secondValue : secondValue - firstValue;
+  });
+}
+
+function AdminSortDropdown({ value, onChange }: { value: SortValue; onChange: (value: SortValue) => void }) {
+  const [open, setOpen] = useState(false);
+  const listboxId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const currentIndex = Math.max(0, sortOptions.findIndex((option) => option.value === value));
+  const currentOption = sortOptions[currentIndex] ?? sortOptions[0];
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      setOpen(false);
+    }
+
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  function focusOption(index: number) {
+    window.requestAnimationFrame(() => optionRefs.current[index]?.focus());
+  }
+
+  function handleOptionKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusOption((index + 1) % sortOptions.length);
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      focusOption((index - 1 + sortOptions.length) % sortOptions.length);
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      focusOption(0);
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      focusOption(sortOptions.length - 1);
+    }
+  }
+
+  return (
+    <div className={`${styles.sortControl} ${open ? styles.sortControlOpen : ""}`} ref={rootRef}>
+      <span>Sort</span>
+      <button
+        type="button"
+        className={styles.sortTrigger}
+        aria-label={`Sort: ${currentOption.label}`}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-controls={listboxId}
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            setOpen(true);
+            focusOption(currentIndex);
+          }
+        }}
+        ref={triggerRef}
+      >
+        <span>{currentOption.label}</span>
+        <ChevronDown className={styles.sortChevron} aria-hidden="true" size={17} />
+      </button>
+      {open ? (
+        <div className={styles.sortMenu} id={listboxId} role="listbox" aria-label="Sort products">
+          {sortOptions.map((option, index) => {
+            const selected = option.value === value;
+            return (
+              <button
+                type="button"
+                className={`${styles.sortOption} ${selected ? styles.sortOptionActive : ""}`}
+                role="option"
+                aria-selected={selected}
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                  triggerRef.current?.focus();
+                }}
+                onKeyDown={(event) => handleOptionKeyDown(event, index)}
+                ref={(node) => { optionRefs.current[index] = node; }}
+              >
+                <span>{option.label}</span>
+                {selected ? <Check aria-hidden="true" size={16} /> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 async function attachUploadedProductImages(product: AdminProduct, uploads: UploadedAdminSelection[]) {
@@ -521,6 +658,8 @@ export function CatalogAdmin() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [lookups, setLookups] = useState<Lookups>(emptyLookups);
   const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sort, setSort] = useState<SortValue>("featured");
   const [modal, setModal] = useState<ProductModalState | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -549,9 +688,13 @@ export function CatalogAdmin() {
 
   const filteredProducts = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return products;
-    return products.filter((product) => `${product.name} ${product.slug} ${product.uid}`.toLowerCase().includes(needle));
-  }, [products, query]);
+    const matchingProducts = products.filter((product) => {
+      const matchesCategory = categoryFilter === "all" || String(product.category) === categoryFilter;
+      const matchesSearch = !needle || `${product.name} ${product.slug} ${product.uid}`.toLowerCase().includes(needle);
+      return matchesCategory && matchesSearch;
+    });
+    return sortProducts(matchingProducts, sort);
+  }, [categoryFilter, products, query, sort]);
 
   const saveProduct = useCallback((product: AdminProduct, mode: ProductModalState["mode"]) => {
     setProducts((current) => upsertProduct(current, product, mode));
@@ -583,6 +726,18 @@ export function CatalogAdmin() {
         <label><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products" /></label>
         <button type="button" onClick={() => void load()} disabled={loading}><RefreshCw size={15} /> Refresh</button>
         <button className={styles.primaryAction} type="button" onClick={() => setModal({ mode: "create" })}><Plus size={15} /> Add Product</button>
+      </div>
+
+      <div className={styles.categoryToolbar}>
+        <nav className={styles.categoryNavigation} aria-label="Filter products by category">
+          <button className={categoryFilter === "all" ? styles.activeCategory : ""} type="button" aria-pressed={categoryFilter === "all"} onClick={() => setCategoryFilter("all")}>View All</button>
+          {lookups.categories.map((category) => (
+            <button className={categoryFilter === String(category.id) ? styles.activeCategory : ""} type="button" aria-pressed={categoryFilter === String(category.id)} onClick={() => setCategoryFilter(String(category.id))} key={category.id}>
+              {category.name}
+            </button>
+          ))}
+        </nav>
+        <AdminSortDropdown value={sort} onChange={setSort} />
       </div>
 
       <div className={styles.summary}>
