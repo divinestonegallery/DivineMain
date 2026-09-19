@@ -1,3 +1,5 @@
+from django.core.cache import cache
+
 from app.products.repositories.product_repository import (
     CategoryRepository,
     DietyRepository,
@@ -5,6 +7,19 @@ from app.products.repositories.product_repository import (
     ProductImageRepository,
     ProductRepository,
 )
+
+
+def _flush_catalog_cache():
+    """Increment the catalog generation counter so all listing cache keys are invalidated.
+
+    Works with any Django cache backend, including LocMemCache which does not support
+    delete_pattern. Customer listing calls embed the current generation in their cache key
+    so bumping the counter effectively orphans all stale entries.
+    """
+    try:
+        cache.incr('catalog:gen')
+    except ValueError:
+        cache.set('catalog:gen', 1, timeout=None)
 
 
 class ProductAdminService:
@@ -38,7 +53,10 @@ class ProductAdminService:
             # Pre-validate publish readiness after we get the product id on create;
             # cover image can't exist yet, so we skip image check on create.
             pass
-        return ProductRepository.create(data)
+        result = ProductRepository.create(data)
+        if result[0] is None:
+            _flush_catalog_cache()
+        return result
 
     @staticmethod
     def update_product(product_id, data):
@@ -61,11 +79,17 @@ class ProductAdminService:
             error = ProductAdminService._publish_error(product_id)
             if error:
                 return error, None
-        return ProductRepository.update(product_id, data)
+        result = ProductRepository.update(product_id, data)
+        if result[0] is None:
+            _flush_catalog_cache()
+        return result
 
     @staticmethod
     def archive_product(product_id):
-        return (None, {'id': product_id, 'status': 'archived'}) if ProductRepository.archive(product_id) else ('Product not found.', None)
+        archived = ProductRepository.archive(product_id)
+        if archived:
+            _flush_catalog_cache()
+        return (None, {'id': product_id, 'status': 'archived'}) if archived else ('Product not found.', None)
 
     @staticmethod
     def _publish_error(product_id):
@@ -117,15 +141,22 @@ class ProductImageService:
             UploadRepository.mark_rejected(data['object_key'])
             return error, None
         UploadRepository.mark_attached(data['object_key'])
+        _flush_catalog_cache()
         return None, image
 
     @staticmethod
     def update_image(product_id, image_id, data):
-        return ProductImageRepository.update_image(product_id, image_id, data)
+        result = ProductImageRepository.update_image(product_id, image_id, data)
+        if result[0] is None:
+            _flush_catalog_cache()
+        return result
 
     @staticmethod
     def reorder_images(product_id, image_ids):
-        return ProductImageRepository.reorder_images(product_id, image_ids)
+        result = ProductImageRepository.reorder_images(product_id, image_ids)
+        if result[0] is None:
+            _flush_catalog_cache()
+        return result
 
     @staticmethod
     def delete_image(product_id, image_id):
@@ -144,6 +175,7 @@ class ProductImageService:
         if not ProductImageRepository.delete_image(product_id, image_id):
             return 'Product image not found.', None
         UploadRepository.mark_deleted(image['object_key'])
+        _flush_catalog_cache()
         return None, {'id': image_id, 'deleted': True}
 
 
