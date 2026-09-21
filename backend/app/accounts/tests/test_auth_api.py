@@ -1,12 +1,41 @@
 import json
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIClient
 
 from app.accounts.models import Customer
 from app.accounts.serializers import CustomerSerializer
+from app.accounts.services.clerk_client import ClerkClient
 from app.common.token_service import TokenService
+
+
+@override_settings(CLERK_SECRET_KEY='sk_test_example')
+class ClerkClientVerificationTests(SimpleTestCase):
+    @patch('app.accounts.services.clerk_client.requests.post')
+    def test_create_user_reserves_email_for_otp_verification(self, post):
+        post.return_value.status_code = 201
+        post.return_value.json.return_value = {'id': 'user_test'}
+
+        error, _ = ClerkClient.create_user(
+            email='Customer@Example.com',
+            password='StrongPassword123!',
+        )
+
+        self.assertIsNone(error)
+        payload = post.call_args.kwargs['json']
+        self.assertEqual(payload['email_address'], ['customer@example.com'])
+        self.assertEqual(payload['email_address_identification_status'], ['reserved'])
+
+    @patch('app.accounts.services.clerk_client.requests.post')
+    def test_prepare_email_verification_explicitly_uses_email_code(self, post):
+        post.return_value.status_code = 200
+        post.return_value.json.return_value = {'verification': {'status': 'unverified'}}
+
+        error, _ = ClerkClient.prepare_email_verification('idn_test_email')
+
+        self.assertIsNone(error)
+        self.assertEqual(post.call_args.kwargs['json'], {'strategy': 'email_code'})
 
 
 class AuthAPITests(TestCase):
@@ -16,14 +45,19 @@ class AuthAPITests(TestCase):
         self.test_password = "StrongPassword123!"
         self.test_clerk_id = "user_test_clerk_12345"
 
-    def test_signup_success(self):
+    def test_signup_requires_otp_before_creating_local_customer(self):
         clerk_user_payload = {
             'id': self.test_clerk_id,
-            'email_addresses': [{'email_address': self.test_email}],
+            'email_addresses': [{
+                'id': 'idn_test_email',
+                'email_address': self.test_email,
+                'verification': {'status': 'unverified'},
+            }],
             'first_name': 'Test',
             'last_name': 'User',
         }
-        with patch('app.accounts.services.clerk_client.ClerkClient.create_user', return_value=(None, clerk_user_payload)):
+        with patch('app.accounts.services.clerk_client.ClerkClient.create_user', return_value=(None, clerk_user_payload)), \
+             patch('app.accounts.services.clerk_client.ClerkClient.prepare_email_verification', return_value=(None, {'verification': {'status': 'unverified'}})):
             response = self.client.post(
                 '/api/v1/auth/signup',
                 {
@@ -38,10 +72,63 @@ class AuthAPITests(TestCase):
         self.assertEqual(response.status_code, 201)
         data = response.json()
         self.assertTrue(data['success'])
-        self.assertIn('access_token', data['data'])
-        self.assertIn('refresh_token', data['data'])
-        self.assertEqual(data['data']['user']['email'], self.test_email)
-        self.assertTrue(Customer.objects.filter(email=self.test_email, clerk_user_id=self.test_clerk_id).exists())
+        self.assertTrue(data['data']['requires_verification'])
+        self.assertNotIn('access_token', data['data'])
+        self.assertNotIn('refresh_token', data['data'])
+        self.assertFalse(Customer.objects.filter(email=self.test_email).exists())
+
+    def test_verify_signup_creates_customer_and_tokens(self):
+        clerk_user_payload = {
+            'id': self.test_clerk_id,
+            'email_addresses': [{
+                'id': 'idn_test_email',
+                'email_address': self.test_email,
+                'verification': {'status': 'unverified'},
+            }],
+        }
+        with patch('app.accounts.services.clerk_client.ClerkClient.get_user_by_email', return_value=(None, clerk_user_payload)), \
+             patch('app.accounts.services.clerk_client.ClerkClient.attempt_email_verification', return_value=(None, True)):
+            response = self.client.post(
+                '/api/v1/auth/verify-signup',
+                {
+                    'email': self.test_email,
+                    'code': '123456',
+                    'name': 'Test User',
+                    'phone': '+1234567890',
+                },
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, 201)
+        data = response.json()['data']
+        self.assertIn('access_token', data)
+        self.assertIn('refresh_token', data)
+        self.assertTrue(Customer.objects.filter(
+            email=self.test_email,
+            clerk_user_id=self.test_clerk_id,
+        ).exists())
+
+    def test_signup_fails_closed_and_cleans_up_when_otp_cannot_be_sent(self):
+        clerk_user_payload = {
+            'id': self.test_clerk_id,
+            'email_addresses': [{
+                'id': 'idn_test_email',
+                'email_address': self.test_email,
+                'verification': {'status': 'unverified'},
+            }],
+        }
+        with patch('app.accounts.services.clerk_client.ClerkClient.create_user', return_value=(None, clerk_user_payload)), \
+             patch('app.accounts.services.clerk_client.ClerkClient.prepare_email_verification', return_value=('OTP delivery failed.', None)), \
+             patch('app.accounts.services.clerk_client.ClerkClient.delete_user', return_value=(None, {})) as delete_user:
+            response = self.client.post(
+                '/api/v1/auth/signup',
+                {'email': self.test_email, 'password': self.test_password},
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Customer.objects.filter(email=self.test_email).exists())
+        delete_user.assert_called_once_with(self.test_clerk_id)
 
     def test_signup_duplicate_email(self):
         Customer.objects.create(
@@ -78,7 +165,11 @@ class AuthAPITests(TestCase):
     def test_login_success(self):
         clerk_user_payload = {
             'id': self.test_clerk_id,
-            'email_addresses': [{'email_address': self.test_email}],
+            'email_addresses': [{
+                'id': 'idn_test_email',
+                'email_address': self.test_email,
+                'verification': {'status': 'verified'},
+            }],
             'first_name': 'Test',
             'last_name': 'User',
             'phone_numbers': [{'phone_number': '+1234567890'}],
@@ -100,6 +191,28 @@ class AuthAPITests(TestCase):
         self.assertIn('access_token', data['data'])
         self.assertIn('refresh_token', data['data'])
         self.assertEqual(data['data']['user']['email'], self.test_email)
+
+    def test_login_rejects_valid_password_for_unverified_email(self):
+        clerk_user_payload = {
+            'id': self.test_clerk_id,
+            'email_addresses': [{
+                'id': 'idn_test_email',
+                'email_address': self.test_email,
+                'verification': {'status': 'unverified'},
+            }],
+        }
+        with patch('app.accounts.services.clerk_client.ClerkClient.get_user_by_email', return_value=(None, clerk_user_payload)), \
+             patch('app.accounts.services.clerk_client.ClerkClient.verify_password', return_value=(None, True)):
+            response = self.client.post(
+                '/api/v1/auth/login',
+                {'email': self.test_email, 'password': self.test_password},
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()['success'])
+        self.assertIn('verify your email', response.json()['message'])
+        self.assertFalse(Customer.objects.filter(email=self.test_email).exists())
 
     def test_login_invalid_password(self):
         clerk_user_payload = {

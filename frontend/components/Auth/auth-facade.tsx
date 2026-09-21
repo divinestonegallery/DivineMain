@@ -248,7 +248,7 @@ export function SignUp({ signInUrl = "/", fallbackRedirectUrl = "/account" }: an
   const { signUp, refresh, verifySignup } = useContext(AuthContext);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [verifyEmail, setVerifyEmail] = useState("");
+  const [pendingSignup, setPendingSignup] = useState<{ email: string; name: string; phone: string } | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -264,7 +264,11 @@ export function SignUp({ signInUrl = "/", fallbackRedirectUrl = "/account" }: an
         password: form.get("password"),
       });
       if (result?.requires_verification) {
-        setVerifyEmail(String(form.get("email") || ""));
+        setPendingSignup({
+          email: String(form.get("email") || ""),
+          name: String(form.get("name") || ""),
+          phone: String(form.get("phone") || ""),
+        });
         return;
       }
       await refresh();
@@ -283,7 +287,8 @@ export function SignUp({ signInUrl = "/", fallbackRedirectUrl = "/account" }: an
     const form = new FormData(event.currentTarget);
 
     try {
-      await verifySignup({ email: verifyEmail, code: form.get("code") });
+      if (!pendingSignup) throw new Error("Signup verification has expired. Please start again.");
+      await verifySignup({ ...pendingSignup, code: form.get("code") });
       await refresh();
       window.location.href = authRedirect(fallbackRedirectUrl);
     } catch (reason) {
@@ -293,18 +298,18 @@ export function SignUp({ signInUrl = "/", fallbackRedirectUrl = "/account" }: an
     }
   }
 
-  if (verifyEmail) {
+  if (pendingSignup) {
     return (
       <form className={styles.backendAuthForm} onSubmit={submitVerify}>
         <h3 className="font-display">Verify Account</h3>
-        <p className={styles.authHelpText}>Enter the 6-digit code sent to {verifyEmail}.</p>
+        <p className={styles.authHelpText}>Enter the 6-digit code sent to {pendingSignup.email}.</p>
         <label>
           <span>OTP Code</span>
           <input name="code" type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" required disabled={submitting} />
         </label>
         {error ? <p className={styles.authError}>{error}</p> : null}
         <button type="submit" disabled={submitting}>{submitting ? "Verifying..." : "Verify Account"}</button>
-        <p className={styles.authSwitch}><button className={styles.inlineAuthAction} type="button" disabled={submitting} onClick={() => { setVerifyEmail(""); setError(""); }}>Back</button></p>
+        <p className={styles.authSwitch}><button className={styles.inlineAuthAction} type="button" disabled={submitting} onClick={() => { setPendingSignup(null); setError(""); }}>Back</button></p>
       </form>
     );
   }

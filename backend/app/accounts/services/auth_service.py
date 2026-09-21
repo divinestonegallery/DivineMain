@@ -11,6 +11,21 @@ logger = logging.getLogger(__name__)
 class AuthService:
     """Service handling all authentication workflows delegating to Clerk and issuing JWT tokens."""
 
+    @staticmethod
+    def _get_email_address(clerk_user, email):
+        normalized_email = email.strip().lower()
+        for address in clerk_user.get('email_addresses', []):
+            current_email = address.get('email_address', '').strip().lower()
+            if current_email == normalized_email:
+                return address
+        return None
+
+    @classmethod
+    def _email_is_verified(cls, clerk_user, email):
+        address = cls._get_email_address(clerk_user, email)
+        verification = (address or {}).get('verification') or {}
+        return verification.get('status') == 'verified'
+
     @classmethod
     def signup(cls, data):
         email = data['email']
@@ -45,45 +60,35 @@ class AuthService:
         if not clerk_user_id:
             return 'Failed to obtain Clerk user ID.', None
 
-        # Check if email verification is required by Clerk
-        email_addresses = clerk_user.get('email_addresses', [])
-        email_id = None
-        is_verified = False
-        for ea in email_addresses:
-            if ea.get('email_address', '').lower() == email.lower():
-                email_id = ea.get('id')
-                if ea.get('verification', {}).get('status') == 'verified':
-                    is_verified = True
-                break
-        if not email_id and email_addresses:
-            email_id = email_addresses[0].get('id')
-            if email_addresses[0].get('verification', {}).get('status') == 'verified':
-                is_verified = True
+        # Never create the local profile or issue tokens until mailbox
+        # ownership has been proven with an OTP.
+        email_address = cls._get_email_address(clerk_user, email)
+        email_id = (email_address or {}).get('id')
+        if not email_id:
+            ClerkClient.delete_user(clerk_user_id)
+            return 'Unable to start email verification. Please try again.', None
 
-        if email_id and not is_verified:
-            prep_err, prep_data = ClerkClient.prepare_email_verification(email_id)
-            if not prep_err:
-                return None, {
-                    'requires_verification': True,
-                    'email': email,
-                    'message': 'Please verify your email address with the OTP sent.',
-                }
+        # This should be impossible when create_user uses a reserved
+        # identifier. Fail closed if Clerk's response is ever unexpected.
+        if cls._email_is_verified(clerk_user, email):
+            ClerkClient.delete_user(clerk_user_id)
+            return 'Email verification could not be enforced. Please contact support.', None
 
-        # 2. Sync local Customer record
-        sync_result = CustomerRepository.sync_customer(
-            clerk_id=clerk_user_id,
-            email=email,
-            name=name if name else None,
-            phone=phone if phone else None,
-        )
-        customer_dict = sync_result.get('customer')
-
-        # 3. Generate token pair
-        tokens = TokenService.generate_token_pair(customer_dict)
+        prep_err, _ = ClerkClient.prepare_email_verification(email_id)
+        if prep_err:
+            cleanup_error, _ = ClerkClient.delete_user(clerk_user_id)
+            if cleanup_error:
+                logger.error(
+                    "Could not clean up incomplete Clerk signup %s: %s",
+                    clerk_user_id,
+                    cleanup_error,
+                )
+            return prep_err, None
 
         return None, {
-            'user': customer_dict,
-            **tokens,
+            'requires_verification': True,
+            'email': email,
+            'message': 'Enter the 6-digit OTP sent to your email to finish creating your account.',
         }
 
     @classmethod
@@ -99,14 +104,8 @@ class AuthService:
             return 'Invalid email or OTP.', None
 
         clerk_user_id = clerk_user.get('id')
-        email_addresses = clerk_user.get('email_addresses', [])
-        email_id = None
-        for ea in email_addresses:
-            if ea.get('email_address', '').lower() == email.lower():
-                email_id = ea.get('id')
-                break
-        if not email_id and email_addresses:
-            email_id = email_addresses[0].get('id')
+        email_address = cls._get_email_address(clerk_user, email)
+        email_id = (email_address or {}).get('id')
 
         if not email_id:
             return 'Email address not found.', None
@@ -155,6 +154,11 @@ class AuthService:
         error, verified = ClerkClient.verify_password(clerk_user_id, password)
         if error or not verified:
             return 'Invalid email or password.', None
+
+        # Reserved identifiers can have a valid password. Do not allow them to
+        # bypass signup OTP verification through the login endpoint.
+        if not cls._email_is_verified(clerk_user, email):
+            return 'Please verify your email address before signing in.', None
 
         # 3. Resolve user profile fields from Clerk
         first_name = clerk_user.get('first_name') or ''

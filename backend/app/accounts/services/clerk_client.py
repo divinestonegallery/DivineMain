@@ -33,6 +33,10 @@ class ClerkClient:
 
         payload = {
             'email_address': [email.strip().lower()],
+            # Clerk Backend API-created email identifiers are verified by
+            # default. Reserve the address so signup must complete email OTP
+            # verification before the account can be used.
+            'email_address_identification_status': ['reserved'],
             'password': password,
             'skip_password_checks': getattr(settings, 'CLERK_SKIP_PASSWORD_CHECKS', False),
         }
@@ -176,6 +180,7 @@ class ClerkClient:
             response = requests.post(
                 f'{cls.BASE_URL}/email_addresses/{email_address_id}/prepare_verification',
                 headers=headers,
+                json={'strategy': 'email_code'},
                 timeout=10,
             )
         except requests.RequestException as exc:
@@ -211,12 +216,35 @@ class ClerkClient:
 
         if response.status_code == 200:
             data = response.json()
-            if data.get('status') == 'verified':
+            verification = data.get('verification') or {}
+            if data.get('status') == 'verified' or verification.get('status') == 'verified':
                 return None, True
             return 'Invalid or expired OTP.', False
 
         err_msg, _ = cls._format_error(response, default_msg=' check failed.')
         return err_msg, False
+
+    @classmethod
+    def delete_user(cls, user_id):
+        """Delete an incomplete Clerk account after signup initialization fails."""
+        headers = cls._get_headers()
+        if not headers:
+            return 'Clerk secret key is not configured.', None
+
+        try:
+            response = requests.delete(
+                f'{cls.BASE_URL}/users/{user_id}',
+                headers=headers,
+                timeout=10,
+            )
+        except requests.RequestException as exc:
+            logger.error("Failed to connect to Clerk delete_user: %s", exc)
+            return 'Unable to clean up incomplete account.', None
+
+        if response.status_code in (200, 204):
+            return None, response.json() if response.content else {}
+
+        return cls._format_error(response, default_msg='Failed to clean up incomplete account.')
 
     @classmethod
     def create_sign_in_token(cls, user_id, expires_in_seconds=2592000):
