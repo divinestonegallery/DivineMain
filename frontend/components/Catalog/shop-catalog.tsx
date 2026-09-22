@@ -106,14 +106,16 @@ function FilterControls({
         <span>Availability</span>
         <CatalogDropdown label="Availability" value={filters.availability} options={availabilityOptions} onChange={(value) => onFilterChange("availability", value)} controlClassName={styles.filterDropdown} />
       </div>
-      <label>
-        <span>Minimum price</span>
-        <input value={filters.min_price} onChange={(event) => onFilterChange("min_price", event.target.value)} min="0" inputMode="decimal" type="number" placeholder="100" />
-      </label>
-      <label>
-        <span>Maximum price</span>
-        <input value={filters.max_price} onChange={(event) => onFilterChange("max_price", event.target.value)} min="0" inputMode="decimal" type="number" placeholder="5000" />
-      </label>
+      <div className={styles.priceFilters}>
+        <label>
+          <span>Minimum price</span>
+          <input value={filters.min_price} onChange={(event) => onFilterChange("min_price", event.target.value)} min="0" inputMode="decimal" type="number" placeholder="100" />
+        </label>
+        <label>
+          <span>Maximum price</span>
+          <input value={filters.max_price} onChange={(event) => onFilterChange("max_price", event.target.value)} min="0" inputMode="decimal" type="number" placeholder="5000" />
+        </label>
+      </div>
     </div>
   );
 }

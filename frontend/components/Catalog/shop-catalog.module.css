@@ -380,6 +380,8 @@
 }
 
 .filterSidebar {
+  width: 100%;
+  min-width: 0;
   align-self: start;
 }
 
@@ -410,8 +412,18 @@
 
 .filterControls {
   display: grid;
+  width: 100%;
+  min-width: 0;
   gap: 1.1rem;
   padding-block: 1.25rem;
+}
+
+.priceFilters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .filterControls label,
@@ -427,13 +439,21 @@
   font-weight: 650;
 }
 
+.filterGroup,
+.filterControls label,
+.priceFilters label,
+.advisorCard {
+  width: 100%;
+  min-width: 0;
+}
+
 .filterControls select,
 .filterControls input {
   width: 100%;
   min-height: 46px;
   padding: 0.7rem 0.82rem;
   border: 1px solid var(--dropdown-border);
-  border-radius: 14px;
+  border-radius: var(--radius-pill);
   color: var(--foreground);
   background-color: var(--dropdown-control-bg);
   box-shadow: var(--dropdown-control-shadow);
@@ -462,6 +482,9 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   margin-top: 1.2rem;
   padding: 1.25rem;
   border-radius: var(--radius-lg);
@@ -541,9 +564,15 @@
 }
 
 .paginationPageButtonActive {
-  border-color: var(--foreground);
+  border-color: var(--gold-deep);
   color: white;
-  background: var(--foreground);
+  background: var(--gold-deep);
+  box-shadow: 0 8px 18px rgb(120 82 31 / 0.2);
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+  transform: scale(1.12);
+  transform-origin: center;
 }
 
 .paginationEllipsis {
