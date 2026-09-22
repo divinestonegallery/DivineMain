@@ -14,7 +14,9 @@ import {
 } from "lucide-react";
 import { ResilientImage } from "@/components/common/resilient-image";
 import { Modal } from "@/components/ui/modal";
+import { buttonClassName } from "@/components/ui/button";
 import type { PublicCatalogOption } from "@/api/catalog/repository";
+import { getPublicCatalogListing } from "@/api/catalog/repository";
 import type { ProductListResult } from "@/api/products";
 import type { CatalogItem } from "./catalog-data";
 import { ProductPrice } from "./product-price";
@@ -47,15 +49,6 @@ const sortOptions: Array<{ label: string; value: SortValue }> = [
   { label: "Price: low to high", value: "price_asc" },
   { label: "Price: high to low", value: "price_desc" },
 ];
-
-type PaginationItem = number | "ellipsis";
-
-function paginationItems(totalPages: number, currentPage: number): PaginationItem[] {
-  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1);
-  if (currentPage <= 4) return [1, 2, 3, 4, 5, "ellipsis", totalPages];
-  if (currentPage >= totalPages - 3) return [1, "ellipsis", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-  return [1, "ellipsis", currentPage - 1, currentPage, currentPage + 1, "ellipsis", totalPages];
-}
 
 function mergeOptions(options: PublicCatalogOption[], currentValue: string) {
   const seen = new Set<string>();
@@ -326,19 +319,36 @@ export function ShopCatalog({
   const deities = useMemo(() => mergeOptions(availableDeities, currentFilters.deity), [availableDeities, currentFilters.deity]);
   const materials = useMemo(() => mergeOptions(availableMaterials, currentFilters.material), [availableMaterials, currentFilters.material]);
   const activeFilterCount = Object.values(currentFilters).filter(Boolean).length;
-  const totalItems = pagination.total_items ?? products.length;
-  const page = pagination.page ?? 1;
-  const totalPages = pagination.total_pages ?? 0;
-  const hasPreviousPage = Boolean(pagination.has_previous_page ?? page > 1);
-  const hasNextPage = Boolean(pagination.has_next_page ?? (totalPages ? page < totalPages : false));
-  const resultsAreaRef = useRef<HTMLDivElement>(null);
-  const previousPageRef = useRef(page);
+  const listingKey = useMemo(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
+    return params.toString();
+  }, [searchParams]);
+  const [displayedProducts, setDisplayedProducts] = useState(products);
+  const [continuationPage, setContinuationPage] = useState((pagination.page ?? 1) + 1);
+  const [bufferedProducts, setBufferedProducts] = useState<CatalogItem[]>([]);
+  const [hasMore, setHasMore] = useState(Boolean(
+    pagination.has_next_page ??
+    (pagination.total_pages ? (pagination.page ?? 1) < pagination.total_pages : false),
+  ));
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState("");
+  const previousListingKeyRef = useRef(listingKey);
 
   useEffect(() => {
-    if (previousPageRef.current === page) return;
-    previousPageRef.current = page;
-    resultsAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [page]);
+    if (previousListingKeyRef.current === listingKey) return;
+    previousListingKeyRef.current = listingKey;
+    setDisplayedProducts(products);
+    setContinuationPage((pagination.page ?? 1) + 1);
+    setBufferedProducts([]);
+    setHasMore(Boolean(
+      pagination.has_next_page ??
+      (pagination.total_pages ? (pagination.page ?? 1) < pagination.total_pages : false),
+    ));
+    setLoadMoreError("");
+  }, [listingKey, pagination, products]);
+
+  const totalItems = pagination.total_items ?? displayedProducts.length;
 
   const updateUrl = useCallback((updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -365,14 +375,62 @@ export function ShopCatalog({
     updateUrl({ sort: value === "featured" ? null : value, page: null });
   }
 
-  function goToPage(nextPage: number) {
-    updateUrl({ page: nextPage > 1 ? String(nextPage) : null });
-  }
-
   function resetFilters() {
     startTransition(() => {
       router.replace(pathname, { scroll: false });
     });
+  }
+
+  async function loadMore() {
+    if (isLoadingMore || !hasMore) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    const search = params.get("q")?.trim() || params.get("search")?.trim() || "";
+    setIsLoadingMore(true);
+    setLoadMoreError("");
+
+    try {
+      let availableProducts = [...bufferedProducts];
+      let nextPage = continuationPage;
+      let nextHasMore = hasMore;
+
+      if (availableProducts.length < 8) {
+        const result = await getPublicCatalogListing({
+          page: continuationPage,
+          page_size: 12,
+          search: search || undefined,
+          category: currentFilters.category || undefined,
+          deity: currentFilters.deity || undefined,
+          material: currentFilters.material || undefined,
+          availability: currentFilters.availability || undefined,
+          min_price: currentFilters.min_price || undefined,
+          max_price: currentFilters.max_price || undefined,
+          sort: currentSort,
+        });
+        const knownIds = new Set([...displayedProducts, ...availableProducts].map((item) => item.id));
+        availableProducts = [
+          ...availableProducts,
+          ...result.items.filter((item) => !knownIds.has(item.id)),
+        ];
+        const responsePage = result.pagination.page ?? continuationPage;
+        nextPage = responsePage + 1;
+        nextHasMore = Boolean(
+          result.pagination.has_next_page ??
+          (result.pagination.total_pages ? responsePage < result.pagination.total_pages : result.items.length === 12),
+        );
+      }
+
+      const productsToAppend = availableProducts.slice(0, 8);
+      const remainingProducts = availableProducts.slice(8);
+      setDisplayedProducts((current) => [...current, ...productsToAppend]);
+      setBufferedProducts(remainingProducts);
+      setContinuationPage(nextPage);
+      setHasMore(remainingProducts.length > 0 || nextHasMore);
+    } catch {
+      setLoadMoreError("We could not load more works right now. Please try again.");
+    } finally {
+      setIsLoadingMore(false);
+    }
   }
 
   return (
@@ -429,7 +487,7 @@ export function ShopCatalog({
               </div>
             </aside>
 
-            <div className={styles.resultsArea} ref={resultsAreaRef}>
+            <div className={styles.resultsArea}>
               <div className={styles.resultsCount} role="status" aria-busy={isPending}>
                 <span>{isPending ? "Updating collection..." : `${totalItems} ${totalItems === 1 ? "Result" : "Results"}`}</span>
               </div>
@@ -441,32 +499,24 @@ export function ShopCatalog({
                   <p>{errorMessage}</p>
                   <button type="button" onClick={() => router.refresh()}>Try again</button>
                 </div>
-              ) : products.length ? (
+              ) : displayedProducts.length ? (
                 <>
                   <div className={styles.productGrid}>
-                    {products.map((item, index) => (
+                    {displayedProducts.map((item, index) => (
                       <ProductCard item={item} key={item.id} priority={index < 4} />
                     ))}
                   </div>
-                  {totalPages > 1 ? (
-                    <div className={styles.paginationControls} aria-label="Catalogue pagination">
-                      <button type="button" onClick={() => goToPage(page - 1)} disabled={!hasPreviousPage || isPending}>Previous</button>
-                      {paginationItems(totalPages, page).map((item, index) => item === "ellipsis" ? (
-                        <span className={styles.paginationEllipsis} key={`ellipsis-${index}`} aria-hidden="true">...</span>
-                      ) : (
-                        <button
-                          type="button"
-                          key={`page-${item}`}
-                          className={`${styles.paginationPageButton} ${item === page ? styles.paginationPageButtonActive : ""}`}
-                          aria-current={item === page ? "page" : undefined}
-                          aria-label={`Go to page ${item}`}
-                          onClick={() => goToPage(item)}
-                          disabled={isPending}
-                        >
-                          {item}
-                        </button>
-                      ))}
-                      <button type="button" onClick={() => goToPage(page + 1)} disabled={!hasNextPage || isPending}>Next</button>
+                  {hasMore ? (
+                    <div className={styles.loadMoreControls}>
+                      <button
+                        type="button"
+                        className={buttonClassName({ variant: "outline", size: "md", className: styles.loadMoreButton })}
+                        onClick={loadMore}
+                        disabled={isLoadingMore || isPending}
+                      >
+                        {isLoadingMore ? "Loading..." : "Load More"}
+                      </button>
+                      {loadMoreError ? <p className={styles.loadMoreError} role="alert">{loadMoreError}</p> : null}
                     </div>
                   ) : null}
                 </>

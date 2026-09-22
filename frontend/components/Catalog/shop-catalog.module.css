@@ -534,49 +534,22 @@
   gap: clamp(1rem, 2.2vw, 2rem) clamp(0.8rem, 1.8vw, 1.5rem);
 }
 
-.paginationControls {
+.loadMoreControls {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.8rem;
-  margin-top: 2rem;
-  color: var(--ink-muted);
-  font-size: 0.75rem;
+  gap: 0.7rem;
+  margin-top: 2.5rem;
 }
 
-.paginationControls button {
-  min-height: 42px;
-  padding-inline: 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  color: var(--foreground);
-  background: var(--surface);
-  cursor: pointer;
+.loadMoreButton {
+  min-width: 150px;
 }
 
-.paginationControls button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.paginationPageButton {
-  min-width: 42px;
-}
-
-.paginationPageButtonActive {
-  border-color: var(--gold-deep);
-  color: white;
-  background: var(--gold-deep);
-  box-shadow: 0 8px 18px rgb(120 82 31 / 0.2);
-  font-weight: 700;
-  position: relative;
-  z-index: 1;
-  transform: scale(1.12);
-  transform-origin: center;
-}
-
-.paginationEllipsis {
-  padding-inline: 0.2rem;
+.loadMoreError {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.78rem;
 }
 
 .productCard {
