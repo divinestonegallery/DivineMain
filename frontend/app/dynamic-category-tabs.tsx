@@ -82,13 +82,13 @@ export function DynamicCategoryTabs({
     }
 
     // Reorder tabs: match preferred order if deity
-    const preferredDreamMootiOrder = ["ganesh", "hanuman", "radha krishna"];
+    const preferredDreamMoortiOrder = ["ganesh", "hanuman", "radha krishna"];
     if (groupBy === "deity") {
       uniqueKeys.sort((a, b) => {
         const aName = a.toLowerCase();
         const bName = b.toLowerCase();
-        const aIndex = preferredDreamMootiOrder.findIndex((name) => aName.includes(name));
-        const bIndex = preferredDreamMootiOrder.findIndex((name) => bName.includes(name));
+        const aIndex = preferredDreamMoortiOrder.findIndex((name) => aName.includes(name));
+        const bIndex = preferredDreamMoortiOrder.findIndex((name) => bName.includes(name));
         if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
         if (aIndex === -1) return 1;
         if (bIndex === -1) return -1;

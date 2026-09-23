@@ -18,9 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 def _catalog_cache_key(namespace, payload):
+    gen = cache.get('catalog:gen', 0)
     serialized = json.dumps(payload, sort_keys=True, separators=(',', ':'), default=str)
     digest = hashlib.sha256(serialized.encode('utf-8')).hexdigest()
-    return f'catalog:{namespace}:{digest}'
+    return f'catalog:{namespace}:{gen}:{digest}'
 
 
 class ProductCustomerService:

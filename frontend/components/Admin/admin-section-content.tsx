@@ -33,7 +33,7 @@ export const adminSectionSlugs = [
   "review",
   "faqs",
   "contact",
-  "custom-mooti",
+  "custom-moorti",
   "staff",
 ] as const;
 
@@ -134,8 +134,8 @@ const sectionDetails: Record<Exclude<AdminSectionSlug, "overview">, { title: str
   contact: {
     title: "Contact",
   },
-  "custom-mooti": {
-    title: "Custom Mooti",
+  "custom-moorti": {
+    title: "Custom Moorti",
   },
   staff: {
     title: "Staff",
@@ -973,7 +973,7 @@ function ContactAdmin() {
   );
 }
 
-function CustomMootiAdmin() {
+function CustomMoortiAdmin() {
   const { showToast } = useToast();
   const [list, setList] = useState<NormalizedAdminList<CustomizeRequestRecord>>(() => asAdminList<CustomizeRequestRecord>([], 1));
   const [query, setQuery] = useState("");
@@ -1049,7 +1049,7 @@ function SectionBody({ section }: { section: Exclude<AdminSectionSlug, "overview
   if (section === "review") return <ReviewAdmin />;
   if (section === "faqs") return <FAQsAdmin />;
   if (section === "contact") return <ContactAdmin />;
-  if (section === "custom-mooti") return <CustomMootiAdmin />;
+  if (section === "custom-moorti") return <CustomMoortiAdmin />;
   if (section === "staff") return <StaffSecurityAdmin />;
   return null;
 }
