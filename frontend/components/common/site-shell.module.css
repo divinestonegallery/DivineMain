@@ -208,12 +208,11 @@
   background: var(--gold-deep);
   box-shadow: none;
   cursor: pointer;
-  transition: transform var(--transition-fast), filter var(--transition-fast);
+  transition: color var(--transition-fast);
 }
 
 .headerCompactSearchButton:hover {
-  transform: translateY(-1px);
-  filter: brightness(0.98);
+  color: #6b6b6b;
 }
 
 .siteHeaderCompact .headerAction,
@@ -749,6 +748,30 @@
 }
 
 .quickSearches a:hover {
+  border-color: rgb(120 82 31 / 0.34);
+  background: var(--dropdown-hover);
+  transform: translateY(-1px);
+}
+
+.loadMoreSearches {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  padding-inline: 0.9rem;
+  border: 1px solid var(--dropdown-border);
+  border-radius: var(--radius-pill);
+  color: var(--gold-deep);
+  background: transparent;
+  font: inherit;
+  font-weight: 680;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.loadMoreSearches:hover {
   border-color: rgb(120 82 31 / 0.34);
   background: var(--dropdown-hover);
   transform: translateY(-1px);
