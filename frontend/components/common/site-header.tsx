@@ -152,6 +152,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [deityLinks, setDeityLinks] = useState<ReadonlyArray<readonly [string, string]>>(defaultDeityLinks);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isCompactHeader, setIsCompactHeader] = useState(false);
   const shopTriggerRef = useRef<HTMLButtonElement>(null);
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const searchPanelRef = useRef<HTMLElement>(null);
@@ -159,7 +160,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const deityLinksLoadedRef = useRef(false);
   const searchTitleId = useId();
   const shopMenuId = useId();
-  const showDockedSearch = pathname === "/" ? dockedSearchVisible : true;
+  const showDockedSearch = pathname === "/" ? dockedSearchVisible && !isCompactHeader : !isCompactHeader;
   const headerLogoSrc = pathname === "/" && !isScrolled ? "/brand/DSG-White.png" : "/brand/DSG-New.png";
   const isStaffUser = ["staff", "admin"].includes(profileRole(user));
 
@@ -178,11 +179,24 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
 
   useLayoutEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
+      const nextScrolled = window.scrollY > 16;
+      const nextCompactHeader = nextScrolled && window.innerWidth >= 1024;
+      setIsScrolled(nextScrolled);
+      setIsCompactHeader(nextCompactHeader);
     };
+
+    const handleResize = () => {
+      const nextCompactHeader = window.scrollY > 16 && window.innerWidth >= 1024;
+      setIsCompactHeader(nextCompactHeader);
+    };
+
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   useEffect(() => {
@@ -395,7 +409,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       <header
         className={`${styles.siteHeader} ${
           pathname === "/" ? styles.siteHeaderHome : ""
-        } ${pathname === "/" && !isScrolled ? styles.siteHeaderTransparent : ""}`}
+        } ${pathname === "/" && !isScrolled ? styles.siteHeaderTransparent : ""} ${isCompactHeader ? styles.siteHeaderCompact : ""}`.trim()}
       >
         <div className={`${styles.headerMain} site-container`}>
           <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home">
@@ -446,6 +460,17 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           </div>
 
           <div className={styles.headerActions}>
+            {isCompactHeader ? (
+              <button
+                className={styles.headerCompactSearchButton}
+                type="button"
+                aria-label="Search"
+                title="Search"
+                onClick={() => setSearchOpen(true)}
+              >
+                <Search aria-hidden="true" size={20} strokeWidth={1.8} />
+              </button>
+            ) : null}
             <Link href="/custom-murti" className={`${styles.navLink} ${styles.desktopOnlyAction}`}>
               <Sparkles aria-hidden="true" size={18} strokeWidth={1.6} />
               <span>Customize Your Moorti</span>
