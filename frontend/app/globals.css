@@ -40,6 +40,17 @@
   --dropdown-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2378521f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   --transition-fast: 160ms ease;
   --transition-base: 240ms ease;
+
+  --text-display: clamp(3rem, 7vw, 6.35rem);
+  --text-h1: clamp(2.45rem, 6vw, 4rem);
+  --text-h2: clamp(2rem, 3.6vw, 3.35rem);
+  --text-h3: clamp(1.15rem, 1.7vw, 1.5rem);
+  --text-body-lg: 1.125rem;
+  --text-body: 1rem;
+  --text-body-sm: 0.875rem;
+  --text-caption: 0.75rem;
+  --text-button: 0.875rem;
+  --text-micro: 0.6875rem;
 }
 
 @theme inline {

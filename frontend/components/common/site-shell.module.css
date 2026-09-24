@@ -27,6 +27,10 @@
   transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease;
 }
 
+.siteHeaderCompact {
+  box-shadow: 0 12px 28px rgb(47 37 24 / 0.08);
+}
+
 .siteHeaderHome {
   position: fixed;
   left: 0;
@@ -43,10 +47,16 @@
 
 .headerMain {
   display: grid;
-  grid-template-columns: auto minmax(280px, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   min-height: 74px;
   align-items: center;
   gap: clamp(0.85rem, 2vw, 1.5rem);
+  transition: min-height 220ms ease, gap 220ms ease;
+}
+
+.siteHeaderCompact .headerMain {
+  min-height: 66px;
+  gap: 0.9rem;
 }
 
 .brandLink {
@@ -93,6 +103,11 @@
   align-items: center;
   justify-content: center;
   gap: clamp(0.75rem, 2vw, 1.1rem);
+  transition: gap 220ms ease;
+}
+
+.siteHeaderCompact .headerCenter {
+  gap: 0.65rem;
 }
 
 .desktopNav {
@@ -100,6 +115,11 @@
   align-items: center;
   justify-content: center;
   gap: 0.65rem;
+  transition: gap 220ms ease;
+}
+
+.siteHeaderCompact .desktopNav {
+  gap: 0.45rem;
 }
 
 .navLink {
@@ -176,6 +196,30 @@
   transition: color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
 }
 
+.headerCompactSearchButton {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: white;
+  background: var(--gold-deep);
+  box-shadow: none;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.headerCompactSearchButton:hover {
+  color: #6b6b6b;
+}
+
+.siteHeaderCompact .headerAction,
+.siteHeaderCompact .navLink {
+  min-height: 44px;
+}
+
 .headerAction:hover {
   color: var(--gold-deep);
   background: white;
@@ -215,8 +259,8 @@
 }
 
 .headerSearchPillVisible {
-  width: min(500px, 37vw);
-  max-width: min(500px, 37vw);
+  width: min(340px, 31vw);
+  max-width: min(340px, 31vw);
   gap: 0.8rem;
   padding: 0.35rem 0.38rem 0.35rem 1.2rem;
   border-color: rgb(217 205 189 / 0.82);
@@ -579,7 +623,7 @@
   position: relative;
   z-index: 1;
   overflow: hidden;
-  padding-block: clamp(2rem, 5vw, 4.5rem);
+  padding-block: clamp(1.3rem, 2.5vw, 2.2rem);
   border-bottom: 1px solid var(--dropdown-border);
   border-radius: 0 0 28px 28px;
   background: var(--dropdown-surface);
@@ -588,17 +632,24 @@
   transform-origin: top center;
 }
 
+.searchPanel > :global(.site-container) {
+  width: min(100%, 1240px);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 2vw, 2.2rem);
+}
+
 .overlayHeading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 2rem;
+  gap: 1.25rem;
+  margin-bottom: 0.85rem;
 }
 
 .overlayHeading p {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.3rem;
   color: var(--gold-deep);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -606,8 +657,9 @@
 .overlayHeading h2 {
   margin: 0;
   font-family: var(--font-brand-display);
-  font-size: clamp(1.7rem, 3vw, 2.8rem);
+  font-size: clamp(2rem, 1.4vw + 1.4rem, 2.8rem);
   font-weight: 400;
+  line-height: 1.08;
 }
 
 .closeButton {
@@ -620,15 +672,16 @@
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
+  margin-top: 0.15rem;
 }
 
 .searchForm {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding: 0.45rem 0.5rem 0.45rem 1.2rem;
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+  padding: 0.38rem 0.45rem 0.38rem 1rem;
   border: 1px solid var(--dropdown-border);
   border-radius: var(--radius-pill);
   background: rgb(255 253 249 / 0.88);
@@ -648,7 +701,7 @@
 
 .searchForm input {
   min-width: 0;
-  padding: 0.8rem 0;
+  padding: 0.7rem 0;
   border: 0;
   outline: 0;
   background: transparent;
@@ -658,8 +711,8 @@
 .searchForm button,
 .newsletterForm button,
 .cookieActions button:last-child {
-  min-height: 44px;
-  padding-inline: 1.35rem;
+  min-height: 42px;
+  padding-inline: 1.15rem;
   border: 0;
   border-radius: var(--radius-pill);
   color: white;
@@ -670,8 +723,9 @@
 .quickSearches {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1rem;
-  margin-top: 1.1rem;
+  align-items: center;
+  gap: 0.65rem 0.8rem;
+  margin-top: 0.95rem;
   color: var(--ink-muted);
   font-size: 0.85rem;
 }
@@ -699,10 +753,34 @@
   transform: translateY(-1px);
 }
 
+.loadMoreSearches {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  padding-inline: 0.9rem;
+  border: 1px solid var(--dropdown-border);
+  border-radius: var(--radius-pill);
+  color: var(--gold-deep);
+  background: transparent;
+  font: inherit;
+  font-weight: 680;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.loadMoreSearches:hover {
+  border-color: rgb(120 82 31 / 0.34);
+  background: var(--dropdown-hover);
+  transform: translateY(-1px);
+}
+
 .searchResults {
   display: grid;
   gap: 1.15rem;
-  margin-top: 1.6rem;
+  margin-top: 1rem;
 }
 
 .searchHint,
@@ -1441,6 +1519,24 @@
 }
 
 @media (max-width: 1024px) {
+  .searchPanel {
+    padding-block: 1.1rem 1.5rem;
+  }
+
+  .searchPanel > :global(.site-container) {
+    width: min(100%, 980px);
+    padding-inline: 1rem;
+  }
+
+  .overlayHeading {
+    gap: 1rem;
+  }
+
+  .searchForm {
+    gap: 0.7rem;
+    padding: 0.32rem 0.4rem 0.32rem 0.9rem;
+  }
+
   .headerMain {
     grid-template-columns: auto 1fr auto;
     min-height: 68px;
@@ -1459,6 +1555,10 @@
   .headerSearchPillVisible {
     width: min(320px, 100%);
     max-width: min(320px, 100%);
+  }
+
+  .siteHeaderCompact .headerMain {
+    min-height: 64px;
   }
 
   .headerSearchPill {
@@ -1580,17 +1680,22 @@
   .searchPanel {
     max-height: 100dvh;
     overflow-y: auto;
-    padding-block: 1.15rem 1.35rem;
+    padding-block: 1rem 1.2rem;
     border-radius: 0 0 22px 22px;
+  }
+
+  .searchPanel > :global(.site-container) {
+    padding-inline: 0.75rem;
   }
 
   .overlayHeading {
     align-items: center;
-    gap: 1rem;
+    gap: 0.9rem;
+    margin-bottom: 0.7rem;
   }
 
   .overlayHeading p {
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.15rem;
     font-size: 0.64rem;
   }
 
@@ -1602,8 +1707,8 @@
   .searchForm {
     grid-template-columns: auto 1fr;
     gap: 0.6rem;
-    margin-top: 1rem;
-    padding: 0.35rem 0.4rem 0.35rem 0.85rem;
+    margin-top: 0.75rem;
+    padding: 0.3rem 0.4rem 0.3rem 0.85rem;
     border-radius: 18px;
   }
 

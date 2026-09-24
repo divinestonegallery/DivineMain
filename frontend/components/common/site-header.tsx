@@ -16,7 +16,7 @@ import { FormEvent, MouseEvent, useCallback, useEffect, useId, useLayoutEffect, 
 import { AccountControl } from "@/components/Auth/account-control";
 import { AuthModal } from "@/components/Auth/auth-modal";
 import { useAuth, useUser } from "@/components/Auth/auth-facade";
-import { getDeities, searchApplication } from "@/api/products";
+import { getDeities, getHome, searchApplication } from "@/api/products";
 import type { BackendProductImage } from "@/api/products";
 import styles from "./site-shell.module.css";
 
@@ -43,6 +43,10 @@ const featuredLinks = [
   ["Custom Commissions", "/custom-murti"],
   ["Sizing Guide", "/guides/sizing"],
 ] as const;
+
+const INITIAL_VISIBLE_POPULAR_SEARCHES = 5;
+const LOAD_MORE_POPULAR_SEARCHES = 3;
+const SUBCATEGORY_BLOCK_TYPE = "shop_by_subcategories";
 
 type SearchProductResult = {
   slug?: string | null;
@@ -151,17 +155,25 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [deityLinks, setDeityLinks] = useState<ReadonlyArray<readonly [string, string]>>(defaultDeityLinks);
+  const [popularSearches, setPopularSearches] = useState<ReadonlyArray<readonly [string, string]>>([]);
+  const [visiblePopularSearches, setVisiblePopularSearches] = useState(INITIAL_VISIBLE_POPULAR_SEARCHES);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isCompactHeader, setIsCompactHeader] = useState(false);
   const shopTriggerRef = useRef<HTMLButtonElement>(null);
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const searchPanelRef = useRef<HTMLElement>(null);
   const mobilePanelRef = useRef<HTMLDivElement>(null);
   const deityLinksLoadedRef = useRef(false);
+  const deityLinksLoadingRef = useRef(false);
+  const popularSearchesLoadedRef = useRef(false);
+  const popularSearchesLoadingRef = useRef(false);
   const searchTitleId = useId();
   const shopMenuId = useId();
-  const showDockedSearch = pathname === "/" ? dockedSearchVisible : true;
+  const showDockedSearch = pathname === "/" ? dockedSearchVisible && !isCompactHeader : !isCompactHeader;
   const headerLogoSrc = pathname === "/" && !isScrolled ? "/brand/DSG-White.png" : "/brand/DSG-New.png";
   const isStaffUser = ["staff", "admin"].includes(profileRole(user));
+  const visiblePopularSearchLinks = popularSearches.slice(0, visiblePopularSearches);
+  const hasMorePopularSearches = popularSearches.length > visiblePopularSearches;
 
   function updateSearchQuery(value: string) {
     setSearchQuery(value);
@@ -178,34 +190,91 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
 
   useLayoutEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
+      const nextScrolled = window.scrollY > 16;
+      const nextCompactHeader = nextScrolled && window.innerWidth >= 1024;
+      setIsScrolled(nextScrolled);
+      setIsCompactHeader(nextCompactHeader);
     };
+
+    const handleResize = () => {
+      const nextCompactHeader = window.scrollY > 16 && window.innerWidth >= 1024;
+      setIsCompactHeader(nextCompactHeader);
+    };
+
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   useEffect(() => {
-    if (!megaMenuOpen || deityLinksLoadedRef.current) return;
+    if (!megaMenuOpen || deityLinksLoadedRef.current || deityLinksLoadingRef.current) return;
 
-    deityLinksLoadedRef.current = true;
+    deityLinksLoadingRef.current = true;
     let cancelled = false;
     getDeities()
       .then((items) => {
         if (cancelled) return;
-        const names = items.map((item) => item.name?.trim()).filter((name): name is string => Boolean(name));
+        const names = Array.from(new Set(
+          items
+            .map((item) => item.name?.trim())
+            .filter((name): name is string => Boolean(name)),
+        ));
         if (names.length) {
           setDeityLinks([
             ...names.slice(0, 8).map((name) => [name, `/shop?q=${encodeURIComponent(name)}`] as const),
             ["View all deities", "/shop"],
           ]);
         }
+        setPopularSearches(names.map((name) => [name, `/shop?q=${encodeURIComponent(name)}`] as const));
+        deityLinksLoadedRef.current = true;
+        deityLinksLoadingRef.current = false;
       })
       .catch(() => {
+        deityLinksLoadingRef.current = false;
         deityLinksLoadedRef.current = false;
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      deityLinksLoadingRef.current = false;
+    };
   }, [megaMenuOpen]);
+
+  useEffect(() => {
+    if (!searchOpen || popularSearchesLoadedRef.current || popularSearchesLoadingRef.current) return;
+
+    popularSearchesLoadingRef.current = true;
+    let cancelled = false;
+    getHome()
+      .then((home) => {
+        if (cancelled) return;
+        const subcategoryBlock = home.blocks.find((block) => block.type === SUBCATEGORY_BLOCK_TYPE);
+        const names = Array.from(new Set(
+          (subcategoryBlock?.data.subcategories ?? [])
+            .map((subcategory) => subcategory.name?.trim())
+            .filter((name): name is string => Boolean(name)),
+        ));
+        setPopularSearches(names.map((name) => [name, `/shop?q=${encodeURIComponent(name)}`] as const));
+        popularSearchesLoadedRef.current = true;
+        popularSearchesLoadingRef.current = false;
+      })
+      .catch(() => {
+        popularSearchesLoadingRef.current = false;
+        popularSearchesLoadedRef.current = false;
+      });
+
+    return () => {
+      cancelled = true;
+      popularSearchesLoadingRef.current = false;
+    };
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (searchOpen) setVisiblePopularSearches(INITIAL_VISIBLE_POPULAR_SEARCHES);
+  }, [searchOpen]);
 
   useEffect(() => {
     if (pathname !== "/") return;
@@ -395,7 +464,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       <header
         className={`${styles.siteHeader} ${
           pathname === "/" ? styles.siteHeaderHome : ""
-        } ${pathname === "/" && !isScrolled ? styles.siteHeaderTransparent : ""}`}
+        } ${pathname === "/" && !isScrolled ? styles.siteHeaderTransparent : ""} ${isCompactHeader ? styles.siteHeaderCompact : ""}`.trim()}
       >
         <div className={`${styles.headerMain} site-container`}>
           <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home">
@@ -446,6 +515,17 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           </div>
 
           <div className={styles.headerActions}>
+            {isCompactHeader ? (
+              <button
+                className={styles.headerCompactSearchButton}
+                type="button"
+                aria-label="Search"
+                title="Search"
+                onClick={() => setSearchOpen(true)}
+              >
+                <Search aria-hidden="true" size={20} strokeWidth={1.8} />
+              </button>
+            ) : null}
             <Link href="/custom-murti" className={`${styles.navLink} ${styles.desktopOnlyAction}`}>
               <Sparkles aria-hidden="true" size={18} strokeWidth={1.6} />
               <span>Customize Your Moorti</span>
@@ -550,7 +630,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                 </button>
               </div>
               <form className={styles.searchForm} action="/shop" onSubmit={handleSearchSubmit}>
-                <Search aria-hidden="true" size={22} strokeWidth={1.5} />
+                <Search aria-hidden="true" size={20} strokeWidth={1.8} />
                 <input
                   name="q"
                   type="search"
@@ -561,12 +641,27 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                 />
                 <button type="submit">Search</button>
               </form>
-              <div className={styles.quickSearches}>
-                <span>Popular:</span>
-                <Link href="/shop?q=Ganesha">Ganesha</Link>
-                <Link href="/shop?q=Radha%20Krishna">Radha Krishna</Link>
-                <Link href="/shop?q=Lakshmi">Lakshmi</Link>
-              </div>
+              {popularSearches.length ? (
+                <div className={styles.quickSearches}>
+                  <span>Popular:</span>
+                  {visiblePopularSearchLinks.map(([label, href]) => (
+                    <Link href={href} key={href}>
+                      {label}
+                    </Link>
+                  ))}
+                  {hasMorePopularSearches ? (
+                    <button
+                      className={styles.loadMoreSearches}
+                      type="button"
+                      onClick={() => setVisiblePopularSearches((count) => (
+                        Math.min(count + LOAD_MORE_POPULAR_SEARCHES, popularSearches.length)
+                      ))}
+                    >
+                      Load more
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
               <div className={styles.searchResults} aria-live="polite">
                 {searchQuery.trim().length < 2 ? (
                   <p className={styles.searchHint}>Type at least 2 characters to search the live catalogue.</p>
