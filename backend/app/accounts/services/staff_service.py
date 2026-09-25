@@ -1,7 +1,7 @@
-import requests
 from django.conf import settings
 
 from app.accounts.repositories.customer_repository import CustomerRepository
+from app.accounts.services.clerk_client import ClerkClient
 
 
 class StaffService:
@@ -13,35 +13,17 @@ class StaffService:
 
     @staticmethod
     def invite_staff(data):
-        if not settings.CLERK_SECRET_KEY:
+        if not ClerkClient.is_configured():
             return 'Clerk secret key is not configured.', None
         if CustomerRepository.email_exists(data['email']):
             return 'This email already has an account.', None
-        try:
-            response = requests.post(
-                'https://api.clerk.com/v1/invitations',
-                headers={
-                    'Authorization': f'Bearer {settings.CLERK_SECRET_KEY}',
-                    'Content-Type': 'application/json',
-                },
-                json={
-                    'email_address': data['email'],
-                    'redirect_url': settings.CLERK_INVITATION_REDIRECT_URL,
-                    'public_metadata': {'role': data['role']},
-                    'notify': True,
-                },
-                timeout=10,
-            )
-        except requests.RequestException:
-            return 'Unable to contact Clerk. Please try again.', None
-
-        if response.status_code not in (200, 201):
-            if response.status_code == 429:
-                return 'Clerk invitation limit reached. Please retry later.', None
-            if response.status_code in (400, 409, 422):
-                return 'This email is already registered or invited.', None
-            return 'Clerk could not create the invitation.', None
-        payload = response.json()
+        error, payload = ClerkClient.create_invitation(
+            email=data['email'],
+            role=data['role'],
+            redirect_url=settings.CLERK_INVITATION_REDIRECT_URL,
+        )
+        if error:
+            return error, None
         return None, {
             'id': payload.get('id'),
             'email': data['email'],
@@ -66,21 +48,13 @@ class StaffService:
             return 'At least one active administrator is required.', None
 
         if 'role' in data and data['role'] != current['role']:
-            if not settings.CLERK_SECRET_KEY:
+            if not ClerkClient.is_configured():
                 return 'Clerk secret key is not configured.', None
-            try:
-                response = requests.patch(
-                    f"https://api.clerk.com/v1/users/{current['clerk_user_id']}/metadata",
-                    headers={
-                        'Authorization': f'Bearer {settings.CLERK_SECRET_KEY}',
-                        'Content-Type': 'application/json',
-                    },
-                    json={'public_metadata': {'role': data['role']}},
-                    timeout=10,
-                )
-            except requests.RequestException:
-                return 'Unable to synchronize the role with Clerk. No local change was made.', None
-            if response.status_code not in (200, 201):
-                return 'Clerk rejected the role update. No local change was made.', None
+            error, _ = ClerkClient.update_user_public_metadata(
+                current['clerk_user_id'],
+                {'role': data['role']},
+            )
+            if error:
+                return error, None
         updated = CustomerRepository.update_staff(customer_id, data)
         return None, updated

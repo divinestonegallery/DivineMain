@@ -16,6 +16,7 @@ from rest_framework.test import APIClient
 
 from app.accounts.models import Customer
 from app.accounts.services.webhook_service import AccountWebhookService
+from app.applicationmodule.constants import HOME_CACHE_KEY
 from app.common.checks import production_configuration_check
 from app.common.management.commands.backup_database import Command as BackupCommand
 from app.common.models import APIErrorLog, StaffAuditLog, UploadSession
@@ -176,25 +177,28 @@ class MVPTestCase(TestCase):
 
         self.authenticate(self.admin)
         with override_settings(CLERK_SECRET_KEY='sk_test_value'):
-            with patch('app.accounts.services.staff_service.requests.post') as request:
-                request.return_value.status_code = 201
-                request.return_value.json.return_value = {'id': 'inv_1', 'status': 'pending'}
+            with patch(
+                'app.accounts.services.staff_service.ClerkClient.create_invitation',
+                return_value=(None, {'id': 'inv_1', 'status': 'pending'}),
+            ) as invite:
                 invited = self.client.post(
                     '/api/admin/staff', {'email': 'newstaff@example.com', 'role': 'staff'}, format='json'
                 )
         self.assertEqual(invited.status_code, 201)
-        self.assertEqual(request.call_args.kwargs['json']['public_metadata']['role'], 'staff')
+        self.assertEqual(invite.call_args.kwargs['role'], 'staff')
 
         with override_settings(CLERK_SECRET_KEY='sk_test_value'):
-            with patch('app.accounts.services.staff_service.requests.patch') as role_request:
-                role_request.return_value.status_code = 200
+            with patch(
+                'app.accounts.services.staff_service.ClerkClient.update_user_public_metadata',
+                return_value=(None, {}),
+            ) as role_request:
                 promoted = self.client.patch(
                     f'/api/admin/staff/{self.staff.id}', {'role': 'admin'}, format='json'
                 )
         self.assertEqual(promoted.status_code, 200)
         self.staff.refresh_from_db()
         self.assertEqual(self.staff.role, Customer.Role.ADMIN)
-        self.assertEqual(role_request.call_args.kwargs['json'], {'public_metadata': {'role': 'admin'}})
+        self.assertEqual(role_request.call_args.args[1], {'role': 'admin'})
 
         response = self.client.patch(
             f'/api/admin/staff/{self.admin.id}', {'is_active': False}, format='json'
@@ -301,6 +305,27 @@ class MVPTestCase(TestCase):
         for path in ('/api/v1/health', '/api/v1/health/ready', '/api/schema', '/api/docs', '/api/v1/application/home', '/api/v1/application/search'):
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200, path)
+
+    def test_product_and_review_writes_invalidate_home_cache(self):
+        cache.set(HOME_CACHE_KEY, {'stale': True}, timeout=60)
+        self.authenticate(self.admin)
+        created = self.client.post(
+            '/api/admin/products/categories', {'name': 'Cache Bust Category'}, format='json'
+        )
+        self.assertEqual(created.status_code, 201)
+        self.assertIsNone(cache.get(HOME_CACHE_KEY))
+
+        cache.set(HOME_CACHE_KEY, {'stale': True}, timeout=60)
+        product = Product.objects.create(
+            category=self.category, material=self.material, diety=self.deity,
+            name='Home Cache Review', status=ProductStatus.ACTIVE.value,
+        )
+        review = Review.objects.create(product=product, user=self.customer, rating=5, comment='Keep')
+        approved = self.client.patch(
+            f'/api/admin/reviews/{review.id}', {'status': 'approved'}, format='json'
+        )
+        self.assertEqual(approved.status_code, 200)
+        self.assertIsNone(cache.get(HOME_CACHE_KEY))
 
     def test_home_page_and_global_search_workflows(self):
         home_res = self.client.get('/api/v1/application/home')

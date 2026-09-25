@@ -1,12 +1,10 @@
-from app.products.enums import ProductStatus
 import logging
 
-from django.conf import settings
 from django.db import IntegrityError, transaction
-from django.db import models
 from django.db.models import Count, F, OuterRef, Prefetch, Q, Subquery, Window
 from django.db.models.functions import RowNumber
 
+from app.products.enums import ProductStatus
 from app.products.models import (
     Category, CategoryImage, Diety, DietyImage,
     Image, Material, Product, ProductImage, ProductVariant,
@@ -66,38 +64,9 @@ def _product_queryset(public=False):
     return queryset
 
 
-def _group_top_products_by_deity(limit_per_deity, **filters):
-    """Fetch the top products for every deity without issuing a query per deity."""
-    products = _product_queryset(public=True).filter(**filters).annotate(
-        _deity_rank=Window(
-            expression=RowNumber(),
-            partition_by=[F('diety_id')],
-            order_by=[F('is_featured').desc(), F('home_page_display_order').asc(), F('created_at').desc()],
-        ),
-    ).filter(_deity_rank__lte=limit_per_deity).order_by(
-        'diety__name', '-is_featured', 'home_page_display_order', '-created_at'
-    )
-
-    grouped = {}
-    for product in products:
-        group = grouped.setdefault(product.diety_id, {
-            'deity_id': product.diety_id,
-            'deity_name': product.diety.name,
-            'deity_slug': product.diety.slug,
-            'products': [],
-        })
-        group['products'].append(product)
-
-    return [
-        {**group, 'products': ProductCardSerializer(group['products'], many=True).data}
-        for group in grouped.values()
-    ]
-
-
 class ProductRepository:
     @staticmethod
     def get_admin_product_list(params):
-        """Return a paginated, serialized list of all products for the Admin dashboard."""
         queryset = _product_queryset()
         queryset = ProductRepository._apply_filters(queryset, params, include_status=True)
         queryset = ProductRepository._apply_sort(queryset, params['sort'])
@@ -105,7 +74,6 @@ class ProductRepository:
 
     @staticmethod
     def get_product_list(filters=None, sort='display_order', offset=0, limit=24):
-        """Return a sliced, serialized list of active public catalogue products."""
         try:
             filters = filters or {}
             cover_photo = ProductImage.objects.filter(
@@ -116,7 +84,6 @@ class ProductRepository:
                 product_id=OuterRef('pk'),
                 is_active=True,
             ).order_by('display_order', 'id').values('price_before_gst')[:1]
-            # Fix Issue 5: use Q to allow products without a diety
             queryset = Product.objects.select_related('category', 'material', 'diety').filter(
                 status=ProductStatus.ACTIVE.value,
                 is_active=True,
@@ -126,7 +93,6 @@ class ProductRepository:
                 Q(diety__isnull=True) | Q(diety__is_active=True)
             )
             queryset = ProductRepository._apply_filters(queryset, filters, include_status=False)
-            # Annotate FIRST so price sort can reference _variant_price_before_gst
             queryset = queryset.annotate(
                 _cover_photo_url=Subquery(cover_photo),
                 _variant_price_before_gst=Subquery(active_variant_price),
@@ -141,19 +107,18 @@ class ProductRepository:
                 'total_items': total_items,
             }
         except Exception as exc:
-            logger.error('ProductRepository.get_product_list error: %s', exc)
+            logger.exception('ProductRepository.get_product_list failed: %s', exc)
             return 'Failed to fetch products from database.', None
 
     @staticmethod
     def get_product_details_by_slug(slug):
-        """Return full serialized details for a single active public product by its slug."""
         try:
             product = _product_queryset(public=True).filter(slug=slug).first()
             if not product:
                 return None, None
             return None, ProductDetailSerializer(product).data
         except Exception as exc:
-            logger.error('ProductRepository.get_product_details_by_slug error: %s', exc)
+            logger.exception('ProductRepository.get_product_details_by_slug failed: %s', exc)
             return 'Failed to fetch product from database.', None
 
     @staticmethod
@@ -174,20 +139,23 @@ class ProductRepository:
             queryset = queryset.filter(diety__slug=params['deity'])
         if params.get('availability'):
             queryset = queryset.filter(availability=params['availability'])
+        if params.get('min_price') is not None:
+            queryset = queryset.filter(selling_price__gte=params['min_price'])
+        if params.get('max_price') is not None:
+            queryset = queryset.filter(selling_price__lte=params['max_price'])
         if include_status and params.get('status'):
             queryset = queryset.filter(status=params['status'])
         return queryset
 
     @staticmethod
     def _apply_sort(queryset, sort):
+        annotated = queryset.query.annotations
         if sort == 'price_asc':
-            # Use annotated subquery price if available (customer listing), else fall back to selling_price
-            annotations = [f.name for f in queryset.query.annotation_select.values()]
-            if '_variant_price_before_gst' in str(queryset.query.annotations):
+            if '_variant_price_before_gst' in annotated:
                 return queryset.order_by(F('_variant_price_before_gst').asc(nulls_last=True), 'display_order')
             return queryset.order_by(F('selling_price').asc(nulls_last=True), 'display_order')
         if sort == 'price_desc':
-            if '_variant_price_before_gst' in str(queryset.query.annotations):
+            if '_variant_price_before_gst' in annotated:
                 return queryset.order_by(F('_variant_price_before_gst').desc(nulls_last=True), 'display_order')
             return queryset.order_by(F('selling_price').desc(nulls_last=True), 'display_order')
         orders = {
@@ -200,13 +168,19 @@ class ProductRepository:
 
     @staticmethod
     def get_admin_product_by_id(product_id):
-        """Return serialized admin detail for a single product by its primary key."""
         product = _product_queryset().filter(id=product_id).first()
         return ProductAdminSerializer(product).data if product else None
 
     @staticmethod
+    def product_exists(product_id):
+        return Product.objects.filter(id=product_id).exists()
+
+    @staticmethod
+    def get_product_status(product_id):
+        return Product.objects.filter(id=product_id).values_list('status', flat=True).first()
+
+    @staticmethod
     def search_public_products(query, limit=20):
-        """Full-text search across active catalogue products. Returns card serialized results."""
         queryset = _product_queryset(public=True).filter(
             Q(name__icontains=query)
             | Q(keywords__icontains=query)
@@ -230,22 +204,8 @@ class ProductRepository:
         data['category_id'] = data.pop('category')
         data['material_id'] = data.pop('material')
         diety_id = data.pop('diety', None)
-        if diety_id is None and 'deity' in data:
-            diety_id = data.pop('deity')
-        else:
-            data.pop('deity', None)
+        data.pop('deity', None)
         data['diety_id'] = diety_id
-        data['is_active'] = data.get('status', ProductStatus.DRAFT.value) != ProductStatus.ARCHIVED.value
-
-        original_price = data.get('original_price')
-        selling_price = data.get('selling_price')
-        if original_price and selling_price:
-            from decimal import Decimal
-            try:
-                data['discount_percentage'] = ((Decimal(original_price) - Decimal(selling_price)) / Decimal(original_price) * 100).quantize(Decimal('0.01'))
-            except Exception:
-                pass
-
         try:
             with transaction.atomic():
                 product = Product.objects.create(**data)
@@ -258,26 +218,14 @@ class ProductRepository:
         product = Product.objects.filter(id=product_id).first()
         if not product:
             return 'Product not found.', None
-        relation_fields = {'category', 'material', 'diety', 'deity'}
+        relation_fields = {'category', 'material', 'diety'}
         for key, value in data.items():
             if key == 'deity':
-                setattr(product, 'diety_id', value)
+                product.diety_id = value
             elif key in relation_fields:
                 setattr(product, f'{key}_id', value)
             else:
                 setattr(product, key, value)
-        if 'status' in data:
-            product.is_active = data['status'] != ProductStatus.ARCHIVED.value
-
-        if product.original_price and product.selling_price:
-            from decimal import Decimal
-            try:
-                product.discount_percentage = ((Decimal(product.original_price) - Decimal(product.selling_price)) / Decimal(product.original_price) * 100).quantize(Decimal('0.01'))
-            except Exception:
-                product.discount_percentage = None
-        else:
-            product.discount_percentage = None
-
         try:
             with transaction.atomic():
                 product.save()
@@ -308,24 +256,7 @@ class ProductRepository:
         }
 
     @staticmethod
-    def get_top_products_by_diety(limit_per_diety=5):
-        return _group_top_products_by_deity(limit_per_diety)
-
-    @staticmethod
-    def get_popular_moorti_data():
-        products = _product_queryset(public=True).filter(is_featured=True).order_by('home_page_display_order', '-created_at')[:10]
-        return None, ProductCardSerializer(products, many=True).data
-
-    @staticmethod
-    def get_dream_temples_data():
-        products = _product_queryset(public=True).filter(category__slug='temple').order_by(
-            '-is_featured', 'home_page_display_order', 'id'
-        )[:10]
-        return None, ProductCardSerializer(products, many=True).data
-
-    @staticmethod
     def get_home_product_sections(limit_per_deity=5):
-        """Fetch every product needed by the homepage in three total queries."""
         public_products = Product.objects.filter(
             status=ProductStatus.ACTIVE.value,
             is_active=True,
@@ -334,7 +265,6 @@ class ProductRepository:
         ).filter(
             Q(diety__isnull=True) | Q(diety__is_active=True)
         )
-        # Use home_page_display_order for homepage section ranking
         rank_order = [
             F('is_featured').desc(),
             F('home_page_display_order').asc(),
@@ -380,7 +310,7 @@ class ProductRepository:
         def grouped(category_slug=None):
             candidates = [
                 product for product in products
-                if product.diety is not None  # skip products with no deity
+                if product.diety is not None
                 and (category_slug is None or product.category.slug == category_slug)
             ]
             candidates.sort(key=lambda product: (
@@ -411,17 +341,10 @@ class ProductRepository:
             'home_decors': grouped('home-decor'),
         }
 
-    @staticmethod
-    def get_home_decors_by_diety(limit_per_diety=5):
-        return _group_top_products_by_deity(limit_per_diety, category__slug='home-decor')
-
-
-
 
 class ProductImageRepository:
     @staticmethod
     def get_image_list(product_id):
-        """Return all images for a product ordered by display_order, serialized for the Admin."""
         if not Product.objects.filter(id=product_id).exists():
             return 'Product not found.', None
         images = ProductImage.objects.filter(product_id=product_id).select_related('image').order_by('display_order', 'id')
@@ -429,45 +352,31 @@ class ProductImageRepository:
 
     @staticmethod
     def get_image_by_id(product_id, image_id):
-        """Return a single product image serialized for the Admin, or None if not found."""
         image = ProductImage.objects.filter(id=image_id, product_id=product_id).select_related('image').first()
         return ProductImageAdminSerializer(image).data if image else None
 
     @staticmethod
     def get_image_count(product_id):
-        """Return the total number of images attached to a product."""
         return ProductImage.objects.filter(product_id=product_id).count()
 
     @staticmethod
     def create_image(product_id, data):
-        """Attach a new image record to a product, enforcing cover-photo and count rules.
-
-        `data` must include the image storage fields (image_url, object_key, etc.)
-        as well as ProductImage fields (display_order, cover_photo).
-        An Image record is created first, then linked via ProductImage.
-        """
         if not Product.objects.filter(id=product_id).exists():
             return 'Product not found.', None
-        if ProductImage.objects.filter(product_id=product_id).count() >= settings.R2_MAX_PRODUCT_IMAGES:
-            return f'A product can have at most {settings.R2_MAX_PRODUCT_IMAGES} images.', None
         try:
             with transaction.atomic():
-                # Separate image-level fields from product-image junction fields
-                image_data = {
-                    'image_url': data['image_url'],
-                    'object_key': data.get('object_key'),
-                    'alt_text': data.get('alt_text', ''),
-                    'content_type': data.get('content_type', ''),
-                    'file_size': data.get('file_size'),
-                    'width': data.get('width'),
-                    'height': data.get('height'),
-                }
-                image_obj = Image.objects.create(**image_data)
-                if not ProductImage.objects.filter(product_id=product_id).exists():
-                    data['cover_photo'] = True
+                image_obj = Image.objects.create(
+                    image_url=data['image_url'],
+                    object_key=data.get('object_key'),
+                    alt_text=data.get('alt_text', ''),
+                    content_type=data.get('content_type', ''),
+                    file_size=data.get('file_size'),
+                    width=data.get('width'),
+                    height=data.get('height'),
+                )
                 if data.get('cover_photo'):
                     ProductImage.objects.filter(product_id=product_id, cover_photo=True).update(cover_photo=False)
-                pi = ProductImage.objects.create(
+                product_image = ProductImage.objects.create(
                     product_id=product_id,
                     image=image_obj,
                     display_order=data.get('display_order', 0),
@@ -475,35 +384,33 @@ class ProductImageRepository:
                 )
         except IntegrityError:
             return 'This uploaded image is already attached.', None
-        pi = ProductImage.objects.select_related('image').get(id=pi.id)
-        return None, ProductImageAdminSerializer(pi).data
+        product_image = ProductImage.objects.select_related('image').get(id=product_image.id)
+        return None, ProductImageAdminSerializer(product_image).data
 
     @staticmethod
     def update_image(product_id, image_id, data):
-        """Apply a partial update to a ProductImage and/or its underlying Image record."""
-        pi = ProductImage.objects.filter(id=image_id, product_id=product_id).select_related('image').first()
-        if not pi:
+        product_image = ProductImage.objects.filter(
+            id=image_id, product_id=product_id
+        ).select_related('image').first()
+        if not product_image:
             return 'Product image not found.', None
         with transaction.atomic():
             if data.get('cover_photo') is True:
-                ProductImage.objects.filter(product_id=product_id, cover_photo=True).exclude(id=image_id).update(cover_photo=False)
-            if data.get('cover_photo') is False and pi.cover_photo:
-                return 'Choose another cover image before removing this cover.', None
-            # ProductImage-level fields
+                ProductImage.objects.filter(
+                    product_id=product_id, cover_photo=True
+                ).exclude(id=image_id).update(cover_photo=False)
             for key in ('display_order', 'cover_photo'):
                 if key in data:
-                    setattr(pi, key, data[key])
-            pi.save()
-            # Image-level fields (alt_text)
+                    setattr(product_image, key, data[key])
+            product_image.save()
             if 'alt_text' in data:
-                pi.image.alt_text = data['alt_text']
-                pi.image.save(update_fields=['alt_text', 'updated_at'])
-        pi.refresh_from_db()
-        return None, ProductImageAdminSerializer(pi).data
+                product_image.image.alt_text = data['alt_text']
+                product_image.image.save(update_fields=['alt_text', 'updated_at'])
+        product_image.refresh_from_db()
+        return None, ProductImageAdminSerializer(product_image).data
 
     @staticmethod
     def reorder_images(product_id, image_ids):
-        """Bulk-update display_order for all images of a product given an ordered list of IDs."""
         existing = list(ProductImage.objects.filter(product_id=product_id).values_list('id', flat=True))
         if set(existing) != set(image_ids):
             return 'Provide every product image exactly once.', None
@@ -516,14 +423,14 @@ class ProductImageRepository:
 
     @staticmethod
     def delete_image(product_id, image_id):
-        """Hard-delete a ProductImage record, promoting a replacement cover photo if needed."""
-        pi = ProductImage.objects.filter(id=image_id, product_id=product_id).select_related('image').first()
-        if not pi:
+        product_image = ProductImage.objects.filter(
+            id=image_id, product_id=product_id
+        ).select_related('image').first()
+        if not product_image:
             return False
-        was_cover = pi.cover_photo
-        image_obj = pi.image
-        pi.delete()
-        # Remove orphaned Image record if no other ProductImages reference it
+        was_cover = product_image.cover_photo
+        image_obj = product_image.image
+        product_image.delete()
         if not ProductImage.objects.filter(image=image_obj).exists():
             image_obj.delete()
         if was_cover:
@@ -537,35 +444,21 @@ class ProductImageRepository:
 class CategoryRepository:
     @staticmethod
     def get_all_categories_list():
-        """Return all categories (active + inactive) serialized for the Admin dashboard."""
-        items = Category.objects.prefetch_related('category_image__image').all().order_by('name')
+        items = Category.objects.select_related('category_image__image').all().order_by('name')
         return None, CategoryAdminSerializer(items, many=True).data
 
     @staticmethod
     def get_all_active_categories_list():
-        """Return only active categories serialized for customer-facing endpoints."""
-        items = Category.objects.prefetch_related('category_image__image').filter(is_active=True).order_by('name')
+        items = Category.objects.select_related('category_image__image').filter(is_active=True).order_by('name')
         return None, CategoryCustomerSerializer(items, many=True).data
 
     @staticmethod
     def get_category_by_id(category_id):
-        """Return a single category by its primary key."""
-        item = Category.objects.prefetch_related('category_image__image').filter(id=category_id).first()
+        item = Category.objects.select_related('category_image__image').filter(id=category_id).first()
         return (None, CategoryAdminSerializer(item).data) if item else ('Not found', None)
 
     @staticmethod
-    def _validate_r2_image_url(image_url):
-        """Return an error string if image_url is set but is not a valid R2 public URL."""
-        if not image_url:
-            return None
-        base = settings.R2_PUBLIC_BASE_URL
-        if base and not image_url.startswith(base.rstrip('/')):
-            return 'image_url must be an R2 public URL. Generate one via POST /products/categories/upload-url.'
-        return None
-
-    @staticmethod
     def create_category(data):
-        """Create a new category record."""
         try:
             with transaction.atomic():
                 item = Category.objects.create(**data)
@@ -575,7 +468,6 @@ class CategoryRepository:
 
     @staticmethod
     def update_category(category_id, data):
-        """Apply a partial update to a category record."""
         item = Category.objects.filter(id=category_id).first()
         if not item:
             return 'Not found', None
@@ -586,18 +478,15 @@ class CategoryRepository:
                 item.save()
         except IntegrityError:
             return 'Category name must be unique.', None
-        item = Category.objects.prefetch_related('category_image__image').get(id=category_id)
+        item = Category.objects.select_related('category_image__image').get(id=category_id)
         return None, CategoryAdminSerializer(item).data
 
     @staticmethod
     def set_category_image(category_id, image_data):
-        """Create or replace the CategoryImage for a category. Marks the upload session attached."""
-        from app.common.repositories import UploadRepository
         category = Category.objects.filter(id=category_id).first()
         if not category:
             return 'Category not found.', None
         with transaction.atomic():
-            # Create the central Image record
             image_obj = Image.objects.create(
                 image_url=image_data['image_url'],
                 object_key=image_data.get('object_key'),
@@ -607,54 +496,45 @@ class CategoryRepository:
                 width=image_data.get('width'),
                 height=image_data.get('height'),
             )
-            # Replace any existing CategoryImage
-            old_ci = CategoryImage.objects.filter(category=category).select_related('image').first()
+            old_link = CategoryImage.objects.filter(category=category).select_related('image').first()
             CategoryImage.objects.filter(category=category).delete()
             CategoryImage.objects.create(category=category, image=image_obj)
-            # Mark old image as deleted if no other references exist
-            if old_ci and not CategoryImage.objects.filter(image=old_ci.image).exists():
-                old_ci.image.delete()
-        # Mark the upload session as attached (prevents cleanup from deleting the R2 object)
-        if image_data.get('object_key'):
-            UploadRepository.mark_attached(image_data['object_key'])
-        category = Category.objects.prefetch_related('category_image__image').get(id=category_id)
+            if old_link and not CategoryImage.objects.filter(image=old_link.image).exists():
+                old_link.image.delete()
+        category = Category.objects.select_related('category_image__image').get(id=category_id)
         return None, CategoryAdminSerializer(category).data
 
     @staticmethod
     def deactivate_category(category_id):
-        """Soft-delete a category by marking it inactive."""
         updated = Category.objects.filter(id=category_id).update(is_active=False)
         return (None, {'id': category_id}) if updated else ('Not found', None)
 
     @staticmethod
     def search_active_categories(query, limit=5):
-        """Partial name search across active categories."""
-        items = Category.objects.prefetch_related('category_image__image').filter(is_active=True, name__icontains=query).order_by('name')[:limit]
+        items = Category.objects.select_related('category_image__image').filter(
+            is_active=True, name__icontains=query
+        ).order_by('name')[:limit]
         return CategoryCustomerSerializer(items, many=True).data
 
 
 class MaterialRepository:
     @staticmethod
     def get_all_materials_list():
-        """Return all materials (active + inactive) serialized for the Admin dashboard."""
         items = Material.objects.all().order_by('name')
         return None, MaterialAdminSerializer(items, many=True).data
 
     @staticmethod
     def get_all_active_materials_list():
-        """Return only active materials serialized for customer-facing endpoints."""
         items = Material.objects.filter(is_active=True).order_by('name')
         return None, MaterialCustomerSerializer(items, many=True).data
 
     @staticmethod
     def get_material_by_id(material_id):
-        """Return a single material by its primary key."""
         item = Material.objects.filter(id=material_id).first()
         return (None, MaterialAdminSerializer(item).data) if item else ('Not found', None)
 
     @staticmethod
     def create_material(data):
-        """Create a new material record."""
         try:
             with transaction.atomic():
                 item = Material.objects.create(**data)
@@ -664,7 +544,6 @@ class MaterialRepository:
 
     @staticmethod
     def update_material(material_id, data):
-        """Apply a partial update to a material record."""
         item = Material.objects.filter(id=material_id).first()
         if not item:
             return 'Not found', None
@@ -679,13 +558,11 @@ class MaterialRepository:
 
     @staticmethod
     def deactivate_material(material_id):
-        """Soft-delete a material by marking it inactive."""
         updated = Material.objects.filter(id=material_id).update(is_active=False)
         return (None, {'id': material_id}) if updated else ('Not found', None)
 
     @staticmethod
     def search_active_materials(query, limit=5):
-        """Partial name search across active materials."""
         items = Material.objects.filter(is_active=True, name__icontains=query).order_by('name')[:limit]
         return MaterialCustomerSerializer(items, many=True).data
 
@@ -693,25 +570,21 @@ class MaterialRepository:
 class DietyRepository:
     @staticmethod
     def get_all_deities_list():
-        """Return all deities (active + inactive) serialized for the Admin dashboard."""
-        items = Diety.objects.prefetch_related('diety_image__image').all().order_by('display_order', 'name')
+        items = Diety.objects.select_related('diety_image__image').all().order_by('display_order', 'name')
         return None, DietyAdminSerializer(items, many=True).data
 
     @staticmethod
     def get_all_active_deities_list():
-        """Return only active deities serialized for customer-facing endpoints."""
-        items = Diety.objects.prefetch_related('diety_image__image').filter(is_active=True).order_by('display_order', 'name')
+        items = Diety.objects.select_related('diety_image__image').filter(is_active=True).order_by('display_order', 'name')
         return None, DietyCustomerSerializer(items, many=True).data
 
     @staticmethod
     def get_deity_by_id(deity_id):
-        """Return a single deity by its primary key."""
-        item = Diety.objects.prefetch_related('diety_image__image').filter(id=deity_id).first()
+        item = Diety.objects.select_related('diety_image__image').filter(id=deity_id).first()
         return (None, DietyAdminSerializer(item).data) if item else ('Not found', None)
 
     @staticmethod
     def create_deity(data):
-        """Create a new deity record, validating and associating the given category IDs."""
         categories = data.pop('categories', [])
         if len(set(categories)) != Category.objects.filter(id__in=categories).count():
             return 'One or more categories do not exist.', None
@@ -725,7 +598,6 @@ class DietyRepository:
 
     @staticmethod
     def update_deity(deity_id, data):
-        """Apply a partial update to a deity record, re-syncing category associations when supplied."""
         categories = data.pop('categories', None)
         if categories is not None and len(set(categories)) != Category.objects.filter(id__in=categories).count():
             return 'One or more categories do not exist.', None
@@ -741,13 +613,11 @@ class DietyRepository:
                     item.categories.set(categories)
         except IntegrityError:
             return 'Deity name must be unique.', None
-        item = Diety.objects.prefetch_related('diety_image__image').get(id=deity_id)
+        item = Diety.objects.select_related('diety_image__image').get(id=deity_id)
         return None, DietyAdminSerializer(item).data
 
     @staticmethod
     def set_deity_image(deity_id, image_data):
-        """Create or replace the DietyImage for a deity. Marks the upload session attached."""
-        from app.common.repositories import UploadRepository
         diety = Diety.objects.filter(id=deity_id).first()
         if not diety:
             return 'Deity not found.', None
@@ -761,25 +631,22 @@ class DietyRepository:
                 width=image_data.get('width'),
                 height=image_data.get('height'),
             )
-            old_di = DietyImage.objects.filter(diety=diety).select_related('image').first()
+            old_link = DietyImage.objects.filter(diety=diety).select_related('image').first()
             DietyImage.objects.filter(diety=diety).delete()
             DietyImage.objects.create(diety=diety, image=image_obj)
-            if old_di and not DietyImage.objects.filter(image=old_di.image).exists():
-                old_di.image.delete()
-        # Mark the upload session as attached (prevents cleanup from deleting the R2 object)
-        if image_data.get('object_key'):
-            UploadRepository.mark_attached(image_data['object_key'])
-        diety = Diety.objects.prefetch_related('diety_image__image').get(id=deity_id)
+            if old_link and not DietyImage.objects.filter(image=old_link.image).exists():
+                old_link.image.delete()
+        diety = Diety.objects.select_related('diety_image__image').get(id=deity_id)
         return None, DietyAdminSerializer(diety).data
 
     @staticmethod
     def deactivate_deity(deity_id):
-        """Soft-delete a deity by marking it inactive."""
         updated = Diety.objects.filter(id=deity_id).update(is_active=False)
         return (None, {'id': deity_id}) if updated else ('Not found', None)
 
     @staticmethod
     def search_active_deities(query, limit=5):
-        """Partial name search across active deities."""
-        items = Diety.objects.prefetch_related('diety_image__image').filter(is_active=True, name__icontains=query).order_by('display_order', 'name')[:limit]
+        items = Diety.objects.select_related('diety_image__image').filter(
+            is_active=True, name__icontains=query
+        ).order_by('display_order', 'name')[:limit]
         return DietyCustomerSerializer(items, many=True).data
