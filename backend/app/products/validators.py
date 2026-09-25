@@ -3,6 +3,7 @@ from rest_framework import serializers
 from app.products.enums import Availability, ProductSort, ProductStatus, SalesMode
 from framework.utils import enum_choices
 
+
 class ProductRequestValidator(serializers.Serializer):
     category = serializers.IntegerField(min_value=1, required=False)
     material = serializers.IntegerField(min_value=1, required=False)
@@ -17,17 +18,6 @@ class ProductRequestValidator(serializers.Serializer):
         allow_empty=True,
         default=list,
     )
-
-    def validate_keywords(self, value):
-        # Strip whitespace, drop blanks, deduplicate while preserving order
-        seen = set()
-        cleaned = []
-        for kw in value:
-            kw = kw.strip()
-            if kw and kw.lower() not in seen:
-                seen.add(kw.lower())
-                cleaned.append(kw)
-        return cleaned
     is_featured = serializers.BooleanField(required=False)
     availability = serializers.ChoiceField(
         choices=enum_choices(Availability), required=False,
@@ -46,6 +36,16 @@ class ProductRequestValidator(serializers.Serializer):
     original_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     selling_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     gst = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+
+    def validate_keywords(self, value):
+        seen = set()
+        cleaned = []
+        for keyword in value:
+            keyword = keyword.strip()
+            if keyword and keyword.lower() not in seen:
+                seen.add(keyword.lower())
+                cleaned.append(keyword)
+        return cleaned
 
     def validate(self, attrs):
         if attrs.get('deity') and attrs.get('diety') and attrs['deity'] != attrs['diety']:
@@ -74,7 +74,6 @@ class ProductListValidator(serializers.Serializer):
             if attrs['max_price'] < attrs['min_price']:
                 raise serializers.ValidationError('max_price must be greater than or equal to min_price.')
         return attrs
-
 
 
 class ProductImageFinalizeValidator(serializers.Serializer):
@@ -129,8 +128,7 @@ class DietyRequestValidator(serializers.Serializer):
         return value
 
 
-class ProductImageUploadUrlValidator(serializers.Serializer):
-    """Validates a request to generate a presigned upload URL for a product image."""
+class ImageUploadUrlValidator(serializers.Serializer):
     content_type = serializers.ChoiceField(choices=('image/jpeg', 'image/png', 'image/webp'))
     file_size = serializers.IntegerField(min_value=1)
     filename = serializers.CharField(max_length=255, required=False, allow_blank=True)
@@ -141,20 +139,10 @@ class ProductImageUploadUrlValidator(serializers.Serializer):
         return value
 
 
-class CategoryImageUploadUrlValidator(serializers.Serializer):
-    """Validates a request to generate a presigned upload URL for a category image."""
-    content_type = serializers.ChoiceField(choices=('image/jpeg', 'image/png', 'image/webp'))
-    file_size = serializers.IntegerField(min_value=1)
-    filename = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
-    def validate_filename(self, value):
-        if value and ('/' in value or '\\' in value or value.startswith('.')):
-            raise serializers.ValidationError('Use a plain filename without path characters.')
-        return value
 
 
 class CategoryImageFinalizeValidator(serializers.Serializer):
-    """Validates a request to finalize (attach) a category image upload."""
     object_key = serializers.RegexField(
         regex=r'^category-images/[a-f0-9]{32}\.(jpg|jpeg|png|webp)$',
         max_length=500,
@@ -162,20 +150,7 @@ class CategoryImageFinalizeValidator(serializers.Serializer):
     alt_text = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
 
-class DeityImageUploadUrlValidator(serializers.Serializer):
-    """Validates a request to generate a presigned upload URL for a deity image."""
-    content_type = serializers.ChoiceField(choices=('image/jpeg', 'image/png', 'image/webp'))
-    file_size = serializers.IntegerField(min_value=1)
-    filename = serializers.CharField(max_length=255, required=False, allow_blank=True)
-
-    def validate_filename(self, value):
-        if value and ('/' in value or '\\' in value or value.startswith('.')):
-            raise serializers.ValidationError('Use a plain filename without path characters.')
-        return value
-
-
 class DietyImageFinalizeValidator(serializers.Serializer):
-    """Validates a request to finalize (attach) a deity image upload."""
     object_key = serializers.RegexField(
         regex=r'^deity-images/[a-f0-9]{32}\.(jpg|jpeg|png|webp)$',
         max_length=500,

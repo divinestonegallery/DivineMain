@@ -1,3 +1,6 @@
+from django.core.cache import cache
+
+from app.applicationmodule.constants import HOME_CACHE_KEY
 from app.reviews.repositories.review_repository import ReviewRepository
 
 
@@ -9,8 +12,14 @@ class ReviewAdminService:
     @staticmethod
     def update_status(review_id, review_status):
         review = ReviewRepository.update_status(review_id, review_status)
-        return (None, review) if review else ('Review not found.', None)
+        if not review:
+            return 'Review not found.', None
+        cache.delete(HOME_CACHE_KEY)
+        return None, review
 
     @staticmethod
     def delete(review_id):
-        return (None, {'id': review_id, 'deleted': True}) if ReviewRepository.delete(review_id) else ('Review not found.', None)
+        if not ReviewRepository.delete(review_id):
+            return 'Review not found.', None
+        cache.delete(HOME_CACHE_KEY)
+        return None, {'id': review_id, 'deleted': True}

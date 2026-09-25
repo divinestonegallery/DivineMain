@@ -115,3 +115,7 @@ def _get_jwks_client(jwks_url, timeout):
         lifespan=300,
         timeout=timeout,
     )
+
+
+# Framework base views depend on this name so they do not import Clerk.
+ApplicationAuthentication = ClerkAuthentication

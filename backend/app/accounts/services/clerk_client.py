@@ -242,6 +242,61 @@ class ClerkClient:
         return cls._format_error(response, default_msg='Failed to create sign-in token.')
 
     @classmethod
+    def create_invitation(cls, email, role, redirect_url):
+        """Create a Clerk invitation for a staff member."""
+        headers = cls._get_headers()
+        if not headers:
+            return 'Clerk secret key is not configured.', None
+
+        try:
+            response = requests.post(
+                f'{cls.BASE_URL}/invitations',
+                headers=headers,
+                json={
+                    'email_address': email,
+                    'redirect_url': redirect_url,
+                    'public_metadata': {'role': role},
+                    'notify': True,
+                },
+                timeout=10,
+            )
+        except requests.RequestException as exc:
+            logger.error("Failed to connect to Clerk create_invitation: %s", exc)
+            return 'Unable to contact Clerk. Please try again.', None
+
+        if response.status_code in (200, 201):
+            return None, response.json()
+
+        if response.status_code == 429:
+            return 'Clerk invitation limit reached. Please retry later.', None
+        if response.status_code in (400, 409, 422):
+            return 'This email is already registered or invited.', None
+        return cls._format_error(response, default_msg='Clerk could not create the invitation.')
+
+    @classmethod
+    def update_user_public_metadata(cls, user_id, public_metadata):
+        """Replace public metadata on a Clerk user."""
+        headers = cls._get_headers()
+        if not headers:
+            return 'Clerk secret key is not configured.', None
+
+        try:
+            response = requests.patch(
+                f'{cls.BASE_URL}/users/{user_id}/metadata',
+                headers=headers,
+                json={'public_metadata': public_metadata},
+                timeout=10,
+            )
+        except requests.RequestException as exc:
+            logger.error("Failed to connect to Clerk update_user_public_metadata: %s", exc)
+            return 'Unable to synchronize the role with Clerk. No local change was made.', None
+
+        if response.status_code in (200, 201):
+            return None, response.json()
+
+        return 'Clerk rejected the role update. No local change was made.', None
+
+    @classmethod
     def revoke_session(cls, session_id):
         """Revoke a Clerk session."""
         headers = cls._get_headers()

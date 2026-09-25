@@ -37,11 +37,45 @@ def boolean_environment(name, default=False):
 # ignored .env file.
 DEBUG = boolean_environment('DEBUG', False)
 IS_TESTING = 'test' in sys.argv
+ENVIRONMENT = os.getenv('ENVIRONMENT', '').strip().lower()
+if ENVIRONMENT not in {'local', 'dev', 'prod'}:
+    # Unset ENVIRONMENT keeps current production hosts working when DEBUG is off.
+    ENVIRONMENT = 'dev' if DEBUG else 'prod'
+
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'default-insecure-key-for-dev')
-ALLOWED_HOSTS = csv_environment(
-    'ALLOWED_HOSTS',
-    'divinestonegallery.com,www.divinestonegallery.com,localhost,127.0.0.1',
-)
+
+# Same idea as Travel Lykke: prod and non-prod use different host/CORS defaults.
+# Env vars still override these lists when set.
+if ENVIRONMENT == 'prod':
+    _DEFAULT_ALLOWED_HOSTS = (
+        'api.divinestonegallery.com,'
+        'divinestonegallery.com,'
+        'www.divinestonegallery.com'
+    )
+    _DEFAULT_CORS_ORIGINS = (
+        'https://divinestonegallery.com,'
+        'https://www.divinestonegallery.com'
+    )
+    _DEFAULT_CLERK_AUTHORIZED_PARTIES = _DEFAULT_CORS_ORIGINS
+    _DEFAULT_INVITATION_REDIRECT_URL = 'https://divinestonegallery.com/sign-up'
+else:
+    _DEFAULT_ALLOWED_HOSTS = (
+        'dev-api.divinestonegallery.com,'
+        'localhost,'
+        '127.0.0.1'
+    )
+    _DEFAULT_CORS_ORIGINS = (
+        'https://dev.divinestonegallery.com,'
+        'https://www.dev.divinestonegallery.com'
+    )
+    _DEFAULT_CLERK_AUTHORIZED_PARTIES = (
+        f'{_DEFAULT_CORS_ORIGINS},'
+        'http://localhost:3000,'
+        'http://127.0.0.1:3000'
+    )
+    _DEFAULT_INVITATION_REDIRECT_URL = 'https://dev.divinestonegallery.com/sign-up'
+
+ALLOWED_HOSTS = csv_environment('ALLOWED_HOSTS', _DEFAULT_ALLOWED_HOSTS)
 APPEND_SLASH = False
 
 # Application definition
@@ -143,11 +177,8 @@ STATIC_ROOT = BASE_DIR / 'static'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Browser origins allowed to call this API.
-CORS_ALLOWED_ORIGINS = csv_environment(
-    'CORS_ALLOWED_ORIGINS',
-    'https://divinestonegallery.com,https://www.divinestonegallery.com',
-)
-if DEBUG:
+CORS_ALLOWED_ORIGINS = csv_environment('CORS_ALLOWED_ORIGINS', _DEFAULT_CORS_ORIGINS)
+if DEBUG or ENVIRONMENT == 'local':
     for local_origin in ('http://localhost:3000', 'http://127.0.0.1:3000'):
         if local_origin not in CORS_ALLOWED_ORIGINS:
             CORS_ALLOWED_ORIGINS.append(local_origin)
@@ -201,7 +232,7 @@ CLERK_JWT_KEY = optional_environment('CLERK_JWT_KEY')
 CLERK_JWT_AUDIENCE = optional_environment('CLERK_JWT_AUDIENCE')
 CLERK_AUTHORIZED_PARTIES = set(csv_environment(
     'CLERK_AUTHORIZED_PARTIES',
-    'https://divinestonegallery.com,https://www.divinestonegallery.com,http://localhost:3000,http://127.0.0.1:3000',
+    _DEFAULT_CLERK_AUTHORIZED_PARTIES,
 ))
 CLERK_JWKS_TIMEOUT_SECONDS = float(os.getenv('CLERK_JWKS_TIMEOUT_SECONDS', '5'))
 CLERK_JWT_LEEWAY_SECONDS = int(os.getenv('CLERK_JWT_LEEWAY_SECONDS', '5'))
@@ -211,7 +242,7 @@ ADMIN_EMAILS = {
 }
 CLERK_INVITATION_REDIRECT_URL = os.getenv(
     'CLERK_INVITATION_REDIRECT_URL',
-    'https://divinestonegallery.com/sign-up',
+    _DEFAULT_INVITATION_REDIRECT_URL,
 )
 
 # Cloudflare R2

@@ -15,9 +15,6 @@ def _build_price(obj):
     - gst_price          : GST rupee amount = selling_price - price_before_gst
                            sourced from the first active variant
     """
-    original  = obj.original_price
-    selling   = obj.selling_price
-    discount  = obj.discount_percentage
 
     gst_price = None
     if hasattr(obj, '_variant_price_before_gst'):
@@ -29,14 +26,14 @@ def _build_price(obj):
         else:
             variant = next((item for item in prefetched_variants if item.is_active), None)
         price_before_gst = variant.price_before_gst if variant else None
-    if price_before_gst and selling:
-        gst_price = (selling - price_before_gst).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    if price_before_gst and obj.selling_price:
+        gst_price = (obj.selling_price - price_before_gst).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
     return {
-        'original_price':      original,
-        'selling_price':       selling,
-        'discount_percentage': discount,
-        'gst_price':           gst_price,
+        'original_price': obj.original_price,
+        'selling_price': obj.selling_price,
+        'discount_percentage': obj.discount_percentage,
+        'gst_price': gst_price,
     }
 
 

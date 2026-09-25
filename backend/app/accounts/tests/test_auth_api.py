@@ -1,11 +1,13 @@
 import json
 from unittest.mock import patch
 
+import jwt
 from django.test import TestCase
 from rest_framework.test import APIClient
 
 from app.accounts.models import Customer
 from app.accounts.serializers import CustomerSerializer
+from app.accounts.services.auth_service import AuthService
 from app.common.token_service import TokenService
 
 
@@ -252,3 +254,34 @@ class AuthAPITests(TestCase):
         data = response.json()
         self.assertTrue(data['success'])
         self.assertEqual(data['data']['message'], 'Logged out successfully.')
+
+    def test_logout_revokes_clerk_session_when_token_has_sid(self):
+        customer = Customer.objects.create(
+            clerk_user_id=self.test_clerk_id,
+            email=self.test_email,
+        )
+        token = jwt.encode({'sid': 'sess_123', 'sub': self.test_clerk_id}, 'unused', algorithm='HS256')
+        with patch(
+            'app.accounts.services.auth_service.ClerkClient.revoke_session',
+            return_value=(None, {}),
+        ) as revoke:
+            error, data = AuthService.logout(customer.id, token=token)
+        self.assertIsNone(error)
+        self.assertEqual(data['message'], 'Logged out successfully.')
+        revoke.assert_called_once_with('sess_123')
+
+    def test_logout_skips_clerk_revoke_for_backend_tokens(self):
+        customer = Customer.objects.create(
+            clerk_user_id=self.test_clerk_id,
+            email=self.test_email,
+        )
+        customer_dict = CustomerSerializer(customer).data
+        access_token = TokenService.generate_access_token(customer_dict)
+        with patch(
+            'app.accounts.services.auth_service.ClerkClient.revoke_session',
+            return_value=(None, {}),
+        ) as revoke:
+            error, data = AuthService.logout(customer.id, token=access_token)
+        self.assertIsNone(error)
+        self.assertEqual(data['message'], 'Logged out successfully.')
+        revoke.assert_not_called()
