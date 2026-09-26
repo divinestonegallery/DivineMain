@@ -42,38 +42,62 @@ if ENVIRONMENT not in {'local', 'dev', 'prod'}:
     # Unset ENVIRONMENT keeps current production hosts working when DEBUG is off.
     ENVIRONMENT = 'dev' if DEBUG else 'prod'
 
+# One codebase, two processes. Travel Lykke selects this with DEPLOYMENT_MODE.
+# Default consumer keeps the public API as the process that starts when unset.
+DEPLOYMENT_MODE = os.getenv('DEPLOYMENT_MODE', 'consumer').strip().lower()
+if DEPLOYMENT_MODE not in {'consumer', 'admin'}:
+    DEPLOYMENT_MODE = 'consumer'
+
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'default-insecure-key-for-dev')
 
-# Same idea as Travel Lykke: prod and non-prod use different host/CORS defaults.
-# Env vars still override these lists when set.
-if ENVIRONMENT == 'prod':
-    _DEFAULT_ALLOWED_HOSTS = (
-        'api.divinestonegallery.com,'
-        'divinestonegallery.com,'
-        'www.divinestonegallery.com'
-    )
-    _DEFAULT_CORS_ORIGINS = (
-        'https://divinestonegallery.com,'
-        'https://www.divinestonegallery.com'
-    )
-    _DEFAULT_CLERK_AUTHORIZED_PARTIES = _DEFAULT_CORS_ORIGINS
-    _DEFAULT_INVITATION_REDIRECT_URL = 'https://divinestonegallery.com/sign-up'
+# Hosts and browser origins differ by deployment and by dev/prod.
+# ALLOWED_HOSTS and CORS_ALLOWED_ORIGINS still override these defaults.
+if DEPLOYMENT_MODE == 'admin':
+    if ENVIRONMENT == 'prod':
+        _DEFAULT_ALLOWED_HOSTS = 'admin-api.divinestonegallery.com'
+        _DEFAULT_CORS_ORIGINS = (
+            'https://divinestonegallery.com,'
+            'https://www.divinestonegallery.com'
+        )
+        _DEFAULT_INVITATION_REDIRECT_URL = 'https://divinestonegallery.com/sign-up'
+    else:
+        _DEFAULT_ALLOWED_HOSTS = 'admin-api.divinestonegallery.com,localhost,127.0.0.1'
+        _DEFAULT_CORS_ORIGINS = (
+            'https://dev.divinestonegallery.com,'
+            'https://www.dev.divinestonegallery.com'
+        )
+        _DEFAULT_INVITATION_REDIRECT_URL = 'https://dev.divinestonegallery.com/sign-up'
 else:
-    _DEFAULT_ALLOWED_HOSTS = (
-        'dev-api.divinestonegallery.com,'
-        'localhost,'
-        '127.0.0.1'
-    )
-    _DEFAULT_CORS_ORIGINS = (
-        'https://dev.divinestonegallery.com,'
-        'https://www.dev.divinestonegallery.com'
-    )
+    if ENVIRONMENT == 'prod':
+        _DEFAULT_ALLOWED_HOSTS = (
+            'api.divinestonegallery.com,'
+            'divinestonegallery.com,'
+            'www.divinestonegallery.com'
+        )
+        _DEFAULT_CORS_ORIGINS = (
+            'https://divinestonegallery.com,'
+            'https://www.divinestonegallery.com'
+        )
+        _DEFAULT_INVITATION_REDIRECT_URL = 'https://divinestonegallery.com/sign-up'
+    else:
+        _DEFAULT_ALLOWED_HOSTS = (
+            'dev-api.divinestonegallery.com,'
+            'localhost,'
+            '127.0.0.1'
+        )
+        _DEFAULT_CORS_ORIGINS = (
+            'https://dev.divinestonegallery.com,'
+            'https://www.dev.divinestonegallery.com'
+        )
+        _DEFAULT_INVITATION_REDIRECT_URL = 'https://dev.divinestonegallery.com/sign-up'
+
+_DEFAULT_CLERK_AUTHORIZED_PARTIES = _DEFAULT_CORS_ORIGINS
+if ENVIRONMENT != 'prod':
     _DEFAULT_CLERK_AUTHORIZED_PARTIES = (
         f'{_DEFAULT_CORS_ORIGINS},'
         'http://localhost:3000,'
         'http://127.0.0.1:3000'
     )
-    _DEFAULT_INVITATION_REDIRECT_URL = 'https://dev.divinestonegallery.com/sign-up'
 
 ALLOWED_HOSTS = csv_environment('ALLOWED_HOSTS', _DEFAULT_ALLOWED_HOSTS)
 APPEND_SLASH = False
@@ -112,7 +136,9 @@ MIDDLEWARE = [
     'app.common.middlewares.logging_middleware.ObservabilityMiddleware',
 ]
 
-ROOT_URLCONF = 'divine_main.urls'
+ROOT_URLCONF = (
+    'divine_main.urls_admin' if DEPLOYMENT_MODE == 'admin' else 'divine_main.urls_consumer'
+)
 
 TEMPLATES = [
     {

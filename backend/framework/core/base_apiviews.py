@@ -36,12 +36,6 @@ class AdminAPIView(BaseAPIView):
     permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
 
-class ServiceAuthenticatedAPIView(AdminAPIView):
-    """Deprecated compatibility alias. New admin views should use AdminAPIView."""
-
-    pass
-
-
 class OwnerAPIView(BaseAPIView):
     """API View restricted to active administrators."""
 
