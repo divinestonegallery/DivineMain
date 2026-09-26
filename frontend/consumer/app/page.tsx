@@ -367,7 +367,7 @@ function SubcategoriesSection({
   subcategories: TaxonomyItem[];
 }) {
   return (
-    <section className={styles.categorySection}>
+    <section className={`${styles.categorySection} ${styles.surfaceSection}`}>
       <div className="site-container">
         <SectionHeading
           title={title}
@@ -419,7 +419,7 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
     : 0;
 
   return (
-    <section className={styles.reviewsSection}>
+    <section className={`${styles.reviewsSection} ${styles.surfaceSection}`}>
       <div className="site-container">
         <SectionHeading
           title="Customer Reviews"

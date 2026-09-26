@@ -35,11 +35,6 @@ function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0]?.trim() ?? "" : value?.trim() ?? "";
 }
 
-function positivePage(value: string) {
-  const page = Number.parseInt(value, 10);
-  return Number.isFinite(page) && page > 0 ? page : 1;
-}
-
 function priceParam(value: string) {
   if (!value) return undefined;
   const price = Number(value);
@@ -49,7 +44,7 @@ function priceParam(value: string) {
 function shopFiltersFromSearchParams(params: Record<string, string | string[] | undefined>) {
   const query = firstParam(params.q) || firstParam(params.search);
   const sort = firstParam(params.sort);
-  const page = positivePage(firstParam(params.page));
+  const page = 1;
   const category = firstParam(params.category);
   const deity = firstParam(params.deity);
   const material = firstParam(params.material);

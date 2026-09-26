@@ -21,9 +21,9 @@
 .outline:hover:not(:disabled), .ghost:hover:not(:disabled) { background: var(--surface-muted); }
 .ghost { color: var(--foreground); background: transparent; }
 .danger { color: white; background: var(--danger); }
-.sm { min-height: 36px; padding-inline: 0.9rem; font-size: 0.75rem; }
-.md { min-height: 44px; padding-inline: 1.2rem; font-size: 0.82rem; }
-.lg { min-height: 50px; padding-inline: 1.5rem; font-size: 0.88rem; }
+.sm { min-height: 36px; padding-inline: 0.9rem; font-size: var(--text-caption); }
+.md { min-height: 44px; padding-inline: 1.2rem; font-size: var(--text-button); }
+.lg { min-height: 50px; padding-inline: 1.5rem; font-size: var(--text-button); }
 .icon { width: 44px; height: 44px; padding: 0; }
 
 .badge {
