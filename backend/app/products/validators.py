@@ -16,7 +16,6 @@ class ProductRequestValidator(serializers.Serializer):
         child=serializers.CharField(max_length=100),
         required=False,
         allow_empty=True,
-        default=list,
     )
     is_featured = serializers.BooleanField(required=False)
     availability = serializers.ChoiceField(

@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# DEPLOYMENT_MODE (consumer|admin) is read by divine_main.settings.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'divine_main.settings')
 
 application = get_wsgi_application()

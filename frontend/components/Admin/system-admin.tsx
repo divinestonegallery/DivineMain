@@ -65,7 +65,7 @@ export function StaffSecurityAdmin() {
     try {
       const [staffPayload, auditPayload] = await Promise.all([
         apiRequest<ListResponse<StaffMember>>("/api/admin/staff?page_size=50"),
-        apiRequest<ListResponse<AuditLog>>("/api/v1/common/operations/audit-logs?page_size=30"),
+        apiRequest<ListResponse<AuditLog>>("/api/admin/operations/audit-logs?page_size=30"),
       ]);
       setStaff(staffPayload.items ?? []);
       setAudit(auditPayload.items ?? []);

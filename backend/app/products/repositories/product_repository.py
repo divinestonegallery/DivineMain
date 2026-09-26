@@ -13,6 +13,7 @@ from app.products.serializers.admin import (
     CategoryAdminSerializer,
     DietyAdminSerializer,
     MaterialAdminSerializer,
+    ProductAdminListSerializer,
     ProductAdminSerializer,
     ProductImageAdminSerializer,
 )
@@ -28,10 +29,13 @@ logger = logging.getLogger(__name__)
 
 
 def _pagination(queryset, page, page_size, serializer_class):
-    total = queryset.count()
     start = (page - 1) * page_size
+    rows = list(
+        queryset.annotate(_total_items=Window(expression=Count('id')))[start:start + page_size]
+    )
+    total = rows[0]._total_items if rows else queryset.count()
     return {
-        'items': serializer_class(queryset[start:start + page_size], many=True).data,
+        'items': serializer_class(rows, many=True).data,
         'pagination': {
             'page': page,
             'page_size': page_size,
@@ -45,9 +49,7 @@ def _product_queryset(public=False):
     images = ProductImage.objects.select_related('image').order_by('display_order', 'id')
     variants = ProductVariant.objects.order_by('display_order', 'id')
     queryset = Product.objects.select_related(
-        'category', 'category__category_image__image',
-        'material',
-        'diety', 'diety__diety_image__image',
+        'category', 'material', 'diety',
     ).prefetch_related(
         Prefetch('images', queryset=images),
         Prefetch('variants', queryset=variants),
@@ -67,10 +69,11 @@ def _product_queryset(public=False):
 class ProductRepository:
     @staticmethod
     def get_admin_product_list(params):
-        queryset = _product_queryset()
+        images = ProductImage.objects.select_related('image').order_by('display_order', 'id')
+        queryset = Product.objects.prefetch_related(Prefetch('images', queryset=images))
         queryset = ProductRepository._apply_filters(queryset, params, include_status=True)
         queryset = ProductRepository._apply_sort(queryset, params['sort'])
-        return _pagination(queryset, params['page'], params['page_size'], ProductAdminSerializer)
+        return _pagination(queryset, params['page'], params['page_size'], ProductAdminListSerializer)
 
     @staticmethod
     def get_product_list(filters=None, sort='display_order', offset=0, limit=24):
@@ -172,6 +175,10 @@ class ProductRepository:
         return ProductAdminSerializer(product).data if product else None
 
     @staticmethod
+    def get_writable_product(product_id):
+        return Product.objects.filter(id=product_id).first()
+
+    @staticmethod
     def product_exists(product_id):
         return Product.objects.filter(id=product_id).exists()
 
@@ -207,17 +214,13 @@ class ProductRepository:
         data.pop('deity', None)
         data['diety_id'] = diety_id
         try:
-            with transaction.atomic():
-                product = Product.objects.create(**data)
+            product = Product.objects.create(**data)
         except IntegrityError:
             return 'A product with the generated URL already exists.', None
-        return None, ProductAdminSerializer(product).data
+        return None, ProductAdminListSerializer(product).data
 
     @staticmethod
-    def update(product_id, data):
-        product = Product.objects.filter(id=product_id).first()
-        if not product:
-            return 'Product not found.', None
+    def update(product, data):
         relation_fields = {'category', 'material', 'diety'}
         for key, value in data.items():
             if key == 'deity':
@@ -227,11 +230,12 @@ class ProductRepository:
             else:
                 setattr(product, key, value)
         try:
-            with transaction.atomic():
-                product.save()
+            product.save()
         except IntegrityError:
             return 'A product with the generated URL already exists.', None
-        return None, ProductAdminSerializer(_product_queryset().get(id=product.id)).data
+        images = ProductImage.objects.select_related('image').order_by('display_order', 'id')
+        saved = Product.objects.prefetch_related(Prefetch('images', queryset=images)).get(id=product.id)
+        return None, ProductAdminListSerializer(saved).data
 
     @staticmethod
     def archive(product_id):
@@ -247,12 +251,16 @@ class ProductRepository:
         if not product:
             return None
         diety_active = product.diety is None or product.diety.is_active
+        images = ProductImage.objects.filter(product_id=product_id).aggregate(
+            image_count=Count('id'),
+            cover_count=Count('id', filter=Q(cover_photo=True)),
+        )
         return {
             'status': product.status,
             'sales_mode': product.sales_mode,
             'taxonomy_active': product.category.is_active and product.material.is_active and diety_active,
-            'has_cover': ProductImage.objects.filter(product_id=product_id, cover_photo=True).exists(),
-            'image_count': ProductImage.objects.filter(product_id=product_id).count(),
+            'has_cover': images['cover_count'] > 0,
+            'image_count': images['image_count'],
         }
 
     @staticmethod

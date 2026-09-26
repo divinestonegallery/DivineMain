@@ -65,19 +65,20 @@ class ProductAdminService:
 
     @staticmethod
     def update_product(product_id, data):
-        current = ProductRepository.get_admin_product_by_id(product_id)
-        if not current:
+        product = ProductRepository.get_writable_product(product_id)
+        if not product:
             return 'Product not found.', None
-        taxonomy = ProductRepository.taxonomy_is_valid(
-            data.get('category', current['category']),
-            data.get('material', current['material']),
-            data.get('diety', current.get('deity')),
-        )
-        invalid = [name for name, valid in taxonomy.items() if not valid]
-        if invalid:
-            return f"Invalid or inactive taxonomy: {', '.join(invalid)}.", None
-        target_status = data.get('status', current['status'])
-        if target_status == ProductStatus.ACTIVE.value:
+        if any(field in data for field in ('category', 'material', 'diety')):
+            taxonomy = ProductRepository.taxonomy_is_valid(
+                data.get('category', product.category_id),
+                data.get('material', product.material_id),
+                data.get('diety', product.diety_id),
+            )
+            invalid = [name for name, valid in taxonomy.items() if not valid]
+            if invalid:
+                return f"Invalid or inactive taxonomy: {', '.join(invalid)}.", None
+        target_status = data.get('status', product.status)
+        if target_status == ProductStatus.ACTIVE.value and product.status != ProductStatus.ACTIVE.value:
             error = ProductAdminService._publish_error(product_id)
             if error:
                 return error, None
@@ -86,10 +87,10 @@ class ProductAdminService:
         if 'status' in payload:
             payload['is_active'] = payload['status'] != ProductStatus.ARCHIVED.value
         payload['discount_percentage'] = ProductAdminService._discount_percentage(
-            payload.get('original_price', current['original_price']),
-            payload.get('selling_price', current['selling_price']),
+            payload.get('original_price', product.original_price),
+            payload.get('selling_price', product.selling_price),
         )
-        result = ProductRepository.update(product_id, payload)
+        result = ProductRepository.update(product, payload)
         if result[0] is None:
             _flush_catalog_cache()
         return result
