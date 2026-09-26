@@ -6,6 +6,7 @@ from divine_main.views import HealthCheckView
 urlpatterns = [
     path('api/v1/health', HealthCheckView.as_view(), name='health'),
     path('api/v1/health/ready', ReadinessView.as_view(), name='readiness'),
+    path('api/v1/auth', include('app.accounts.urls_auth')),
 
     path('api/admin/products', include('app.products.urls_admin')),
     path('api/admin/reviews', include('app.reviews.urls_admin')),

@@ -1,0 +1,33 @@
+// @ts-nocheck
+import { ReactNode } from "react";
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { CookieConsent } from "@/components/layout/cookie-consent";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { SiteHeader } from "@/components/navigation/site-header";
+import { ToastProvider } from "@shared/components/toast";
+import styles from "./customer-page.module.css";
+
+export function CustomerPageShell({ title, eyebrow, intro, note, hideBreadcrumb, children }: { title: string; eyebrow: string; intro: string; note?: ReactNode; hideBreadcrumb?: boolean; children: ReactNode }) {
+  return (
+    <ToastProvider>
+      <SiteHeader />
+      <main id="main-content" tabIndex={-1}>
+        <section className={styles.hero}>
+          <div className="site-container">
+            {hideBreadcrumb ? null : <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: title }]} />}
+            <div className={styles.heroInner}>
+              <p className={styles.eyebrow}>{eyebrow}</p>
+              <h1 className="font-display">{title}</h1>
+              <p>{intro}</p>
+              {note ? <div className={styles.deviceNote}>{note}</div> : null}
+            </div>
+          </div>
+        </section>
+        {children}
+      </main>
+      <SiteFooter />
+      
+      <CookieConsent />
+    </ToastProvider>
+  );
+}
