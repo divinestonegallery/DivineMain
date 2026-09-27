@@ -22,8 +22,8 @@ RUN python manage.py collectstatic --noinput \
 
 USER django
 
-EXPOSE 8080
-ENV PORT=8080
+EXPOSE 8000
+ENV PORT=8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import os,urllib.request; url='http://127.0.0.1:%s/api/v1/health' % os.environ.get('PORT', '8080'); urllib.request.urlopen(urllib.request.Request(url, headers={'X-Forwarded-Proto':'https'}), timeout=3)"
