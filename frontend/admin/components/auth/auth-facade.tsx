@@ -86,8 +86,10 @@ export function ClerkProvider({ children, routerPush, afterSignOutUrl = "/" }: {
     try {
       setUser(await getCurrentUser());
     } catch {
-      clearAuthSession();
-      setUser(null);
+      // A 401 already removes the stored token. Navigation can abort this
+      // request while the token is still valid, and that must not sign the user out.
+      const tokenRemains = typeof window !== "undefined" && window.localStorage.getItem(ACCESS_TOKEN_KEY);
+      if (!tokenRemains) setUser(null);
     } finally {
       setIsLoaded(true);
     }
@@ -156,6 +158,12 @@ function authRedirect(fallback?: string) {
   return params.get("redirect_url") || params.get("redirect") || fallback || "/account";
 }
 
+function goToAuthenticatedPage(nextUrl: string) {
+  const current = `${window.location.pathname}${window.location.search}`;
+  if (nextUrl === current || nextUrl === window.location.pathname) return;
+  window.location.assign(nextUrl);
+}
+
 export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account" }: any) {
   const { signIn } = useContext(AuthContext);
   const [error, setError] = useState("");
@@ -172,7 +180,7 @@ export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account
 
     try {
       await signIn({ email: form.get("email"), password: form.get("password") });
-      window.location.href = authRedirect(fallbackRedirectUrl);
+      goToAuthenticatedPage(authRedirect(fallbackRedirectUrl));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Sign in failed.");
     } finally {
@@ -268,7 +276,7 @@ export function SignUp({ signInUrl = "/", fallbackRedirectUrl = "/account" }: an
         return;
       }
       await refresh();
-      window.location.href = authRedirect(fallbackRedirectUrl);
+      goToAuthenticatedPage(authRedirect(fallbackRedirectUrl));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Account creation failed.");
     } finally {
@@ -285,7 +293,7 @@ export function SignUp({ signInUrl = "/", fallbackRedirectUrl = "/account" }: an
     try {
       await verifySignup({ email: verifyEmail, code: form.get("code") });
       await refresh();
-      window.location.href = authRedirect(fallbackRedirectUrl);
+      goToAuthenticatedPage(authRedirect(fallbackRedirectUrl));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Verification failed.");
     } finally {
