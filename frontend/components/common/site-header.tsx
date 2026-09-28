@@ -140,7 +140,8 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const [megaMenuClosing, setMegaMenuClosing] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [dockedSearchVisible, setDockedSearchVisible] = useState(false);
+  const [searchDisplayMode, setSearchDisplayMode] = useState<"modal" | "docked">("modal");
+  const [dockedSearchPosition, setDockedSearchPosition] = useState({ top: 0, left: 12, width: 440 });
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<null | {
     products: SearchProductResult[];
@@ -153,13 +154,14 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const [deityLinks, setDeityLinks] = useState<ReadonlyArray<readonly [string, string]>>(defaultDeityLinks);
   const [isScrolled, setIsScrolled] = useState(false);
   const shopTriggerRef = useRef<HTMLButtonElement>(null);
+  const dockedSearchTriggerRef = useRef<HTMLButtonElement>(null);
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const searchPanelRef = useRef<HTMLElement>(null);
   const mobilePanelRef = useRef<HTMLDivElement>(null);
   const deityLinksLoadedRef = useRef(false);
   const searchTitleId = useId();
   const shopMenuId = useId();
-  const showDockedSearch = pathname === "/" ? dockedSearchVisible : true;
+  const isDockedSearchOpen = searchOpen && searchDisplayMode === "docked";
   const headerLogoSrc = pathname === "/" && !isScrolled ? "/brand/DSG-White.png" : "/brand/DSG-New.png";
   const isStaffUser = ["staff", "admin"].includes(profileRole(user));
 
@@ -175,6 +177,30 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const closeMegaMenu = useCallback(() => {
     if (megaMenuOpen && !megaMenuClosing) setMegaMenuClosing(true);
   }, [megaMenuClosing, megaMenuOpen]);
+
+  const positionDockedSearch = useCallback(() => {
+    const trigger = dockedSearchTriggerRef.current;
+    if (!trigger) return;
+
+    const bounds = trigger.getBoundingClientRect();
+    const width = Math.max(0, Math.min(440, window.innerWidth - 24, bounds.left - 24));
+    setDockedSearchPosition({
+      top: bounds.top,
+      left: Math.max(12, bounds.left - width - 12),
+      width,
+    });
+  }, []);
+
+  function toggleDockedSearch() {
+    if (isDockedSearchOpen) {
+      setSearchOpen(false);
+      return;
+    }
+
+    setSearchDisplayMode("docked");
+    positionDockedSearch();
+    setSearchOpen(true);
+  }
 
   useLayoutEffect(() => {
     const handleScroll = () => {
@@ -206,52 +232,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       });
     return () => { cancelled = true; };
   }, [megaMenuOpen]);
-
-  useEffect(() => {
-    if (pathname !== "/") return;
-
-    const heroSearch = document.querySelector<HTMLElement>("[data-hero-search]");
-    if (!heroSearch) {
-      const frame = window.requestAnimationFrame(() => setDockedSearchVisible(true));
-      return () => window.cancelAnimationFrame(frame);
-    }
-
-    let frame = 0;
-    const scheduleDockedSearchUpdate = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        const headerOffset = 84;
-        const rect = heroSearch.getBoundingClientRect();
-        setDockedSearchVisible(rect.bottom <= headerOffset || rect.top >= window.innerHeight);
-      });
-    };
-
-    scheduleDockedSearchUpdate();
-
-    if (typeof window.IntersectionObserver === "undefined") {
-      window.addEventListener("scroll", scheduleDockedSearchUpdate, { passive: true });
-      window.addEventListener("resize", scheduleDockedSearchUpdate);
-      return () => {
-        window.cancelAnimationFrame(frame);
-        window.removeEventListener("scroll", scheduleDockedSearchUpdate);
-        window.removeEventListener("resize", scheduleDockedSearchUpdate);
-      };
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        window.cancelAnimationFrame(frame);
-        frame = window.requestAnimationFrame(() => setDockedSearchVisible(!entry.isIntersecting));
-      },
-      { rootMargin: "-84px 0px 0px 0px", threshold: 0.1 },
-    );
-
-    observer.observe(heroSearch);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      observer.disconnect();
-    };
-  }, [pathname]);
 
   useEffect(() => {
     const query = searchQuery.trim();
@@ -287,9 +267,10 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   }, [searchOpen, searchQuery]);
 
   useEffect(() => {
-    const overlayOpen = mobileMenuOpen || searchOpen;
+    const overlayOpen = mobileMenuOpen || (searchOpen && !isDockedSearchOpen);
+    const focusManaged = mobileMenuOpen || searchOpen;
     document.body.style.overflow = overlayOpen ? "hidden" : "";
-    const previouslyFocused = overlayOpen && document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previouslyFocused = focusManaged && document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const panel = searchOpen ? searchPanelRef.current : mobileMenuOpen ? mobilePanelRef.current : null;
     const focusableSelector = "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])";
     const focusable = panel ? Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector)) : [];
@@ -319,9 +300,31 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
     return () => {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleEscape);
-      if (overlayOpen) previouslyFocused?.focus();
+      if (focusManaged) previouslyFocused?.focus();
     };
-  }, [closeMegaMenu, mobileMenuOpen, searchOpen]);
+  }, [closeMegaMenu, isDockedSearchOpen, mobileMenuOpen, searchOpen]);
+
+  useEffect(() => {
+    if (!isDockedSearchOpen) return;
+
+    const handleOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (searchPanelRef.current?.contains(target) || dockedSearchTriggerRef.current?.contains(target)) return;
+      setSearchOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handleOutsidePointer, true);
+    return () => document.removeEventListener("pointerdown", handleOutsidePointer, true);
+  }, [isDockedSearchOpen]);
+
+  useEffect(() => {
+    if (!isDockedSearchOpen) return;
+
+    positionDockedSearch();
+    window.addEventListener("resize", positionDockedSearch);
+    return () => window.removeEventListener("resize", positionDockedSearch);
+  }, [isDockedSearchOpen, positionDockedSearch]);
 
   useEffect(() => {
     if (!megaMenuOpen) return;
@@ -429,13 +432,16 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
             </nav>
 
             <button
-              className={`${styles.headerSearchPill} ${showDockedSearch ? styles.headerSearchPillVisible : ""}`.trim()}
+              className={`${styles.headerSearchPill} ${!isScrolled ? styles.headerSearchPillVisible : ""}`.trim()}
               type="button"
               aria-label="Search Divine Stone Gallery"
               aria-expanded={searchOpen}
-              aria-hidden={!showDockedSearch}
-              tabIndex={showDockedSearch ? 0 : -1}
-              onClick={() => setSearchOpen(true)}
+              aria-hidden={isScrolled}
+              tabIndex={isScrolled ? -1 : 0}
+              onClick={() => {
+                setSearchDisplayMode("modal");
+                setSearchOpen(true);
+              }}
             >
               <Search aria-hidden="true" size={19} strokeWidth={1.6} />
               <span>Search for Moorti</span>
@@ -446,6 +452,18 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           </div>
 
           <div className={styles.headerActions}>
+            <button
+              ref={dockedSearchTriggerRef}
+              className={`${styles.headerAction} ${styles.headerCompactSearch} ${isScrolled ? styles.headerCompactSearchVisible : ""}`.trim()}
+              type="button"
+              aria-label="Search Divine Stone Gallery"
+              aria-expanded={isDockedSearchOpen}
+              aria-hidden={!isScrolled}
+              tabIndex={isScrolled ? 0 : -1}
+              onClick={toggleDockedSearch}
+            >
+              <Search aria-hidden="true" size={20} strokeWidth={1.6} />
+            </button>
             <Link href="/custom-murti" className={`${styles.navLink} ${styles.desktopOnlyAction}`}>
               <Sparkles aria-hidden="true" size={18} strokeWidth={1.6} />
               <span>Customize Your Moorti</span>
@@ -526,15 +544,24 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       </header>
 
       {searchOpen ? (
-        <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby={searchTitleId}>
-          <button
-            className={styles.overlayBackdrop}
-            type="button"
-            aria-label="Close search"
-            onClick={() => setSearchOpen(false)}
-          />
-          <section className={styles.searchPanel} ref={searchPanelRef} tabIndex={-1}>
-            <div className="site-container">
+        <div
+          className={isDockedSearchOpen ? styles.dockedSearchPopover : styles.overlay}
+          role="dialog"
+          aria-modal={isDockedSearchOpen ? undefined : true}
+          aria-label={isDockedSearchOpen ? "Search Divine Stone Gallery" : undefined}
+          aria-labelledby={isDockedSearchOpen ? undefined : searchTitleId}
+          style={isDockedSearchOpen ? dockedSearchPosition : undefined}
+        >
+          {!isDockedSearchOpen ? (
+            <button
+              className={styles.overlayBackdrop}
+              type="button"
+              aria-label="Close search"
+              onClick={() => setSearchOpen(false)}
+            />
+          ) : null}
+          <section className={`${styles.searchPanel} ${isDockedSearchOpen ? styles.dockedSearchPanel : ""}`.trim()} ref={searchPanelRef} tabIndex={-1}>
+            <div className={`site-container ${isDockedSearchOpen ? styles.dockedSearchInner : ""}`.trim()}>
               <div className={styles.overlayHeading}>
                 <div>
                   <p>Find your moorti</p>
