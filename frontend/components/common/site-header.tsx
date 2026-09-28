@@ -432,12 +432,12 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
             </nav>
 
             <button
-              className={`${styles.headerSearchPill} ${!isScrolled ? styles.headerSearchPillVisible : ""}`.trim()}
+              className={styles.headerSearchPill}
               type="button"
               aria-label="Search Divine Stone Gallery"
               aria-expanded={searchOpen}
-              aria-hidden={isScrolled}
-              tabIndex={isScrolled ? -1 : 0}
+              aria-hidden="true"
+              tabIndex={-1}
               onClick={() => {
                 setSearchDisplayMode("modal");
                 setSearchOpen(true);
