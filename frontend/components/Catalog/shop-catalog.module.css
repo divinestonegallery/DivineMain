@@ -96,11 +96,11 @@
 
 .catalogSearch {
   display: grid;
-  grid-template-columns: auto minmax(120px, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   min-height: 44px;
   width: 350px;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.45rem;
   padding-inline: 0.9rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);

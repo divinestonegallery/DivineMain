@@ -16,7 +16,7 @@ import { FormEvent, MouseEvent, useCallback, useEffect, useId, useLayoutEffect, 
 import { AccountControl } from "@/components/Auth/account-control";
 import { AuthModal } from "@/components/Auth/auth-modal";
 import { useAuth, useUser } from "@/components/Auth/auth-facade";
-import { getCategories, getDeities, getHome, searchApplication } from "@/api/products";
+import { getDeities, getHome, searchApplication } from "@/api/products";
 import type { BackendProductImage, HomeData, TaxonomyItem } from "@/api/products";
 import styles from "./site-shell.module.css";
 
@@ -57,9 +57,11 @@ type SearchProductResult = {
   material?: string | null;
 };
 
+type SearchSuggestion = { label: string; href: string };
+
 let deityOptionsRequest: Promise<TaxonomyItem[]> | null = null;
-let searchSuggestionsRequest: Promise<string[]> | null = null;
-let cachedSearchSuggestions: string[] | null = null;
+let searchSuggestionsRequest: Promise<SearchSuggestion[]> | null = null;
+let cachedSearchSuggestions: SearchSuggestion[] | null = null;
 
 function loadDeityOptions() {
   if (!deityOptionsRequest) {
@@ -71,51 +73,43 @@ function loadDeityOptions() {
   return deityOptionsRequest;
 }
 
-function homeSearchValues(home: HomeData) {
-  const values: unknown[] = [];
-  for (const block of home.blocks ?? []) {
-    const data = block.data;
-    values.push(...(data.categories ?? []).map((item) => item.name));
-    values.push(...(data.subcategories ?? []).map((item) => item.name));
-    values.push(...(data.products ?? []).flatMap((product) => [product.deity, product.category, product.material]));
-    for (const group of data.deities ?? data.dieties ?? []) {
-      values.push(group.deity_name, group.diety_name);
-      values.push(...group.products.flatMap((product) => [product.deity, product.category, product.material]));
-    }
-  }
-  return values;
+function facetHref(facet: "deity", slug: string) {
+  return `/shop?${facet}=${encodeURIComponent(slug)}`;
 }
 
-function loadSearchSuggestions() {
+function homeSubcategories(home: HomeData) {
+  return (home.blocks ?? []).flatMap((block) => (
+    block.type === "shop_by_subcategories" ? block.data.subcategories ?? [] : []
+  ));
+}
+
+function normalizeSubcategorySuggestions(subcategories: TaxonomyItem[]): SearchSuggestion[] {
+  const seen = new Set<string>();
+  return subcategories.flatMap((subcategory) => {
+    const label = typeof subcategory?.name === "string" ? subcategory.name.trim().replace(/\s+/g, " ") : "";
+    const key = label.toLowerCase();
+    if (!label || seen.has(key)) return [];
+    seen.add(key);
+    const slug = typeof subcategory.slug === "string" ? subcategory.slug.trim() : "";
+    return [{ label, href: facetHref("deity", slug || label) }];
+  });
+}
+
+function loadSearchSuggestions(preloadedSubcategories?: TaxonomyItem[]) {
+  if (preloadedSubcategories !== undefined) {
+    cachedSearchSuggestions = normalizeSubcategorySuggestions(preloadedSubcategories);
+    return Promise.resolve(cachedSearchSuggestions);
+  }
   if (cachedSearchSuggestions !== null) return Promise.resolve(cachedSearchSuggestions);
   if (searchSuggestionsRequest) return searchSuggestionsRequest;
 
-  searchSuggestionsRequest = Promise.allSettled([getCategories(), loadDeityOptions(), getHome()])
-    .then(([categoriesResult, deitiesResult, homeResult]) => {
-      const values: unknown[] = [];
-      let loadedAnySource = false;
-      if (categoriesResult.status === "fulfilled") {
-        loadedAnySource = true;
-        values.push(...categoriesResult.value.map((item) => item.name));
-      }
-      if (deitiesResult.status === "fulfilled") {
-        loadedAnySource = true;
-        values.push(...deitiesResult.value.map((item) => item.name));
-      }
-      if (homeResult.status === "fulfilled") {
-        loadedAnySource = true;
-        values.push(...homeSearchValues(homeResult.value));
-      }
-
-      const seen = new Set<string>();
-      const suggestions = values.flatMap((value) => {
-        const label = typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
-        const key = label.toLocaleLowerCase();
-        if (!label || seen.has(key)) return [];
-        seen.add(key);
-        return [label];
-      });
-      if (loadedAnySource) cachedSearchSuggestions = suggestions;
+  const subcategoryRequest = preloadedSubcategories === undefined
+    ? getHome().then(homeSubcategories)
+    : Promise.resolve(preloadedSubcategories);
+  searchSuggestionsRequest = subcategoryRequest
+    .then((subcategories) => {
+      const suggestions = normalizeSubcategorySuggestions(subcategories);
+      cachedSearchSuggestions = suggestions;
       return suggestions;
     })
     .finally(() => {
@@ -199,7 +193,7 @@ function MobileCustomizedMoortiLink({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
+export function SiteHeader({ animateLogo = false, searchSubcategories }: { animateLogo?: boolean; searchSubcategories?: TaxonomyItem[] }) {
   const pathname = usePathname();
   const { isLoaded, isSignedIn, signOut } = useAuth();
   const { user } = useUser();
@@ -218,7 +212,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   }>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
   const [searchSuggestionsLoading, setSearchSuggestionsLoading] = useState(false);
   const [visibleSearchSuggestionCount, setVisibleSearchSuggestionCount] = useState(5);
   const [deityLinks, setDeityLinks] = useState<ReadonlyArray<readonly [string, string]>>(defaultDeityLinks);
@@ -314,8 +308,9 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
     if (!searchOpen) return;
 
     let cancelled = false;
+    setVisibleSearchSuggestionCount(5);
     setSearchSuggestionsLoading(true);
-    loadSearchSuggestions()
+    loadSearchSuggestions(searchSubcategories)
       .then((suggestions) => {
         if (!cancelled) setSearchSuggestions(suggestions);
       })
@@ -327,7 +322,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       });
 
     return () => { cancelled = true; };
-  }, [searchOpen]);
+  }, [searchOpen, searchSubcategories]);
 
   useEffect(() => {
     const query = searchQuery.trim();
@@ -695,11 +690,11 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                 <button type="submit">Search</button>
               </form>
               <div className={`${styles.quickSearches} ${isDockedSearchOpen ? styles.dockedSearchSuggestions : ""}`.trim()} aria-busy={searchSuggestionsLoading}>
-                <span className={isDockedSearchOpen ? styles.dockedSearchSuggestionsLabel : ""}>POPULAR SEARCHES</span>
+                <span className={isDockedSearchOpen ? styles.dockedSearchSuggestionsLabel : ""}>POPULAR SUBCATEGORIES</span>
                 <div className={isDockedSearchOpen ? styles.searchSuggestionChips : ""}>
                   {searchSuggestions.slice(0, visibleSearchSuggestionCount).map((suggestion) => (
-                    <Link href={taxonomyHref(suggestion)} key={suggestion.toLocaleLowerCase()} onClick={() => setSearchOpen(false)}>
-                      {suggestion}
+                    <Link href={suggestion.href} key={suggestion.label.toLowerCase()} onClick={() => setSearchOpen(false)}>
+                      {suggestion.label}
                     </Link>
                   ))}
                 </div>
@@ -709,7 +704,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                     type="button"
                     onClick={() => setVisibleSearchSuggestionCount((count) => Math.min(count + 3, searchSuggestions.length))}
                   >
-                    +3 More
+                    +{Math.min(3, searchSuggestions.length - visibleSearchSuggestionCount)} More
                   </button>
                 ) : null}
               </div>

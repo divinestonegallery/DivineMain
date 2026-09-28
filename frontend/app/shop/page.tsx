@@ -72,6 +72,7 @@ function shopFiltersFromSearchParams(params: Record<string, string | string[] | 
 
   return {
     apiFilters,
+    currentSearch: query,
     currentFilters: {
       category,
       deity,
@@ -90,7 +91,7 @@ function errorMessage() {
 
 async function ShopCatalogData({ searchParams }: { searchParams: ShopSearchParams }) {
   const params = await searchParams;
-  const { apiFilters, currentFilters, currentSort } = shopFiltersFromSearchParams(params);
+  const { apiFilters, currentSearch, currentFilters, currentSort } = shopFiltersFromSearchParams(params);
 
   const [catalogResult, facetsResult] = await Promise.allSettled([
     getPublicCatalogListing(apiFilters),
@@ -116,6 +117,7 @@ async function ShopCatalogData({ searchParams }: { searchParams: ShopSearchParam
       availableCategories={facets.categories}
       availableDeities={facets.deities}
       availableMaterials={facets.materials}
+      currentSearch={currentSearch}
       currentFilters={currentFilters}
       currentSort={currentSort}
       errorMessage={error}

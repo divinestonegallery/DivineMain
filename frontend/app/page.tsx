@@ -579,7 +579,7 @@ export default async function Home() {
 
   return (
     <ToastProvider>
-      <SiteHeader animateLogo />
+      <SiteHeader animateLogo searchSubcategories={subcategoryItems} />
       <main id="main-content" tabIndex={-1}>
         <HeroSection quickLinks={error ? [] : heroQuickLinks(dreamMoortiGroups, categoryItems)} />
         {error ? (

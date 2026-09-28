@@ -11,6 +11,7 @@ import {
   Search,
   SlidersHorizontal,
   Sparkles,
+  X,
 } from "lucide-react";
 import { ResilientImage } from "@/components/common/resilient-image";
 import { Modal } from "@/components/ui/modal";
@@ -302,6 +303,7 @@ export function ShopCatalog({
   availableCategories = [],
   availableDeities = [],
   availableMaterials = [],
+  currentSearch = "",
   currentFilters = emptyFilters,
   currentSort = "featured",
   errorMessage = null,
@@ -311,6 +313,7 @@ export function ShopCatalog({
   availableCategories?: PublicCatalogOption[];
   availableDeities?: PublicCatalogOption[];
   availableMaterials?: PublicCatalogOption[];
+  currentSearch?: string;
   currentFilters?: Filters;
   currentSort?: SortValue;
   errorMessage?: string | null;
@@ -320,6 +323,8 @@ export function ShopCatalog({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [filterOpen, setFilterOpen] = useState(false);
+  const urlSearch = searchParams.get("q") ?? searchParams.get("search") ?? "";
+  const [searchInput, setSearchInput] = useState(currentSearch);
   const categories = useMemo(() => mergeOptions(availableCategories, currentFilters.category), [availableCategories, currentFilters.category]);
   const deities = useMemo(() => mergeOptions(availableDeities, currentFilters.deity), [availableDeities, currentFilters.deity]);
   const materials = useMemo(() => mergeOptions(availableMaterials, currentFilters.material), [availableMaterials, currentFilters.material]);
@@ -333,12 +338,16 @@ export function ShopCatalog({
   const previousPageRef = useRef(page);
 
   useEffect(() => {
+    setSearchInput(urlSearch);
+  }, [urlSearch]);
+
+  useEffect(() => {
     if (previousPageRef.current === page) return;
     previousPageRef.current = page;
     resultsAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [page]);
 
-  const updateUrl = useCallback((updates: Record<string, string | null>) => {
+  const updateUrl = useCallback((updates: Record<string, string | null>, navigation: "push" | "replace" = "replace") => {
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([key, value]) => {
       if (value) {
@@ -347,13 +356,29 @@ export function ShopCatalog({
         params.delete(key);
       }
     });
-    params.delete("search");
+    if (Object.hasOwn(updates, "q")) params.delete("search");
 
     const nextQuery = params.toString();
+  if (nextQuery === searchParams.toString()) return;
+
     startTransition(() => {
-      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+      const href = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+      if (navigation === "push") router.push(href, { scroll: false });
+      else router.replace(href, { scroll: false });
     });
   }, [pathname, router, searchParams]);
+
+  function submitSearch(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const query = searchInput.trim();
+    setSearchInput(query);
+    updateUrl({ q: query || null, page: null }, "push");
+  }
+
+  function clearSearch() {
+    setSearchInput("");
+    updateUrl({ q: null, page: null });
+  }
 
   function updateFilter(name: keyof Filters, value: string) {
     updateUrl({ [name]: value || null, page: null });
@@ -396,6 +421,25 @@ export function ShopCatalog({
       <section className={styles.catalogSection}>
         <div className="site-container">
           <div className={styles.unifiedToolbar}>
+            <form className={styles.catalogSearch} onSubmit={submitSearch} role="search">
+              <Search aria-hidden="true" size={17} />
+              <input
+                name="q"
+                type="search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Search the collection"
+                aria-label="Search the collection"
+              />
+              {searchInput ? (
+                <button type="button" onClick={clearSearch} aria-label="Clear search">
+                  <X aria-hidden="true" size={16} />
+                </button>
+              ) : null}
+              <button type="submit" aria-label="Submit search">
+                <Search aria-hidden="true" size={17} />
+              </button>
+            </form>
             <div className={styles.categoryChips} aria-label="Shop by category">
               {categories.map((category) => (
                 <button type="button" key={category.value || "all-categories-chip"} aria-pressed={currentFilters.category === category.value} onClick={() => updateFilter("category", category.value)} disabled={isPending}>
