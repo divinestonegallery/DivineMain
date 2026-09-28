@@ -471,6 +471,7 @@
 .megaColumn a:focus-visible,
 .megaFeature:focus-visible,
 .quickSearches a:focus-visible,
+.searchSuggestionsMore:focus-visible,
 .searchProduct:focus-visible,
 .searchPills a:focus-visible,
 .mobileSectionLink:focus-visible {
@@ -643,8 +644,16 @@
 }
 
 .dockedSearchPanel .overlayHeading,
-.dockedSearchPanel .quickSearches {
+.dockedSearchPanel .quickSearches:not(.dockedSearchSuggestions) {
   display: none;
+}
+
+.dockedSearchPanel .dockedSearchSuggestions {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
 }
 
 .dockedSearchPanel .searchForm {
@@ -664,6 +673,63 @@
   width: auto;
   min-height: 38px;
   padding-inline: 0.85rem;
+}
+
+.dockedSearchPanel .searchForm button[type="submit"] {
+  display: none;
+}
+
+.dockedSearchPanel .searchForm .dockedSearchClose {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--dropdown-border);
+  border-radius: 50%;
+  color: var(--ink-muted);
+  background: transparent;
+}
+
+.dockedSearchPanel .searchForm .dockedSearchClose:hover {
+  color: var(--gold-deep);
+  background: var(--dropdown-hover);
+}
+
+.dockedSearchSuggestionsLabel {
+  color: var(--gold-deep);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.searchSuggestionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.searchSuggestionChips a {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchSuggestionsMore {
+  justify-self: start;
+  min-height: 32px;
+  padding: 0 0.3rem;
+  border: 0;
+  color: var(--gold-deep);
+  background: transparent;
+  font: inherit;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.searchSuggestionsMore:hover {
+  text-decoration: underline;
 }
 
 .dockedSearchPanel .searchResults {

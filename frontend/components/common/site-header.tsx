@@ -16,8 +16,8 @@ import { FormEvent, MouseEvent, useCallback, useEffect, useId, useLayoutEffect, 
 import { AccountControl } from "@/components/Auth/account-control";
 import { AuthModal } from "@/components/Auth/auth-modal";
 import { useAuth, useUser } from "@/components/Auth/auth-facade";
-import { getDeities, searchApplication } from "@/api/products";
-import type { BackendProductImage } from "@/api/products";
+import { getCategories, getDeities, getHome, searchApplication } from "@/api/products";
+import type { BackendProductImage, HomeData, TaxonomyItem } from "@/api/products";
 import styles from "./site-shell.module.css";
 
 const defaultDeityLinks = [
@@ -56,6 +56,73 @@ type SearchProductResult = {
   category?: string | null;
   material?: string | null;
 };
+
+let deityOptionsRequest: Promise<TaxonomyItem[]> | null = null;
+let searchSuggestionsRequest: Promise<string[]> | null = null;
+let cachedSearchSuggestions: string[] | null = null;
+
+function loadDeityOptions() {
+  if (!deityOptionsRequest) {
+    deityOptionsRequest = getDeities().catch((error) => {
+      deityOptionsRequest = null;
+      throw error;
+    });
+  }
+  return deityOptionsRequest;
+}
+
+function homeSearchValues(home: HomeData) {
+  const values: unknown[] = [];
+  for (const block of home.blocks ?? []) {
+    const data = block.data;
+    values.push(...(data.categories ?? []).map((item) => item.name));
+    values.push(...(data.subcategories ?? []).map((item) => item.name));
+    values.push(...(data.products ?? []).flatMap((product) => [product.deity, product.category, product.material]));
+    for (const group of data.deities ?? data.dieties ?? []) {
+      values.push(group.deity_name, group.diety_name);
+      values.push(...group.products.flatMap((product) => [product.deity, product.category, product.material]));
+    }
+  }
+  return values;
+}
+
+function loadSearchSuggestions() {
+  if (cachedSearchSuggestions !== null) return Promise.resolve(cachedSearchSuggestions);
+  if (searchSuggestionsRequest) return searchSuggestionsRequest;
+
+  searchSuggestionsRequest = Promise.allSettled([getCategories(), loadDeityOptions(), getHome()])
+    .then(([categoriesResult, deitiesResult, homeResult]) => {
+      const values: unknown[] = [];
+      let loadedAnySource = false;
+      if (categoriesResult.status === "fulfilled") {
+        loadedAnySource = true;
+        values.push(...categoriesResult.value.map((item) => item.name));
+      }
+      if (deitiesResult.status === "fulfilled") {
+        loadedAnySource = true;
+        values.push(...deitiesResult.value.map((item) => item.name));
+      }
+      if (homeResult.status === "fulfilled") {
+        loadedAnySource = true;
+        values.push(...homeSearchValues(homeResult.value));
+      }
+
+      const seen = new Set<string>();
+      const suggestions = values.flatMap((value) => {
+        const label = typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
+        const key = label.toLocaleLowerCase();
+        if (!label || seen.has(key)) return [];
+        seen.add(key);
+        return [label];
+      });
+      if (loadedAnySource) cachedSearchSuggestions = suggestions;
+      return suggestions;
+    })
+    .finally(() => {
+      searchSuggestionsRequest = null;
+    });
+  return searchSuggestionsRequest;
+}
 
 function taxonomyHref(name: string) {
   return `/shop?q=${encodeURIComponent(name)}`;
@@ -151,6 +218,9 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   }>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [searchSuggestionsLoading, setSearchSuggestionsLoading] = useState(false);
+  const [visibleSearchSuggestionCount, setVisibleSearchSuggestionCount] = useState(5);
   const [deityLinks, setDeityLinks] = useState<ReadonlyArray<readonly [string, string]>>(defaultDeityLinks);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchScrolled, setIsSearchScrolled] = useState(false);
@@ -160,6 +230,8 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const searchPanelRef = useRef<HTMLElement>(null);
   const mobilePanelRef = useRef<HTMLDivElement>(null);
   const deityLinksLoadedRef = useRef(false);
+  const searchQueryRef = useRef("");
+  const lastSearchRequestRef = useRef("");
   const searchTitleId = useId();
   const shopMenuId = useId();
   const isDockedSearchOpen = searchOpen && searchDisplayMode === "docked";
@@ -168,6 +240,8 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const isStaffUser = ["staff", "admin"].includes(profileRole(user));
 
   function updateSearchQuery(value: string) {
+    if (searchQueryRef.current.trim() !== value.trim()) lastSearchRequestRef.current = "";
+    searchQueryRef.current = value;
     setSearchQuery(value);
     if (value.trim().length < 2) {
       setSearchResults(null);
@@ -219,7 +293,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
 
     deityLinksLoadedRef.current = true;
     let cancelled = false;
-    getDeities()
+    loadDeityOptions()
       .then((items) => {
         if (cancelled) return;
         const names = items.map((item) => item.name?.trim()).filter((name): name is string => Boolean(name));
@@ -237,15 +311,34 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   }, [megaMenuOpen]);
 
   useEffect(() => {
-    const query = searchQuery.trim();
-    if (!searchOpen || query.length < 2) return;
+    if (!searchOpen) return;
 
     let cancelled = false;
+    setSearchSuggestionsLoading(true);
+    loadSearchSuggestions()
+      .then((suggestions) => {
+        if (!cancelled) setSearchSuggestions(suggestions);
+      })
+      .catch(() => {
+        if (!cancelled) setSearchSuggestions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setSearchSuggestionsLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [searchOpen]);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!searchOpen || query.length < 2 || lastSearchRequestRef.current === query) return;
+
     const timer = window.setTimeout(() => {
+      lastSearchRequestRef.current = query;
       setSearchLoading(true);
       searchApplication(query)
         .then((results) => {
-          if (cancelled) return;
+          if (searchQueryRef.current.trim() !== query) return;
           setSearchResults({
             products: results.products ?? [],
             categories: results.categories ?? [],
@@ -254,17 +347,17 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           setSearchError(null);
         })
         .catch((error) => {
-          if (cancelled) return;
+          if (searchQueryRef.current.trim() !== query) return;
+          lastSearchRequestRef.current = "";
           setSearchResults(null);
           setSearchError(error instanceof Error ? error.message : "Search is unavailable right now.");
         })
         .finally(() => {
-          if (!cancelled) setSearchLoading(false);
+          if (searchQueryRef.current.trim() === query) setSearchLoading(false);
         });
     }, 240);
 
     return () => {
-      cancelled = true;
       window.clearTimeout(timer);
     };
   }, [searchOpen, searchQuery]);
@@ -586,16 +679,39 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                   type="search"
                   value={searchQuery}
                   onChange={(event) => updateSearchQuery(event.target.value)}
-                  placeholder="Search by deity, material, size or style"
+                  placeholder="Search for Ganesh, marble temple or home decor"
                   aria-label="Search products"
                 />
+                {isDockedSearchOpen ? (
+                  <button
+                    className={styles.dockedSearchClose}
+                    type="button"
+                    aria-label="Close search"
+                    onClick={() => setSearchOpen(false)}
+                  >
+                    <X aria-hidden="true" size={19} />
+                  </button>
+                ) : null}
                 <button type="submit">Search</button>
               </form>
-              <div className={styles.quickSearches}>
-                <span>Popular:</span>
-                <Link href="/shop?q=Ganesha">Ganesha</Link>
-                <Link href="/shop?q=Radha%20Krishna">Radha Krishna</Link>
-                <Link href="/shop?q=Lakshmi">Lakshmi</Link>
+              <div className={`${styles.quickSearches} ${isDockedSearchOpen ? styles.dockedSearchSuggestions : ""}`.trim()} aria-busy={searchSuggestionsLoading}>
+                <span className={isDockedSearchOpen ? styles.dockedSearchSuggestionsLabel : ""}>POPULAR SEARCHES</span>
+                <div className={isDockedSearchOpen ? styles.searchSuggestionChips : ""}>
+                  {searchSuggestions.slice(0, visibleSearchSuggestionCount).map((suggestion) => (
+                    <Link href={taxonomyHref(suggestion)} key={suggestion.toLocaleLowerCase()} onClick={() => setSearchOpen(false)}>
+                      {suggestion}
+                    </Link>
+                  ))}
+                </div>
+                {isDockedSearchOpen && visibleSearchSuggestionCount < searchSuggestions.length ? (
+                  <button
+                    className={styles.searchSuggestionsMore}
+                    type="button"
+                    onClick={() => setVisibleSearchSuggestionCount((count) => Math.min(count + 3, searchSuggestions.length))}
+                  >
+                    +3 More
+                  </button>
+                ) : null}
               </div>
               <div className={styles.searchResults} aria-live="polite">
                 {searchQuery.trim().length < 2 ? (
