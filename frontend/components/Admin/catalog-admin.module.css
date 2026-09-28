@@ -73,6 +73,18 @@
   background: var(--foreground);
 }
 
+.toolbar .aiAction {
+  border-color: var(--gold-deep);
+  color: var(--gold-deep);
+  background: var(--surface-muted);
+}
+
+.toolbar .aiAction:hover,
+.toolbar .aiAction:focus-visible {
+  color: var(--foreground);
+  background: #f6ead0;
+}
+
 .categoryToolbar {
   display: flex;
   flex-wrap: wrap;

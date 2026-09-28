@@ -183,6 +183,7 @@ REST_FRAMEWORK = {
         'uploads': os.getenv('THROTTLE_UPLOAD_RATE', '30/hour'),
         'clerk_webhook': os.getenv('THROTTLE_WEBHOOK_RATE', '300/min'),
         'auth': os.getenv('THROTTLE_AUTH_RATE', '30/min'),
+        'ai_product': os.getenv('THROTTLE_AI_PRODUCT_RATE', '20/hour'),
     },
 }
 
@@ -213,6 +214,9 @@ CLERK_INVITATION_REDIRECT_URL = os.getenv(
     'CLERK_INVITATION_REDIRECT_URL',
     'https://divinestonegallery.com/sign-up',
 )
+
+GEMINI_API_KEY = optional_environment('GEMINI_API_KEY')
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-3.8-flash').strip() or 'gemini-3.8-flash'
 
 # Cloudflare R2
 R2_ACCESS_KEY_ID = optional_environment('R2_ACCESS_KEY_ID')

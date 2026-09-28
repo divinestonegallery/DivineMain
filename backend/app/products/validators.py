@@ -76,6 +76,15 @@ class ProductListValidator(serializers.Serializer):
         return attrs
 
 
+class ProductAIDraftValidator(serializers.Serializer):
+    name = serializers.CharField(max_length=255)
+    category_id = serializers.IntegerField(min_value=1)
+    material_id = serializers.IntegerField(min_value=1)
+    deity_id = serializers.IntegerField(min_value=1, allow_null=True, required=False)
+    image_base64 = serializers.CharField(max_length=12_000_000)
+    image_mime_type = serializers.ChoiceField(choices=('image/jpeg', 'image/png', 'image/webp'))
+
+
 
 class ProductImageFinalizeValidator(serializers.Serializer):
     object_key = serializers.RegexField(regex=r'^product-images/[a-f0-9]{32}\.(jpg|jpeg|png|webp)$', max_length=500)

@@ -1,6 +1,6 @@
 from django.urls import path
 from .views.admin_views import (
-    AdminProductCreateView, AdminProductDetailView,
+    AdminProductCreateView, AdminProductDetailView, AdminProductAIDraftView,
     AdminCategoryListCreateView, AdminCategoryDetailView,
     AdminMaterialListCreateView, AdminMaterialDetailView,
     AdminDietyListCreateView, AdminDietyDetailView,
@@ -16,6 +16,7 @@ from .views.admin_views import (
 urlpatterns = [
     # Products
     path('', AdminProductCreateView.as_view(), name='admin-product-create'),
+    path('/ai-draft', AdminProductAIDraftView.as_view(), name='admin-product-ai-draft'),
     path('/<int:product_id>', AdminProductDetailView.as_view(), name='admin-product-detail'),
     path('/images/upload-url', AdminProductImageUploadUrlView.as_view(), name='admin-product-image-upload-url'),
     path('/<int:product_id>/images', AdminProductImageListCreateView.as_view(), name='admin-product-images'),

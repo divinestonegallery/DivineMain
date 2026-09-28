@@ -8,6 +8,7 @@ from app.products.services.admin_service import (
     ProductAdminService,
     ProductImageService,
 )
+from app.products.services.ai_service import generate_product_draft
 from app.products.validators import (
     CategoryImageUploadUrlValidator,
     CategoryImageFinalizeValidator,
@@ -22,6 +23,7 @@ from app.products.validators import (
     ProductImageUploadUrlValidator,
     ProductListValidator,
     ProductRequestValidator,
+    ProductAIDraftValidator,
 )
 from framework.core.base_apiviews import AdminAPIView
 from framework.core.responses import ErrorResponse, SuccessResponse
@@ -73,6 +75,19 @@ class AdminProductDetailView(AdminAPIView):
         if error:
             return get_response(ErrorResponse(message=error, status_code=404))
         return get_response(SuccessResponse(message='Product archived successfully', data=data))
+
+
+class AdminProductAIDraftView(AdminAPIView):
+    throttle_scope = 'ai_product'
+
+    def post(self, request):
+        validator = ProductAIDraftValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid AI product request', err=validator.errors, status_code=400))
+        error, data = generate_product_draft(validator.validated_data)
+        if error:
+            return get_response(ErrorResponse(message=error, status_code=502))
+        return get_response(SuccessResponse(message='AI product draft generated', data=data))
 
 
 

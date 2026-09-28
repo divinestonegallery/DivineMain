@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search } from "lucide-react";
+import { Check, ChevronDown, ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search, Sparkles } from "lucide-react";
 import { ApiError, apiRequest } from "@/api/client";
+import { AIProductModal, type AIProductDraft } from "@/components/Admin/ai-product-modal";
 import {
   AdminImageUpload,
   uploadPendingAdminImages,
@@ -26,7 +27,7 @@ import {
 import { useToast } from "@/components/ui/toast";
 import styles from "./catalog-admin.module.css";
 
-type Taxonomy = {
+export type Taxonomy = {
   id: number;
   name: string;
   slug?: string;
@@ -42,7 +43,7 @@ type ProductImage = {
   cover_photo?: boolean;
 };
 
-type AdminProduct = {
+export type AdminProduct = {
   id: number;
   category: number;
   material: number;
@@ -346,6 +347,27 @@ async function attachUploadedProductImages(product: AdminProduct, uploads: Uploa
   }
 
   return nextProduct;
+}
+
+function aiProductPayload(draft: AIProductDraft) {
+  return {
+    name: draft.name,
+    category: draft.category,
+    material: draft.material,
+    deity: draft.deity ?? null,
+    short_description: draft.short_description,
+    description: draft.description,
+    keywords: draft.keywords,
+    availability: draft.availability,
+    status: draft.status,
+    sales_mode: draft.sales_mode,
+    height: draft.height,
+    min_weight: draft.min_weight,
+    max_weight: draft.max_weight,
+    display_order: draft.display_order,
+    home_page_display_order: draft.home_page_display_order,
+    is_featured: draft.is_featured,
+  };
 }
 
 function TaxonomySelect({
@@ -662,6 +684,7 @@ export function CatalogAdmin() {
   const [subcategoryFilter, setSubcategoryFilter] = useState("all");
   const [sort, setSort] = useState<SortValue>("featured");
   const [modal, setModal] = useState<ProductModalState | null>(null);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -724,6 +747,15 @@ export function CatalogAdmin() {
     setProducts((current) => upsertProduct(current, product, mode));
   }, []);
 
+  const saveAIProduct = useCallback(async (draft: AIProductDraft, uploads: UploadedAdminSelection[]) => {
+    const saved = await apiRequest<AdminProduct>("/api/admin/products", {
+      method: "POST",
+      body: JSON.stringify(aiProductPayload(draft)),
+    });
+    const savedWithImages = await attachUploadedProductImages(saved, uploads);
+    saveProduct(savedWithImages, "create");
+  }, [saveProduct]);
+
   const updateProductImage = useCallback((productId: number, image: ProductImage) => {
     setProducts((current) => current.map((product) => (
       product.id === productId ? { ...product, images: upsertImage(product.images, image) } : product
@@ -750,6 +782,7 @@ export function CatalogAdmin() {
         <label><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products" /></label>
         <button type="button" onClick={() => void load()} disabled={loading}><RefreshCw size={15} /> Refresh</button>
         <button className={styles.primaryAction} type="button" onClick={() => setModal({ mode: "create" })}><Plus size={15} /> Add Product</button>
+        <button className={styles.aiAction} type="button" onClick={() => setAiModalOpen(true)}><Sparkles size={15} /> Add with AI</button>
       </div>
 
       <div className={styles.categoryToolbar}>
@@ -824,6 +857,7 @@ export function CatalogAdmin() {
           onImageUpdated={updateProductImage}
         />
       ) : null}
+      {aiModalOpen ? <AIProductModal lookups={lookups} onClose={() => setAiModalOpen(false)} onSave={saveAIProduct} /> : null}
     </section>
   );
 }
