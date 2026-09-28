@@ -49,6 +49,8 @@ if DEPLOYMENT_MODE not in {'consumer', 'admin'}:
     DEPLOYMENT_MODE = 'consumer'
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'default-insecure-key-for-dev')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '').strip()
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', '').strip()
 
 # Hosts and browser origins differ by deployment and by dev/prod.
 # ALLOWED_HOSTS and CORS_ALLOWED_ORIGINS still override these defaults.

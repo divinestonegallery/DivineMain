@@ -3,8 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search } from "lucide-react";
+import { Check, ChevronDown, ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search, Sparkles } from "lucide-react";
 import { ApiError, apiRequest } from "@shared/utils/http";
+import { prepareSupportedUploadImage } from "@shared/utils/upload-file";
+import { Button } from "@shared/components/button";
 import {
   AdminImageUpload,
   uploadPendingAdminImages,
@@ -148,6 +150,26 @@ function validateProduct(form: FormData) {
   if (!numericId(form, "category")) fieldErrors.category = "Choose a category.";
   if (!numericId(form, "material")) fieldErrors.material = "Choose a material.";
   return fieldErrors;
+}
+
+function readImageDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Image could not be read."));
+    reader.onerror = () => reject(new Error("Image could not be read. Please choose it again."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function setFormValue(form: HTMLFormElement, name: string, value: unknown) {
+  const control = form.elements.namedItem(name);
+  if (control instanceof HTMLInputElement && control.type === "checkbox") {
+    control.checked = Boolean(value);
+    return;
+  }
+  if (control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement) {
+    control.value = value == null ? "" : String(value);
+  }
 }
 
 function productPayload(form: FormData, keywords: string[], mode: ProductModalState["mode"] = "create") {
@@ -407,6 +429,8 @@ function ProductModal({
   const keywordInputRef = useRef<HTMLInputElement>(null);
   const [imageActionId, setImageActionId] = useState<string | number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [generatingDraft, setGeneratingDraft] = useState(false);
+  const [draftGenerated, setDraftGenerated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
 
@@ -423,6 +447,70 @@ function ProductModal({
     if (event.key !== "Enter") return;
     event.preventDefault();
     addKeyword();
+  }
+
+  async function generateDraft() {
+    if (generatingDraft || submitting) return;
+    const form = document.getElementById(formId);
+    if (!(form instanceof HTMLFormElement)) return;
+
+    const formData = new FormData(form);
+    const validation = validateProduct(formData);
+    setFieldErrors(validation);
+    if (Object.keys(validation).length) return;
+    if (!selectedImages.length) {
+      setError("Choose a product image before generating a draft.");
+      return;
+    }
+
+    setGeneratingDraft(true);
+    setError(null);
+    try {
+      const image = await prepareSupportedUploadImage(selectedImages[0].file);
+      if (image.size > 1024 * 1024) {
+        throw new Error("The image is too large for AI generation. Choose a smaller image or continue without a draft.");
+      }
+      const imageDataUrl = await readImageDataUrl(image);
+      const draft = await apiRequest<Partial<AdminProduct>>("/api/admin/products/generate-draft", {
+        method: "POST",
+        body: JSON.stringify({
+          name: text(formData.get("name")),
+          category_id: numericId(formData, "category"),
+          material_id: numericId(formData, "material"),
+          deity_id: numericId(formData, "deity") || null,
+          image_base64: imageDataUrl,
+          image_mime_type: image.type,
+        }),
+      });
+
+      (Object.entries({
+        name: draft.name,
+        category: draft.category,
+        material: draft.material,
+        deity: draft.deity,
+        short_description: draft.short_description,
+        description: draft.description,
+        availability: draft.availability,
+        sales_mode: draft.sales_mode,
+        height: draft.height,
+        min_weight: draft.min_weight,
+        max_weight: draft.max_weight,
+        status: draft.status,
+        display_order: draft.display_order,
+        home_page_display_order: draft.home_page_display_order,
+        is_featured: draft.is_featured,
+      }) as Array<[string, unknown]>).forEach(([name, value]) => setFormValue(form, name, value));
+      setKeywords(normalizeKeywords(draft.keywords));
+      setFieldErrors({});
+      setDraftGenerated(true);
+      showToast("AI draft generated. Review and edit it before creating the product.");
+    } catch (reason) {
+      const nextError = parseAdminFormError(reason, "AI product draft could not be generated.");
+      setError(nextError.message);
+      setFieldErrors(nextError.fieldErrors);
+    } finally {
+      setGeneratingDraft(false);
+    }
   }
 
   async function removeExistingImage(image: AdminExistingImage) {
@@ -471,7 +559,7 @@ function ProductModal({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting) return;
+    if (submitting || generatingDraft) return;
 
     const form = new FormData(event.currentTarget);
     const validation = validateProduct(form);
@@ -514,8 +602,20 @@ function ProductModal({
       submitting={submitting}
       error={error}
       size="wide"
+      submitDisabled={generatingDraft}
     >
       <AdminModalForm id={formId} onSubmit={submit}>
+        {state.mode === "create" ? (
+          <AdminModalSection title="AI draft">
+            <div className={styles.aiDraftTools}>
+              <Button variant="outline" size="sm" onClick={generateDraft} disabled={generatingDraft || submitting}>
+                <Sparkles aria-hidden="true" size={15} />
+                {generatingDraft ? "Generating..." : "Generate draft from image"}
+              </Button>
+              {draftGenerated ? <p className={styles.aiDraftStatus} role="status">Draft ready for review. Edit any field before creating the product.</p> : null}
+            </div>
+          </AdminModalSection>
+        ) : null}
         <AdminModalSection title="Basic information">
           <AdminFieldGrid>
             <AdminModalField label="Name" required wide error={getFieldError(fieldErrors, "name")}>

@@ -8,7 +8,9 @@ from app.products.services.admin_service import (
     ProductAdminService,
     ProductImageService,
 )
+from app.products.services.ai_draft_service import generate_product_draft
 from app.products.validators import (
+    AIProductDraftValidator,
     ImageUploadUrlValidator,
     CategoryImageFinalizeValidator,
     CategoryRequestValidator,
@@ -47,6 +49,17 @@ class AdminProductCreateView(AdminAPIView):
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(message='Product created successfully', data=data, status_code=status.HTTP_201_CREATED))
+
+
+class AdminProductAIDraftView(AdminAPIView):
+    def post(self, request):
+        validator = AIProductDraftValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid AI product draft request', err=validator.errors, status_code=400))
+        error, data = generate_product_draft(validator.validated_data)
+        if error:
+            return get_response(ErrorResponse(message=error, status_code=400))
+        return get_response(SuccessResponse(message='AI product draft generated successfully', data=data))
 
 
 class AdminProductDetailView(AdminAPIView):
