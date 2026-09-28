@@ -153,6 +153,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [deityLinks, setDeityLinks] = useState<ReadonlyArray<readonly [string, string]>>(defaultDeityLinks);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isSearchScrolled, setIsSearchScrolled] = useState(false);
   const shopTriggerRef = useRef<HTMLButtonElement>(null);
   const dockedSearchTriggerRef = useRef<HTMLButtonElement>(null);
   const megaMenuRef = useRef<HTMLDivElement>(null);
@@ -162,6 +163,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const searchTitleId = useId();
   const shopMenuId = useId();
   const isDockedSearchOpen = searchOpen && searchDisplayMode === "docked";
+  const isSearchIconVisible = pathname === "/" ? isSearchScrolled : isScrolled;
   const headerLogoSrc = pathname === "/" && !isScrolled ? "/brand/DSG-White.png" : "/brand/DSG-New.png";
   const isStaffUser = ["staff", "admin"].includes(profileRole(user));
 
@@ -205,11 +207,12 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   useLayoutEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 0);
+      setIsSearchScrolled(window.scrollY > 20);
     };
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     if (!megaMenuOpen || deityLinksLoadedRef.current) return;
@@ -454,12 +457,12 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           <div className={styles.headerActions}>
             <button
               ref={dockedSearchTriggerRef}
-              className={`${styles.headerAction} ${styles.headerCompactSearch} ${isScrolled ? styles.headerCompactSearchVisible : ""}`.trim()}
+              className={`${styles.headerAction} ${styles.headerCompactSearch} ${pathname === "/" ? styles.headerCompactSearchStable : ""} ${isSearchIconVisible ? styles.headerCompactSearchVisible : ""}`.trim()}
               type="button"
               aria-label="Search Divine Stone Gallery"
               aria-expanded={isDockedSearchOpen}
-              aria-hidden={!isScrolled}
-              tabIndex={isScrolled ? 0 : -1}
+              aria-hidden={!isSearchIconVisible}
+              tabIndex={isSearchIconVisible ? 0 : -1}
               onClick={toggleDockedSearch}
             >
               <Search aria-hidden="true" size={20} strokeWidth={1.6} />
