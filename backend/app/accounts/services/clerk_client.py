@@ -189,14 +189,16 @@ class ClerkClient:
 
     @classmethod
     def attempt_email_verification(cls, email_address_id, code, verification_id=None):
-        """Verify the code sent to the email address via Clerk."""
+        """Verify the code sent to the email address via Clerk.
+
+        verification_id is kept for callers that stored one. Clerk identifies
+        the attempt by the email address id in the URL and only accepts the code.
+        """
         headers = cls._get_headers()
         if not headers:
             return 'Clerk secret key is not configured.', False
 
         payload = {'code': code.strip()}
-        if verification_id:
-            payload['verification_id'] = verification_id
 
         try:
             response = requests.post(
@@ -211,7 +213,14 @@ class ClerkClient:
 
         if response.status_code == 200:
             data = response.json()
-            if data.get('status') == 'verified':
+            if not isinstance(data, dict):
+                return 'Invalid or expired OTP.', False
+            verification = data.get('verification')
+            verified = (
+                data.get('status') == 'verified'
+                or (isinstance(verification, dict) and verification.get('status') == 'verified')
+            )
+            if verified:
                 return None, True
             return 'Invalid or expired OTP.', False
 

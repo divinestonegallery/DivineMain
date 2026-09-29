@@ -173,6 +173,30 @@ class AuthAPITests(TestCase):
         self.assertTrue(reset_data['success'])
         self.assertIn('Password has been reset successfully', reset_data['message'])
 
+    def test_reset_password_with_otp(self):
+        clerk_user = {
+            'id': self.test_clerk_id,
+            'email_addresses': [{'id': 'idn_test', 'email_address': self.test_email}],
+        }
+        with patch('app.accounts.services.auth_service.ClerkClient.get_user_by_email', return_value=(None, clerk_user)), \
+             patch('app.accounts.services.auth_service.ClerkClient.attempt_email_verification', return_value=(None, True)) as attempt, \
+             patch('app.accounts.services.auth_service.ClerkClient.update_password', return_value=(None, {'id': self.test_clerk_id})):
+            response = self.client.post(
+                '/api/v1/auth/reset-password',
+                {
+                    'email': self.test_email,
+                    'code': '123456',
+                    'new_password': 'BrandNewPassword123!',
+                },
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertIn('Password has been reset successfully', data['message'])
+        self.assertEqual(attempt.call_args.args[1], '123456')
+
     def test_reset_password_invalid_token(self):
         response = self.client.post(
             '/api/v1/auth/reset-password',
