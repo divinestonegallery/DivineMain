@@ -1,17 +1,31 @@
-version: '3.8'
-
 services:
-  api:
+  consumer-api:
     build:
-     context: .  # Path to your Dockerfile
-     dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
     env_file:
-      - .env
+      - .env.consumer
     ports:
       - "8000:8000"
+    expose:
+      - "8000"
+    mem_limit: 512m
+    cpus: 0.5
+
+  admin-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    env_file:
+      - .env.admin
+    ports:
+      - "8001:8000"
     expose:
       - "8000"
     mem_limit: 512m

@@ -36,3 +36,8 @@ build/
 
 # Python Environment
 .python-version
+
+
+# Markdown
+*.md
+*.mdc

@@ -9,17 +9,17 @@ from app.products.services.admin_service import (
     ProductImageService,
 )
 from app.products.validators import (
-    CategoryImageUploadUrlValidator,
+    ImageUploadUrlValidator,
     CategoryImageFinalizeValidator,
     CategoryRequestValidator,
-    DeityImageUploadUrlValidator,
+    ImageUploadUrlValidator,
     DietyImageFinalizeValidator,
     DietyRequestValidator,
     MaterialRequestValidator,
     ProductImageFinalizeValidator,
     ProductImageReorderValidator,
     ProductImageUpdateValidator,
-    ProductImageUploadUrlValidator,
+    ImageUploadUrlValidator,
     ProductListValidator,
     ProductRequestValidator,
 )
@@ -131,7 +131,7 @@ class AdminProductImageUploadUrlView(AdminAPIView):
     throttle_scope = 'uploads'
 
     def post(self, request):
-        validator = ProductImageUploadUrlValidator(data=request.data)
+        validator = ImageUploadUrlValidator(data=request.data)
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid upload request', err=validator.errors, status_code=400))
         error, data = ProductImageService.generate_upload_url(validator.validated_data, request.user.id)
@@ -149,7 +149,7 @@ class AdminCategoryImageUploadUrlView(AdminAPIView):
     throttle_scope = 'uploads'
 
     def post(self, request):
-        validator = CategoryImageUploadUrlValidator(data=request.data)
+        validator = ImageUploadUrlValidator(data=request.data)
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid upload request', err=validator.errors, status_code=400))
         error, data = CategoryAdminService.generate_upload_url(validator.validated_data, request.user.id)
@@ -309,7 +309,7 @@ class AdminDeityImageUploadUrlView(AdminAPIView):
     throttle_scope = 'uploads'
 
     def post(self, request):
-        validator = DeityImageUploadUrlValidator(data=request.data)
+        validator = ImageUploadUrlValidator(data=request.data)
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid upload request', err=validator.errors, status_code=400))
         error, data = DietyAdminService.generate_upload_url(validator.validated_data, request.user.id)

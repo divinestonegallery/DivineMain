@@ -1,11 +1,13 @@
 import json
 from unittest.mock import patch
 
+import jwt
 from django.test import TestCase
 from rest_framework.test import APIClient
 
 from app.accounts.models import Customer
 from app.accounts.serializers import CustomerSerializer
+from app.accounts.services.auth_service import AuthService
 from app.common.token_service import TokenService
 
 
@@ -171,6 +173,30 @@ class AuthAPITests(TestCase):
         self.assertTrue(reset_data['success'])
         self.assertIn('Password has been reset successfully', reset_data['message'])
 
+    def test_reset_password_with_otp(self):
+        clerk_user = {
+            'id': self.test_clerk_id,
+            'email_addresses': [{'id': 'idn_test', 'email_address': self.test_email}],
+        }
+        with patch('app.accounts.services.auth_service.ClerkClient.get_user_by_email', return_value=(None, clerk_user)), \
+             patch('app.accounts.services.auth_service.ClerkClient.attempt_email_verification', return_value=(None, True)) as attempt, \
+             patch('app.accounts.services.auth_service.ClerkClient.update_password', return_value=(None, {'id': self.test_clerk_id})):
+            response = self.client.post(
+                '/api/v1/auth/reset-password',
+                {
+                    'email': self.test_email,
+                    'code': '123456',
+                    'new_password': 'BrandNewPassword123!',
+                },
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertIn('Password has been reset successfully', data['message'])
+        self.assertEqual(attempt.call_args.args[1], '123456')
+
     def test_reset_password_invalid_token(self):
         response = self.client.post(
             '/api/v1/auth/reset-password',
@@ -252,3 +278,34 @@ class AuthAPITests(TestCase):
         data = response.json()
         self.assertTrue(data['success'])
         self.assertEqual(data['data']['message'], 'Logged out successfully.')
+
+    def test_logout_revokes_clerk_session_when_token_has_sid(self):
+        customer = Customer.objects.create(
+            clerk_user_id=self.test_clerk_id,
+            email=self.test_email,
+        )
+        token = jwt.encode({'sid': 'sess_123', 'sub': self.test_clerk_id}, 'unused', algorithm='HS256')
+        with patch(
+            'app.accounts.services.auth_service.ClerkClient.revoke_session',
+            return_value=(None, {}),
+        ) as revoke:
+            error, data = AuthService.logout(customer.id, token=token)
+        self.assertIsNone(error)
+        self.assertEqual(data['message'], 'Logged out successfully.')
+        revoke.assert_called_once_with('sess_123')
+
+    def test_logout_skips_clerk_revoke_for_backend_tokens(self):
+        customer = Customer.objects.create(
+            clerk_user_id=self.test_clerk_id,
+            email=self.test_email,
+        )
+        customer_dict = CustomerSerializer(customer).data
+        access_token = TokenService.generate_access_token(customer_dict)
+        with patch(
+            'app.accounts.services.auth_service.ClerkClient.revoke_session',
+            return_value=(None, {}),
+        ) as revoke:
+            error, data = AuthService.logout(customer.id, token=access_token)
+        self.assertIsNone(error)
+        self.assertEqual(data['message'], 'Logged out successfully.')
+        revoke.assert_not_called()

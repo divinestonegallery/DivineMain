@@ -1,6 +1,6 @@
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import generics, serializers
-from app.common.authentication import ClerkAuthentication
+from app.common.authentication import ApplicationAuthentication
 from app.common.permissions import IsAdmin, IsStaffOrAdmin
 
 
@@ -14,7 +14,7 @@ class BaseAPIView(generics.GenericAPIView):
 
 class AuthenticatedAPIView(BaseAPIView):
     """API View that requires user authentication"""
-    authentication_classes = [ClerkAuthentication]
+    authentication_classes = [ApplicationAuthentication]
     permission_classes = [IsAuthenticated]
 
 class OpenAPIView(BaseAPIView):
@@ -24,26 +24,20 @@ class OpenAPIView(BaseAPIView):
 
 
 class OptionalAuthenticatedAPIView(BaseAPIView):
-    """Public endpoint that resolves a valid Clerk user when a token is supplied."""
+    """Public endpoint that resolves a valid authenticated user when a token is supplied."""
 
-    authentication_classes = [ClerkAuthentication]
+    authentication_classes = [ApplicationAuthentication]
     permission_classes = [AllowAny]
 
 class AdminAPIView(BaseAPIView):
     """API View restricted to active staff and administrators."""
 
-    authentication_classes = [ClerkAuthentication]
+    authentication_classes = [ApplicationAuthentication]
     permission_classes = [IsAuthenticated, IsStaffOrAdmin]
-
-
-class ServiceAuthenticatedAPIView(AdminAPIView):
-    """Deprecated compatibility alias. New admin views should use AdminAPIView."""
-
-    pass
 
 
 class OwnerAPIView(BaseAPIView):
     """API View restricted to active administrators."""
 
-    authentication_classes = [ClerkAuthentication]
+    authentication_classes = [ApplicationAuthentication]
     permission_classes = [IsAuthenticated, IsAdmin]

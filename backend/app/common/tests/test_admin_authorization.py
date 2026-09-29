@@ -192,7 +192,7 @@ class AdminAuthorizationTests(TestCase):
     def test_every_admin_and_upload_route_has_staff_permission(self):
         protected_routes = []
         for route, pattern in iter_url_patterns(get_resolver().url_patterns):
-            if route.startswith("api/admin") or route == "api/v1/common/upload/presigned-url":
+            if route.startswith("api/admin"):
                 protected_routes.append(route)
                 view_class = pattern.callback.view_class
                 self.assertTrue(
@@ -209,8 +209,10 @@ class AdminAuthorizationTests(TestCase):
             {"question": "Blocked", "answer": "Blocked"},
             format="json",
         )
-        upload_response = self.client.get(
-            "/api/v1/common/upload/presigned-url?filename=test.jpg&file_type=image/jpeg"
+        upload_response = self.client.post(
+            "/api/admin/products/images/upload-url",
+            {"filename": "test.jpg", "content_type": "image/jpeg", "file_size": 1024},
+            format="json",
         )
         self.assert_standard_error(faq_response, 401)
         self.assert_standard_error(upload_response, 401)

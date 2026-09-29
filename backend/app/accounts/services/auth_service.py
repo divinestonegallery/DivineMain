@@ -1,9 +1,12 @@
 import logging
+
+import jwt
 from django.core.cache import cache
+from rest_framework.exceptions import AuthenticationFailed, ValidationError
+
 from app.accounts.repositories.customer_repository import CustomerRepository
 from app.accounts.services.clerk_client import ClerkClient
 from app.common.token_service import TokenService
-from rest_framework.exceptions import AuthenticationFailed, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -349,6 +352,19 @@ class AuthService:
 
     @classmethod
     def logout(cls, customer_id, token=None):
+        if token:
+            try:
+                session_id = jwt.decode(
+                    token,
+                    options={'verify_signature': False, 'verify_exp': False},
+                    algorithms=['RS256', 'HS256'],
+                ).get('sid')
+            except jwt.PyJWTError:
+                session_id = None
+            if session_id:
+                error, _ = ClerkClient.revoke_session(session_id)
+                if error:
+                    logger.warning("Clerk session revoke failed during logout: %s", error)
         return None, {
             'message': 'Logged out successfully.',
         }

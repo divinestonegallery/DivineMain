@@ -66,6 +66,15 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         )
 
 
+class ProductAdminListSerializer(ProductAdminSerializer):
+    """Admin catalogue rows. Variants stay on the detail response."""
+
+    class Meta(ProductAdminSerializer.Meta):
+        fields = tuple(
+            field for field in ProductAdminSerializer.Meta.fields if field != 'variants'
+        )
+
+
 class CategoryImageAdminSerializer(serializers.ModelSerializer):
     image = ImageAdminSerializer(read_only=True)
 

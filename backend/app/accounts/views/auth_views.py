@@ -114,5 +114,5 @@ class CurrentProfileView(AuthenticatedAPIView):
 
 class LogoutView(AuthenticatedAPIView):
     def post(self, request):
-        error, data = AuthService.logout(request.user.id)
+        error, data = AuthService.logout(request.user.id, token=request.auth)
         return get_response(SuccessResponse(data=data, message='Logged out successfully'))

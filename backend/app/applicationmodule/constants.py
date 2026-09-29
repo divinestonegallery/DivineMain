@@ -1,3 +1,5 @@
+HOME_CACHE_KEY = "application:home:02"
+
 HOME_PAGE_POPULAR_MOORTI_BLOCK = "popular_moorti"
 HOME_PAGE_POPULAR_MOORTI_BLOCK_TITLE = "Popular Moorti"
 
