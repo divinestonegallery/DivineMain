@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import React, { createContext, FormEvent, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { ACCESS_TOKEN_KEY, clearAuthSession, getAuthEmailError, getCurrentUser, login, logoutCurrentSession, onAuthSessionChange, register, requestPasswordReset, verifySignup as verifySignupApi } from "@/api/auth";
+import { ACCESS_TOKEN_KEY, clearAuthSession, getAuthEmailError, getCurrentUser, login, logoutCurrentSession, onAuthSessionChange, register, requestPasswordReset, resetPasswordWithCode, verifySignup as verifySignupApi } from "@/api/auth";
 import { markLoginAfterLogout } from "@/components/auth/auth-redirect";
 import styles from "./auth.module.css";
 
@@ -170,6 +170,9 @@ export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [verificationId, setVerificationId] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -205,7 +208,10 @@ export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account
 
     try {
       const result = await requestPasswordReset(email);
-      setSuccess(result.message);
+      setResetEmail(email);
+      setVerificationId(result.verificationId || "");
+      setCodeSent(true);
+      setSuccess(result.message || "An OTP has been sent to your email.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Password reset request failed.");
     } finally {
@@ -213,25 +219,106 @@ export function SignIn({ signUpUrl = "/sign-up", fallbackRedirectUrl = "/account
     }
   }
 
-  if (forgotMode) {
+  function leaveForgotPassword() {
+    setForgotMode(false);
+    setCodeSent(false);
+    setResetEmail("");
+    setVerificationId("");
+    setError("");
+    setSuccess("");
+  }
+
+  async function submitResetPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    setSuccess("");
+    const form = new FormData(event.currentTarget);
+    const code = String(form.get("code") || "").trim();
+    const newPassword = String(form.get("newPassword") || "");
+    const confirmPassword = String(form.get("confirmPassword") || "");
+
+    if (!/^\d{6}$/.test(code)) {
+      setError("Please enter the 6-digit OTP from your email.");
+      setSubmitting(false);
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError("Your new password must be at least 8 characters.");
+      setSubmitting(false);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const result = await resetPasswordWithCode({
+        email: resetEmail,
+        code,
+        verificationId,
+        newPassword,
+      });
+      setCodeSent(false);
+      setForgotMode(false);
+      setSuccess(result.message || "Password has been reset successfully. You can now log in with your new password.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Password reset failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (forgotMode && codeSent) {
     return (
-      <form className={styles.backendAuthForm} onSubmit={submitForgotPassword}>
-        <h3 className="font-display">Forgot Password</h3>
-        <p className={styles.authHelpText}>Enter your registered email address and we&apos;ll help you reset your password.</p>
+      <form key="reset-password" className={styles.backendAuthForm} onSubmit={submitResetPassword}>
+        <h3 className="font-display">Reset Password</h3>
+        <p className={styles.authHelpText}>Enter the 6-digit code sent to {resetEmail} and choose a new password.</p>
         <label>
-          <span>Email</span>
-          <input name="email" type="email" autoComplete="email" required disabled={submitting} />
+          <span>OTP</span>
+          <input name="code" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required disabled={submitting} />
+        </label>
+        <label>
+          <span>New Password</span>
+          <input name="newPassword" type="password" autoComplete="new-password" minLength={8} required disabled={submitting} />
+        </label>
+        <label>
+          <span>Confirm Password</span>
+          <input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} required disabled={submitting} />
         </label>
         {error ? <p className={styles.authError}>{error}</p> : null}
         {success ? <p className={styles.authSuccess}>{success}</p> : null}
-        <button type="submit" disabled={submitting}>{submitting ? "Sending..." : "Send reset link"}</button>
-        <p className={styles.authSwitch}>Remembered it? <button className={styles.inlineAuthAction} type="button" disabled={submitting} onClick={() => { setForgotMode(false); setError(""); setSuccess(""); }}>Back to Login</button></p>
+        <button type="submit" disabled={submitting}>{submitting ? "Resetting..." : "Reset password"}</button>
+        <p className={styles.authSwitch}>
+          <button className={styles.inlineAuthAction} type="button" disabled={submitting} onClick={() => { setCodeSent(false); setError(""); setSuccess(""); }}>Request a new code</button>
+          {" · "}
+          <button className={styles.inlineAuthAction} type="button" disabled={submitting} onClick={leaveForgotPassword}>Back to Login</button>
+        </p>
+      </form>
+    );
+  }
+
+  if (forgotMode) {
+    return (
+      <form key="forgot-password" className={styles.backendAuthForm} onSubmit={submitForgotPassword}>
+        <h3 className="font-display">Forgot Password</h3>
+        <p className={styles.authHelpText}>Enter your registered email address and we&apos;ll send a reset code.</p>
+        <label>
+          <span>Email</span>
+          <input name="email" type="email" autoComplete="email" required disabled={submitting} defaultValue={resetEmail} />
+        </label>
+        {error ? <p className={styles.authError}>{error}</p> : null}
+        {success ? <p className={styles.authSuccess}>{success}</p> : null}
+        <button type="submit" disabled={submitting}>{submitting ? "Sending..." : "Send code"}</button>
+        <p className={styles.authSwitch}>Remembered it? <button className={styles.inlineAuthAction} type="button" disabled={submitting} onClick={leaveForgotPassword}>Back to Login</button></p>
       </form>
     );
   }
 
   return (
-    <form className={styles.backendAuthForm} onSubmit={submit}>
+    <form key="sign-in" className={styles.backendAuthForm} onSubmit={submit}>
       <h3 className="font-display">Sign in</h3>
       <label>
         <span>Email</span>
