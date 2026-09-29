@@ -8,6 +8,7 @@ import { ToastProvider } from "@shared/components/toast";
 import { getPublicCatalogFacets, getPublicCatalogListing } from "@/api/catalog/repository";
 import type { PublicCatalogFacets } from "@/api/catalog/repository";
 import type { ProductFilters, ProductListResult } from "@/api/products";
+import { ProductListingSkeleton } from "@/components/product/product-listing-skeleton";
 import { ShopCatalog } from "@/components/product/shop-catalog";
 
 export const metadata: Metadata = {
@@ -123,7 +124,7 @@ export default async function ShopPage({ searchParams }: { searchParams: ShopSea
     <ToastProvider>
       <SiteHeader />
       <main id="main-content" tabIndex={-1}>
-        <Suspense fallback={<div className="site-container" aria-live="polite">Preparing the marble collection…</div>}>
+        <Suspense fallback={<ProductListingSkeleton />}>
           <ShopCatalogData searchParams={searchParams} />
         </Suspense>
       </main>
