@@ -155,16 +155,3 @@ class DietyImageFinalizeValidator(serializers.Serializer):
         max_length=500,
     )
     alt_text = serializers.CharField(max_length=255, required=False, allow_blank=True)
-
-
-class ProductGenerateDraftValidator(serializers.Serializer):
-    mode = serializers.ChoiceField(choices=('ai', 'paragraph'))
-    name = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    category = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    material = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    deity = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    paragraph = serializers.CharField(required=False, allow_blank=True)
-    images = serializers.ListField(
-        child=serializers.DictField(), required=False, allow_empty=True
-    )
-

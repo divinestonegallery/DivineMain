@@ -12,7 +12,6 @@ from .views.admin_views import (
     AdminCategoryImageFinalizeView,
     AdminDietyImageFinalizeView,
 )
-from .views.admin_ai_views import AdminProductGenerateDraftView
 
 urlpatterns = [
     # Products
@@ -22,7 +21,6 @@ urlpatterns = [
     path('/<int:product_id>/images', AdminProductImageListCreateView.as_view(), name='admin-product-images'),
     path('/<int:product_id>/images/reorder', AdminProductImageReorderView.as_view(), name='admin-product-images-reorder'),
     path('/<int:product_id>/images/<int:image_id>', AdminProductImageDetailView.as_view(), name='admin-product-image-detail'),
-    path('/generate-draft', AdminProductGenerateDraftView.as_view(), name='admin-product-generate-draft'),
 
     # Categories
     path('/categories', AdminCategoryListCreateView.as_view(), name='admin-category-list'),

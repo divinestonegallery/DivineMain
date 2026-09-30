@@ -338,6 +338,3 @@ LOGGING = {
 
 # Notification / Email
 EMAIL_API_KEY = os.getenv('EMAIL_API_KEY')
-
-# AI Integration
-GEMINI_API_KEY = optional_environment('GEMINI_API_KEY')
