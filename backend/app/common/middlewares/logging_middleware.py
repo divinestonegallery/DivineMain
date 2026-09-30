@@ -24,7 +24,7 @@ class ObservabilityMiddleware:
             response = self.get_response(request)
         except Exception as exc:
             exception_type = exc.__class__.__name__
-            exception_message = str(exc)[:1000]
+            exception_message = 'Request failed due to an internal error'
             self._write_error(request, request_id, 500, exception_type, exception_message)
             raise
 
@@ -48,8 +48,11 @@ class ObservabilityMiddleware:
                     'status_code': response.status_code,
                     'ip_address': request.META.get('REMOTE_ADDR'),
                 })
-            except Exception:
-                logger.exception('Unable to persist staff audit log')
+            except Exception as exc:
+                logger.warning(
+                    'Unable to persist staff audit log error_type=%s',
+                    exc.__class__.__name__,
+                )
 
         if response.status_code >= 500:
             self._write_error(
@@ -77,5 +80,8 @@ class ObservabilityMiddleware:
                 'message': message[:1000],
                 'ip_address': request.META.get('REMOTE_ADDR'),
             })
-        except Exception:
-            logger.exception('Unable to persist API error log')
+        except Exception as exc:
+            logger.warning(
+                'Unable to persist API error log error_type=%s',
+                exc.__class__.__name__,
+            )

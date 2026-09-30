@@ -176,7 +176,7 @@ else:
     DATABASES = {
         'default': dj_database_url.config(
             default=os.getenv('DATABASE_URL', f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
-            conn_max_age=600,
+            conn_max_age=int(os.getenv('DB_CONN_MAX_AGE', '60')),
             conn_health_checks=True,
         )
     }
@@ -341,3 +341,4 @@ EMAIL_API_KEY = os.getenv('EMAIL_API_KEY')
 
 # AI Integration
 GEMINI_API_KEY = optional_environment('GEMINI_API_KEY')
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-3.8-flash').strip() or 'gemini-3.8-flash'

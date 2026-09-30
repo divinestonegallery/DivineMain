@@ -755,6 +755,24 @@ function GenerateProductModal({
       onGenerated(result, selectedImages);
       showToast("Draft generated successfully.");
     } catch (reason) {
+      if (reason instanceof ApiError) {
+        const code = (reason.details as { code?: string } | null)?.code;
+        if (code === "AI_RATE_LIMITED") {
+          setError("AI generation is temporarily rate limited. Please try again shortly.");
+          setFieldErrors({});
+          return;
+        }
+        if (code === "AI_QUOTA_EXCEEDED") {
+          setError("Gemini AI quota has been reached. Please try again later or use a project with available API quota.");
+          setFieldErrors({});
+          return;
+        }
+        if (reason.status >= 500) {
+          setError("AI generation is temporarily unavailable. Please try again.");
+          setFieldErrors({});
+          return;
+        }
+      }
       const nextError = parseAdminFormError(reason, "Failed to generate product.");
       setError(nextError.message);
       setFieldErrors(nextError.fieldErrors);

@@ -17,19 +17,28 @@ class SuccessResponse(object):
 
 
 class ErrorResponse(object):
-    def __init__(self, message="Error occurred", status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, err=None):
+    def __init__(self, message="Error occurred", status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, err=None, code=None, retryable=None):
         self.message = message
         self.success = False
         self.status_code = status_code
         self.data = err # Often validation errors or None
+        self.code = code
+        self.retryable = retryable
 
     @property
     def dict(self):
-        return {
+        payload = {
             "success": self.success,
             "message": self.message,
             "data": self.data
         }
+        if self.code:
+            payload["error"] = {
+                "code": self.code,
+                "message": self.message,
+                "retryable": bool(self.retryable),
+            }
+        return payload
 
 
 class ServerErrorResponse(object):
