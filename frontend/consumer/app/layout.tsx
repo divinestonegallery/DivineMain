@@ -1,5 +1,6 @@
 // @ts-nocheck
 import type { Metadata } from "next";
+import { fontVariables, manrope } from "./fonts";
 import { JsonLd } from "@/components/layout/json-ld";
 import { RouteScrollReset } from "@/components/layout/route-scroll-reset";
 import { getSiteUrl } from "@/config/site";
@@ -63,8 +64,8 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en">
-      <body className="antialiased">
+    <html lang="en" className={fontVariables}>
+      <body className={`${manrope.className} antialiased`}>
         <a className="skip-link" href="#main-content">Skip to main content</a>
         <RouteScrollReset />
         <JsonLd data={organizationSchema} />

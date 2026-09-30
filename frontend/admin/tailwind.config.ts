@@ -38,7 +38,7 @@ const config: Config = {
         base: "var(--transition-base)",
       },
       fontFamily: {
-        sans: "var(--font-geist-sans, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif)",
+        sans: "var(--font-geist-sans, Manrope, ui-sans-serif, system-ui, sans-serif)",
         mono: "var(--font-geist-mono, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace)",
       },
       maxWidth: {
