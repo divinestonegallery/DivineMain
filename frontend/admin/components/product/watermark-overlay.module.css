@@ -1,0 +1,11 @@
+.watermark {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("/brand/DSG-Black.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 35% auto;
+  opacity: 0.35;
+}

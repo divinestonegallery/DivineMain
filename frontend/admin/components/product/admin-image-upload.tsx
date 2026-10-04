@@ -4,6 +4,7 @@ import Image from "next/image";
 import { ChangeEvent, Dispatch, DragEvent, SetStateAction, useEffect, useRef, useState } from "react";
 import { ImageIcon, Trash2, UploadCloud, X } from "lucide-react";
 import { friendlyUploadError, uploadAdminImage, validateUploadImageFile, type AdminImageUploadTarget, type AdminUploadSession } from "@/api/uploads";
+import { WatermarkOverlay } from "@/components/product/watermark-overlay";
 import styles from "./admin-image-upload.module.css";
 
 export type AdminSelectedImage = {
@@ -77,6 +78,7 @@ export function AdminImageUpload({
   maxFiles = multiple ? 12 : 1,
   disabled = false,
   strictSingleImage = false,
+  watermark = false,
   onRemoveExisting,
   onSetCoverExisting,
 }: {
@@ -89,6 +91,7 @@ export function AdminImageUpload({
   maxFiles?: number;
   disabled?: boolean;
   strictSingleImage?: boolean;
+  watermark?: boolean;
   onRemoveExisting?: (image: AdminExistingImage) => void;
   onSetCoverExisting?: (image: AdminExistingImage) => void;
 }) {
@@ -178,6 +181,7 @@ export function AdminImageUpload({
             <article className={styles.existingCard} key={image.id}>
               <span className={styles.existingImage}>
                 <Image unoptimized src={image.image_url || ""} alt={image.alt_text || label} fill sizes="160px" />
+                {watermark ? <WatermarkOverlay /> : null}
               </span>
               <span className={styles.existingMeta}>
                 <strong>{image.alt_text || "Current image"}</strong>
@@ -200,6 +204,7 @@ export function AdminImageUpload({
             <article className={styles.previewCard} key={image.id}>
               <span className={styles.previewImage}>
                 <Image unoptimized src={image.previewUrl} alt={`Selected ${image.file.name}`} fill sizes="160px" />
+                {watermark ? <WatermarkOverlay /> : null}
               </span>
               <span className={styles.previewMeta}>
                 <strong>{image.file.name}</strong>

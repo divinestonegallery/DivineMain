@@ -133,7 +133,7 @@ Based on this, and the images if provided, generate a JSON object with the follo
 
                     if AIService._is_rate_limit_error(error, error_text):
                         if attempt + 1 < AIService.MAX_RATE_LIMIT_ATTEMPTS:
-                            delay = AIService._retry_delay(error, attempt + 1)
+                            delay = AIService._retry_delay(error, attempt)
                             logger.warning(
                                 'AI generation rate limited provider=gemini model=%s retry_attempt=%s retry_delay_seconds=%s',
                                 model_name,
@@ -191,4 +191,22 @@ Based on this, and the images if provided, generate a JSON object with the follo
                 'AI_INVALID_INPUT',
                 'The supplied image data is invalid. Please upload the images again.',
                 400,
+            ) from None
+        except Exception as error:
+            status_code = AIService._provider_status(error)
+            logger.warning(
+                'AI provider initialization failed provider=gemini error_type=%s',
+                error.__class__.__name__,
+            )
+            if status_code is not None and status_code >= 500:
+                raise AIServiceError(
+                    'AI_UNAVAILABLE',
+                    'AI generation is temporarily unavailable. Please try again.',
+                    503,
+                    retryable=True,
+                ) from None
+            raise AIServiceError(
+                'AI_GENERATION_FAILED',
+                'AI generation could not be completed.',
+                500,
             ) from None

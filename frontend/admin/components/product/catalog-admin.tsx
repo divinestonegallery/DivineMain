@@ -12,6 +12,7 @@ import {
   type AdminSelectedImage,
   type UploadedAdminSelection,
 } from "@/components/product/admin-image-upload";
+import { WatermarkOverlay } from "@/components/product/watermark-overlay";
 import {
   AdminCheckboxField,
   AdminEntityModal,
@@ -646,6 +647,7 @@ function ProductModal({
             description="Upload or drag & drop JPG, PNG, or WEBP images."
             selectedImages={selectedImages}
             onSelectedImagesChange={setSelectedImages}
+            watermark
             existingImages={isEdit ? (product?.images ?? []) : []}
             multiple
             maxFiles={maxProductImages}
@@ -678,12 +680,13 @@ function GenerateProductModal({
   const formId = useId();
   const [selectedImages, setSelectedImages] = useState<AdminSelectedImage[]>([]);
   const [generating, setGenerating] = useState(false);
+  const generationInFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
 
   async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (generating) return;
+    if (generationInFlight.current) return;
 
     const form = new FormData(event.currentTarget);
     const errors: AdminFieldErrors = {};
@@ -695,6 +698,7 @@ function GenerateProductModal({
     setFieldErrors(errors);
     if (Object.keys(errors).length) return;
 
+    generationInFlight.current = true;
     setGenerating(true);
     try {
       const imagesData = await Promise.all(
@@ -756,7 +760,7 @@ function GenerateProductModal({
       showToast("Draft generated successfully.");
     } catch (reason) {
       if (reason instanceof ApiError) {
-        const code = (reason.details as { code?: string } | null)?.code;
+        const code = reason.code;
         if (code === "AI_RATE_LIMITED") {
           setError("AI generation is temporarily rate limited. Please try again shortly.");
           setFieldErrors({});
@@ -778,6 +782,7 @@ function GenerateProductModal({
       setFieldErrors(nextError.fieldErrors);
     } finally {
       setGenerating(false);
+      generationInFlight.current = false;
     }
   }
 
@@ -821,6 +826,7 @@ function GenerateProductModal({
             description="Upload images to help AI generate product details."
             selectedImages={selectedImages}
             onSelectedImagesChange={setSelectedImages}
+            watermark
             multiple
             maxFiles={maxProductImages}
             disabled={generating}
@@ -970,7 +976,7 @@ export function CatalogAdmin() {
             <article className={styles.productRow} key={product.id}>
               <div className={styles.productSummary}>
                 <span className={styles.productThumb}>
-                  {imageUrl ? <Image unoptimized src={imageUrl} alt={product.name} fill sizes="64px" /> : <ImageIcon size={20} />}
+                  {imageUrl ? <><Image unoptimized src={imageUrl} alt={product.name} fill sizes="64px" /><WatermarkOverlay /></> : <ImageIcon size={20} />}
                 </span>
                 <span className={styles.productIdentity}>
                   <strong>{product.name}</strong>

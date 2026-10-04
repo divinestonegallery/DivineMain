@@ -30,12 +30,16 @@ type ApiRequestOptions = RequestInit & {
 export class ApiError extends Error {
   status: number;
   details: unknown;
+  code?: string;
+  retryable?: boolean;
 
-  constructor(message: string, status: number, details?: unknown) {
+  constructor(message: string, status: number, details?: unknown, code?: string, retryable?: boolean) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.details = details;
+    this.code = code;
+    this.retryable = retryable;
   }
 }
 
@@ -84,7 +88,9 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     throw new ApiError(
       payload?.error?.message ?? payload?.message ?? "The request could not be completed.",
       response.status,
-      payload?.error ?? payload?.data,
+      payload?.data,
+      payload?.error?.code,
+      payload?.error?.retryable,
     );
   }
 
