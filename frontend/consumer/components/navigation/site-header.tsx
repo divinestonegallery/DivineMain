@@ -182,9 +182,16 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   }, [megaMenuClosing, megaMenuOpen]);
 
   useLayoutEffect(() => {
+    const homePage = pathname === "/";
+
     const handleScroll = () => {
       const nextScrolled = window.scrollY > 16;
       const nextCompactHeader = nextScrolled && window.innerWidth >= 1024;
+      if (!homePage) {
+        setIsScrolled(false);
+        setIsCompactHeader(nextCompactHeader);
+        return;
+      }
       setIsScrolled(nextScrolled);
       setIsCompactHeader(nextCompactHeader);
     };
@@ -194,6 +201,12 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       setIsCompactHeader(nextCompactHeader);
     };
 
+    if (!homePage) {
+      setIsScrolled(false);
+      setIsCompactHeader(false);
+      return;
+    }
+
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", handleResize);
@@ -201,7 +214,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleResize);
     };
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     if (!megaMenuOpen || deityLinksLoadedRef.current || deityLinksLoadingRef.current) return;
