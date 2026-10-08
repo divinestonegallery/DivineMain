@@ -50,8 +50,35 @@ const loadProduct = cache(async function loadProduct(slug: string): Promise<{ pr
   }
 });
 
+const PRODUCT_META_DESCRIPTION_FALLBACK = "View this product at Divine Stone Gallery.";
+
+function normalizeCopy(value: string | null | undefined) {
+  return (value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function sameCopy(left: string, right: string) {
+  return left.localeCompare(right, undefined, { sensitivity: "accent" }) === 0;
+}
+
 function productPageTitle(product: CatalogItem) {
-  return product.height > 0 ? `${product.name} | ${product.height}-inch Marble Moorti` : `${product.name} | Marble Moorti`;
+  return normalizeCopy(product.sourceTitle) || product.name;
+}
+
+function productCopy(product: CatalogItem) {
+  const titles = [productPageTitle(product), product.name].map(normalizeCopy).filter(Boolean);
+  const candidates = [product.sourceDescription, product.sourceShortDescription];
+
+  for (const candidate of candidates) {
+    const value = normalizeCopy(candidate);
+    if (!value || titles.some((title) => sameCopy(value, title))) continue;
+    return value;
+  }
+
+  return null;
+}
+
+function productMetaDescription(product: CatalogItem) {
+  return productCopy(product) ?? PRODUCT_META_DESCRIPTION_FALLBACK;
 }
 
 function cleanProductName(name: string) {
@@ -117,15 +144,17 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   }
 
   const imageUrl = new URL(product.image, getSiteUrl()).toString();
+  const title = productPageTitle(product);
+  const description = productMetaDescription(product);
 
   return {
-    title: productPageTitle(product),
-    description: product.description,
+    title,
+    description,
     alternates: { canonical: `/products/${product.slug}` },
     openGraph: {
-      title: `${product.name} | Divine Stone Gallery`,
-      description: product.description,
-      images: [{ url: imageUrl, alt: product.imageAlt }],
+      title: `${title} | Divine Stone Gallery`,
+      description,
+      images: [{ url: imageUrl, alt: product.gallery?.[0]?.alt || title }],
     },
   };
 }
@@ -147,16 +176,21 @@ export default async function ProductPage({ params }: ProductPageProps) {
   });
   const gallery = productGallery(product);
 
+  const productUrl = `${getSiteUrl()}/products/${product.slug}`;
+  const schemaDescription = productCopy(product);
+  const schemaMaterial = normalizeCopy(product.sourceMaterial);
+  const schemaCategory = normalizeCopy(product.sourceCategory);
   const productSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: product.name,
-    description: product.description,
+    name: productPageTitle(product),
+    ...(schemaDescription ? { description: schemaDescription } : {}),
+    url: productUrl,
     image: new URL(product.image, getSiteUrl()).toString(),
-    material: product.material,
-    category: product.category,
+    ...(schemaMaterial ? { material: schemaMaterial } : {}),
+    ...(schemaCategory ? { category: schemaCategory } : {}),
     brand: { "@type": "Brand", name: "Divine Stone Gallery" },
-    ...(product.height > 0 ? { size: `${product.height} inches` } : {}),
+    ...(product.specifiedHeight && product.specifiedHeight > 0 ? { size: `${product.specifiedHeight} inches` } : {}),
   };
   const accordionItems = [
     {

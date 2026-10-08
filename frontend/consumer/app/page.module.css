@@ -99,6 +99,19 @@
   opacity: 0.86;
 }
 
+.videoHero .heroCopy h1.heroLead {
+  max-width: 640px;
+  margin: 2rem 0 0;
+  color: #fff8ed;
+  font-family: inherit;
+  font-size: var(--text-body-lg);
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.75;
+  text-transform: none;
+  opacity: 0.86;
+}
+
 .videoHero .heroActions a:first-child {
   color: #21180f;
   background: #fffaf1;
@@ -1444,6 +1457,15 @@
     line-height: 1.52;
   }
 
+  .videoHero .heroCopy h1.heroLead {
+    max-width: 100%;
+    margin-top: 0.95rem;
+    font-size: 0.98rem;
+    line-height: 1.52;
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
   .videoHero .heroVideo {
     object-position: 58% center;
   }
@@ -1738,7 +1760,8 @@
     font-size: 0.8rem;
   }
 
-  .heroLead {
+  .heroLead,
+  .videoHero .heroCopy h1.heroLead {
     font-size: 0.92rem;
   }
 

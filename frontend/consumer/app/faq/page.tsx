@@ -73,7 +73,10 @@ function FAQShell({ children }: { children: ReactNode }) {
       <SiteHeader />
       <main id="main-content" tabIndex={-1}>
         <section className={styles.faqSection}>
-          <div className="site-container">{children}</div>
+          <div className="site-container">
+            <h1 className={styles.pageTitle}>Frequently Asked Questions</h1>
+            {children}
+          </div>
         </section>
         <section className={styles.cta}>
           <div className="site-container">

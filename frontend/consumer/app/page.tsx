@@ -507,8 +507,9 @@ function HeroSection({ quickLinks }: { quickLinks: Array<{ label: string; href: 
               </div>
             </div>
           ) : null}
-          <p className={styles.heroLead}>
-            Authentic hand-carved marble moorties shaped by fourth-generation master.</p>
+          <h1 className={styles.heroLead}>
+            Authentic hand-carved marble moorties shaped by fourth-generation master.
+          </h1>
           <div className={styles.heroActions}>
             <Link className={buttonClassName({ size: "lg" })} href="/shop">
               Explore moorties <ArrowRight aria-hidden="true" size={18} />

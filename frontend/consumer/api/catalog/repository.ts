@@ -74,6 +74,21 @@ function toCatalogOption(item: TaxonomyItem): PublicCatalogOption {
   };
 }
 
+const IMAGE_FILE_NAME = /\.(avif|bmp|gif|jpe?g|png|svg|webp|tiff?)$/i;
+
+function specifiedHeight(product: any) {
+  const direct = product.height ?? product.size;
+  if (typeof direct === "number" && Number.isFinite(direct) && direct > 0) return direct;
+  if (typeof direct === "string" && direct.trim() && Number.isFinite(Number(direct)) && Number(direct) > 0) return Number(direct);
+  return null;
+}
+
+function imageAltText(value: unknown, fallback: string) {
+  const alt = text(value);
+  if (!alt || IMAGE_FILE_NAME.test(alt)) return fallback;
+  return alt;
+}
+
 function productGallery(product: any, fallbackAlt: string) {
   const images = Array.isArray(product.images) ? product.images : [];
   return images
@@ -81,7 +96,7 @@ function productGallery(product: any, fallbackAlt: string) {
     .sort((a: any, b: any) => Number(a.display_order ?? 0) - Number(b.display_order ?? 0))
     .map((item: any) => ({
       src: text(item.image_url),
-      alt: text(item.alt_text, fallbackAlt),
+      alt: imageAltText(item.alt_text, fallbackAlt),
     }));
 }
 
@@ -104,9 +119,10 @@ function productPrice(product: any): ProductPrice | null {
 function toCatalogItem(product: any, index = 0): CatalogItem {
   const slug = text(product.slug, text(product.uid, `product-${index + 1}`));
   const name = text(product.name, text(product.title, "Marble moorti"));
+  const sourceTitle = text(product.title, name);
   const imageAlt = `${name} from Divine Stone Gallery`;
   const rawImages = Array.isArray(product.images) ? product.images : [];
-  const gallery = productGallery(product, imageAlt);
+  const gallery = productGallery(product, sourceTitle);
   const coverImage = rawImages.find((item: any) => item.cover_photo)?.image_url;
   const image = text(product.cover_photo, text(coverImage, gallery[0]?.src ?? "/brand/lotus-mark.jpg"));
   const stockQuantity = integerValue(product.stock_quantity ?? product.stockQuantity, product.availability === "out_of_stock" ? 0 : 1);
@@ -118,6 +134,12 @@ function toCatalogItem(product: any, index = 0): CatalogItem {
     slug,
     uid: product.uid ?? null,
     name,
+    sourceTitle,
+    sourceDescription: text(product.description),
+    sourceShortDescription: text(product.short_description),
+    sourceMaterial: text(product.material),
+    sourceCategory: text(product.category),
+    specifiedHeight: specifiedHeight(product),
     deity: text(product.deity, "Divine form"),
     category: text(product.category, "Marble murti"),
     height: parseHeight(product),
@@ -125,7 +147,7 @@ function toCatalogItem(product: any, index = 0): CatalogItem {
     finish: "Hand-finished",
     image,
     imageAlt,
-    gallery: gallery.length ? gallery : [{ src: image, alt: imageAlt }],
+    gallery: gallery.length ? gallery : [{ src: image, alt: sourceTitle }],
     featured: product.is_featured ? index : index + 10,
     description: text(product.description, text(product.short_description, "A hand-carved marble work from Divine Stone Gallery.")),
     price,

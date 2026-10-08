@@ -455,6 +455,7 @@ export function ShopCatalog({
 
       <section className={styles.catalogSection}>
         <div className="site-container">
+          <h1 className={styles.pageTitle}>Sacred works for every space.</h1>
           <div className={styles.unifiedToolbar}>
             <div className={styles.categoryChips} aria-label="Shop by category">
               {categories.map((category) => (

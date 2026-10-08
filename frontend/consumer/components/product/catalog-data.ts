@@ -9,6 +9,12 @@ export type CatalogItem = {
   slug: string;
   uid?: string | null;
   name: string;
+  sourceTitle?: string;
+  sourceDescription?: string;
+  sourceShortDescription?: string;
+  sourceMaterial?: string;
+  sourceCategory?: string;
+  specifiedHeight?: number | null;
   deity: string;
   category: CatalogCategory;
   height: number;
