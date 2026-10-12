@@ -11,8 +11,10 @@ export function RouteScrollReset() {
     if (lastPathname.current === pathname) return;
     lastPathname.current = pathname;
 
-    // Let native/browser anchor navigation decide the position for hash links.
-    if (window.location.hash) return;
+    if (typeof window === "undefined") return;
+
+    const hasHashTarget = typeof window.location.hash === "string" && window.location.hash.length > 1;
+    if (hasHashTarget) return;
 
     const root = document.documentElement;
     const previousScrollBehavior = root.style.scrollBehavior;
