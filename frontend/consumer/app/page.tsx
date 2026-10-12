@@ -12,7 +12,7 @@ import {
   Star,
 } from "lucide-react";
 import { CookieConsent } from "@/components/layout/cookie-consent";
-import { ResilientImage } from "@/components/common/resilient-image";
+import { ProtectedImage } from "@/components/common/protected-image";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/navigation/site-header";
 import { ProductCard as CatalogProductCard } from "@/components/product/product-card";
@@ -183,7 +183,7 @@ function MediaImage({
   }
 
   return (
-    <ResilientImage
+    <ProtectedImage
       className={styles.mediaImg}
       src={src}
       alt={alt}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, Gem, HeartHandshake, Ruler, Sparkles } from "lucide-react";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { CookieConsent } from "@/components/layout/cookie-consent";
-import { ResilientImage } from "@/components/common/resilient-image";
+import { ProtectedImage } from "@/components/common/protected-image";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/navigation/site-header";
 import { buttonClassName } from "@shared/components/button";
@@ -43,12 +43,12 @@ export default function GuidesPage() {
             <header className={styles.guideSectionIntro}><div><p className={styles.eyebrow}>Before you order</p><h2 className="font-display">Get the practical details right.</h2></div><p>These short notes cover the questions we hear most often from families, collectors and people planning a new mandir.</p></header>
             {featuredGuide ? <article className={styles.featuredGuide}>
               <Link className={styles.featuredGuideImage} href={`/guides/${featuredGuide.slug}`}>
-                <ResilientImage src={featuredGuide.image} alt={featuredGuide.imageAlt} fill priority sizes="(max-width: 800px) 100vw, 52vw" fallback={<span className={styles.guideImageFallback} role="img" aria-label="Guide image unavailable">Image coming soon</span>} />
+                <ProtectedImage src={featuredGuide.image} alt={featuredGuide.imageAlt} fill priority sizes="(max-width: 800px) 100vw, 52vw" fallback={<span className={styles.guideImageFallback} role="img" aria-label="Guide image unavailable">Image coming soon</span>} />
               </Link>
               <div className={styles.featuredGuideCopy}><span className={styles.featuredLabel}>{featuredGuide.eyebrow} · {featuredGuide.readTime}</span><h2 className="font-display"><Link href={`/guides/${featuredGuide.slug}`}>{featuredGuide.title}</Link></h2><p>{featuredGuide.summary}</p><ul>{featuredGuide.highlights.map((item) => <li key={item.label}><strong>{item.value}</strong><span>{item.label}</span></li>)}</ul><Link className={styles.featuredGuideLink} href={`/guides/${featuredGuide.slug}`}>Read this guide <ArrowRight aria-hidden="true" size={16} /></Link></div>
             </article> : null}
             <div className={styles.guideCards}>
-              {supportingGuides.map((guide) => { const Icon = iconMap[guide.slug]; return <article key={guide.slug}><Link className={styles.guideCardImage} href={`/guides/${guide.slug}`}><ResilientImage src={guide.image} alt={guide.imageAlt} fill sizes="(max-width: 680px) 100vw, 33vw" fallback={<span className={styles.guideImageFallback} role="img" aria-label="Guide image unavailable">Image coming soon</span>} /></Link><div className={styles.guideCardCopy}><span><Icon aria-hidden="true" size={18} /> {guide.readTime}</span><h2 className="font-display"><Link href={`/guides/${guide.slug}`}>{guide.title}</Link></h2><p>{guide.summary}</p><Link href={`/guides/${guide.slug}`}>Read the guide <ArrowRight aria-hidden="true" size={16} /></Link></div></article>; })}
+              {supportingGuides.map((guide) => { const Icon = iconMap[guide.slug]; return <article key={guide.slug}><Link className={styles.guideCardImage} href={`/guides/${guide.slug}`}><ProtectedImage src={guide.image} alt={guide.imageAlt} fill sizes="(max-width: 680px) 100vw, 33vw" fallback={<span className={styles.guideImageFallback} role="img" aria-label="Guide image unavailable">Image coming soon</span>} /></Link><div className={styles.guideCardCopy}><span><Icon aria-hidden="true" size={18} /> {guide.readTime}</span><h2 className="font-display"><Link href={`/guides/${guide.slug}`}>{guide.title}</Link></h2><p>{guide.summary}</p><Link href={`/guides/${guide.slug}`}>Read the guide <ArrowRight aria-hidden="true" size={16} /></Link></div></article>; })}
             </div>
           </div>
         </section>
