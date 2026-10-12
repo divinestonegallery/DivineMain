@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Expand, RotateCcw, X, ZoomIn, ZoomOut } from
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import type { ProductImage } from "@/types/product";
-import { ResilientImage } from "@/components/common/resilient-image";
+import { ProtectedImage } from "@/components/common/protected-image";
 import styles from "./product.module.css";
 
 const MIN_ZOOM = 1;
@@ -238,7 +238,7 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
   return (
     <div className={styles.gallery}>
       <div className={styles.galleryMain} onClick={openViewer}>
-        <ResilientImage src={activeImage.src} alt={activeImage.alt} fill sizes="(max-width: 900px) 100vw, 55vw" priority unoptimized={isRemoteImage(activeImage.src)} fallback={imageFallback} />
+        <ProtectedImage src={activeImage.src} alt={activeImage.alt} fill sizes="(max-width: 900px) 100vw, 55vw" priority unoptimized={isRemoteImage(activeImage.src)} fallback={imageFallback} />
         <button type="button" aria-label="View larger image" onClick={(event) => { event.stopPropagation(); openViewer(); }}>
           <Expand aria-hidden="true" size={19} />
         </button>
@@ -252,7 +252,7 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
             aria-pressed={index === activeIndex}
             onClick={() => handleThumbnailClick(index)}
           >
-            <ResilientImage src={image.src} alt="" fill sizes="90px" unoptimized={isRemoteImage(image.src)} fallback={imageFallback} />
+            <ProtectedImage src={image.src} alt="" fill sizes="90px" unoptimized={isRemoteImage(image.src)} fallback={imageFallback} />
           </button>
         ))}
       </div>
@@ -286,7 +286,7 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
                   onPointerCancel={handlePointerEnd}
                   style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
                 >
-                  <ResilientImage src={activeImage.src} alt={activeImage.alt} fill sizes="(max-width: 680px) 92vw, 60vw" unoptimized={isRemoteImage(activeImage.src)} fallback={imageFallback} />
+                  <ProtectedImage src={activeImage.src} alt={activeImage.alt} fill sizes="(max-width: 680px) 92vw, 60vw" unoptimized={isRemoteImage(activeImage.src)} fallback={imageFallback} />
                 </div>
               </div>
             </div>

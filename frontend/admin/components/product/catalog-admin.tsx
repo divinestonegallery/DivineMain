@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search } from "lucide-react";
+import { Check, ChevronDown, ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search, Sparkles, AlignLeft } from "lucide-react";
 import { ApiError, apiRequest } from "@shared/utils/http";
 import {
   AdminImageUpload,
@@ -80,7 +80,11 @@ type Lookups = {
   deities: Taxonomy[];
 };
 
-type ProductModalState = { mode: "create" } | { mode: "edit"; product: AdminProduct };
+type ProductModalState = 
+  | { mode: "create"; initialData?: Partial<AdminProduct>; initialImages?: AdminSelectedImage[] } 
+  | { mode: "edit"; product: AdminProduct }
+  | { mode: "create_ai" }
+  | { mode: "create_paragraph" };
 type SortValue = "featured" | "display_order" | "price_asc" | "price_desc" | "name_asc" | "name_desc";
 
 const sortOptions: Array<{ label: string; value: SortValue }> = [
@@ -389,7 +393,7 @@ function ProductModal({
   onImageRemoved,
   onImageUpdated,
 }: {
-  state: ProductModalState;
+  state: Extract<ProductModalState, { mode: "create" | "edit" }>;
   lookups: Lookups;
   onClose: () => void;
   onSaved: (product: AdminProduct, mode: ProductModalState["mode"]) => void;
@@ -398,10 +402,15 @@ function ProductModal({
 }) {
   const { showToast } = useToast();
   const formId = useId();
-  const [currentProduct, setCurrentProduct] = useState<AdminProduct | undefined>(state.mode === "edit" ? state.product : undefined);
-  const product = state.mode === "edit" ? currentProduct : undefined;
-  const [selectedImages, setSelectedImages] = useState<AdminSelectedImage[]>([]);
-  const [keywords, setKeywords] = useState<string[]>(() => normalizeKeywords(state.mode === "edit" ? state.product.keywords : []));
+  const [currentProduct, setCurrentProduct] = useState<AdminProduct | undefined>(
+    state.mode === "edit" ? state.product : (state.initialData as AdminProduct | undefined)
+  );
+  const product = currentProduct;
+  const isEdit = state.mode === "edit";
+  const [selectedImages, setSelectedImages] = useState<AdminSelectedImage[]>(
+    state.mode === "create" && state.initialImages ? state.initialImages : []
+  );
+  const [keywords, setKeywords] = useState<string[]>(() => normalizeKeywords(product?.keywords));
   const [keywordInput, setKeywordInput] = useState("");
   const keywordInputId = useId();
   const keywordInputRef = useRef<HTMLInputElement>(null);
@@ -573,9 +582,9 @@ function ProductModal({
 
         <AdminModalSection title="Classification">
           <AdminFieldGrid>
-            <TaxonomySelect name="category" label="Category" items={lookups.categories} currentId={product?.category} createMode={state.mode === "create"} error={getFieldError(fieldErrors, "category")} />
-            <TaxonomySelect name="material" label="Material" items={lookups.materials} currentId={product?.material} createMode={state.mode === "create"} error={getFieldError(fieldErrors, "material")} />
-            <TaxonomySelect name="deity" label="Deity (Subcategory)" items={lookups.deities} currentId={product?.deity} createMode={state.mode === "create"} required={false} error={getFieldError(fieldErrors, "deity", "diety")} />
+            <TaxonomySelect name="category" label="Category" items={lookups.categories} currentId={product?.category} createMode={!isEdit} error={getFieldError(fieldErrors, "category")} />
+            <TaxonomySelect name="material" label="Material" items={lookups.materials} currentId={product?.material} createMode={!isEdit} error={getFieldError(fieldErrors, "material")} />
+            <TaxonomySelect name="deity" label="Deity (Subcategory)" items={lookups.deities} currentId={product?.deity} createMode={!isEdit} required={false} error={getFieldError(fieldErrors, "deity", "diety")} />
           </AdminFieldGrid>
         </AdminModalSection>
 
@@ -637,19 +646,171 @@ function ProductModal({
             description="Upload or drag & drop JPG, PNG, or WEBP images."
             selectedImages={selectedImages}
             onSelectedImagesChange={setSelectedImages}
-            existingImages={product?.images ?? []}
+            existingImages={isEdit ? (product?.images ?? []) : []}
             multiple
             maxFiles={maxProductImages}
             disabled={submitting || Boolean(imageActionId)}
-            onRemoveExisting={product ? removeExistingImage : undefined}
-            onSetCoverExisting={product ? setCoverImage : undefined}
+            onRemoveExisting={isEdit ? removeExistingImage : undefined}
+            onSetCoverExisting={isEdit ? setCoverImage : undefined}
           />
         </AdminModalSection>
       </AdminModalForm>
 
-      {product ? (
+      {isEdit && product ? (
         storefrontHref(`/products/${product.slug}`) ? <Link className={styles.modalProductLink} href={storefrontHref(`/products/${product.slug}`)!} target="_blank">Open product page <ExternalLink size={14} /></Link> : null
       ) : null}
+    </AdminEntityModal>
+  );
+}
+
+function GenerateProductModal({
+  mode,
+  lookups,
+  onClose,
+  onGenerated,
+}: {
+  mode: "create_ai" | "create_paragraph";
+  lookups: Lookups;
+  onClose: () => void;
+  onGenerated: (data: Partial<AdminProduct>, images: AdminSelectedImage[]) => void;
+}) {
+  const { showToast } = useToast();
+  const formId = useId();
+  const [selectedImages, setSelectedImages] = useState<AdminSelectedImage[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
+
+  async function generate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (generating) return;
+
+    const form = new FormData(event.currentTarget);
+    const errors: AdminFieldErrors = {};
+    if (mode === "create_ai" && !text(form.get("name"))) errors.name = "Product name is required.";
+    if (mode === "create_paragraph" && !text(form.get("paragraph"))) errors.paragraph = "Description is required.";
+    if (selectedImages.length === 0) errors.images = "Please upload at least one product image.";
+
+    setError(null);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) return;
+
+    setGenerating(true);
+    try {
+      const imagesData = await Promise.all(
+        selectedImages.map((img) => new Promise<{ mime_type: string; data: string }>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const image = new window.Image();
+            image.onload = () => {
+              const canvas = document.createElement("canvas");
+              const maxSize = 800;
+              let width = image.width;
+              let height = image.height;
+              
+              if (width > maxSize || height > maxSize) {
+                if (width > height) {
+                  height = Math.round((height * maxSize) / width);
+                  width = maxSize;
+                } else {
+                  width = Math.round((width * maxSize) / height);
+                  height = maxSize;
+                }
+              }
+              
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext("2d");
+              if (!ctx) {
+                resolve({ mime_type: img.file.type, data: (reader.result as string).split(",")[1] });
+                return;
+              }
+              ctx.drawImage(image, 0, 0, width, height);
+              const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+              resolve({ mime_type: "image/jpeg", data: dataUrl.split(",")[1] });
+            };
+            image.onerror = () => reject(new Error("Failed to load image for resizing"));
+            image.src = e.target?.result as string;
+          };
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(img.file);
+        }))
+      );
+
+      const payload = {
+        mode: mode === "create_ai" ? "ai" : "paragraph",
+        name: text(form.get("name")),
+        category: numericId(form, "category") || null,
+        material: numericId(form, "material") || null,
+        deity: numericId(form, "deity") || null,
+        paragraph: text(form.get("paragraph")),
+        images: imagesData,
+      };
+
+      const result = await apiRequest<Partial<AdminProduct>>("/api/admin/products/generate-draft", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      onGenerated(result, selectedImages);
+      showToast("Draft generated successfully.");
+    } catch (reason) {
+      const nextError = parseAdminFormError(reason, "Failed to generate product.");
+      setError(nextError.message);
+      setFieldErrors(nextError.fieldErrors);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  return (
+    <AdminEntityModal
+      open
+      mode="create"
+      entityLabel={mode === "create_ai" ? "Product with AI" : "Product with Paragraph"}
+      formId={formId}
+      onClose={onClose}
+      submitting={generating}
+      error={error || getFieldError(fieldErrors, "images")}
+      size="wide"
+      submitLabel="Generate Product"
+    >
+      <AdminModalForm id={formId} onSubmit={generate}>
+        {mode === "create_ai" ? (
+          <AdminModalSection title="Basic information">
+            <AdminFieldGrid>
+              <AdminModalField label="Name" required wide error={getFieldError(fieldErrors, "name")}>
+                <input name="name" aria-invalid={Boolean(getFieldError(fieldErrors, "name"))} />
+              </AdminModalField>
+              <TaxonomySelect name="category" label="Category" items={lookups.categories} createMode required={false} />
+              <TaxonomySelect name="material" label="Material" items={lookups.materials} createMode required={false} />
+              <TaxonomySelect name="deity" label="Deity (Subcategory)" items={lookups.deities} createMode required={false} />
+            </AdminFieldGrid>
+          </AdminModalSection>
+        ) : (
+          <AdminModalSection title="Product Description">
+            <AdminFieldGrid>
+              <AdminModalField label="Paragraph" required wide error={getFieldError(fieldErrors, "paragraph")} hint="Describe the product in detail.">
+                <textarea name="paragraph" rows={6} aria-invalid={Boolean(getFieldError(fieldErrors, "paragraph"))} />
+              </AdminModalField>
+            </AdminFieldGrid>
+          </AdminModalSection>
+        )}
+
+        <AdminModalSection title="Images">
+          <AdminImageUpload
+            label="Product Images"
+            description="Upload images to help AI generate product details."
+            selectedImages={selectedImages}
+            onSelectedImagesChange={setSelectedImages}
+            multiple
+            maxFiles={maxProductImages}
+            disabled={generating}
+          />
+        </AdminModalSection>
+
+        {generating ? <div style={{ padding: '1rem', textAlign: 'center' }}>Analyzing images and generating product content...</div> : null}
+      </AdminModalForm>
     </AdminEntityModal>
   );
 }
@@ -751,6 +912,8 @@ export function CatalogAdmin() {
         <label><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products" /></label>
         <button type="button" onClick={() => void load()} disabled={loading}><RefreshCw size={15} /> Refresh</button>
         <button className={styles.primaryAction} type="button" onClick={() => setModal({ mode: "create" })}><Plus size={15} /> Add Product</button>
+        <button className={styles.primaryAction} style={{ background: '#6366f1', borderColor: '#6366f1' }} type="button" onClick={() => setModal({ mode: "create_ai" })}><Sparkles size={15} /> Add Product with AI</button>
+        <button className={styles.primaryAction} style={{ background: '#10b981', borderColor: '#10b981' }} type="button" onClick={() => setModal({ mode: "create_paragraph" })}><AlignLeft size={15} /> Add Product with Paragraph</button>
       </div>
 
       <div className={styles.categoryToolbar}>
@@ -815,15 +978,25 @@ export function CatalogAdmin() {
       </div>
 
       {modal ? (
-        <ProductModal
-          key={`${modal.mode}-${modal.mode === "edit" ? modal.product.id : "new"}`}
-          state={modal}
-          lookups={lookups}
-          onClose={() => setModal(null)}
-          onSaved={saveProduct}
-          onImageRemoved={removeProductImageFromState}
-          onImageUpdated={updateProductImage}
-        />
+        (modal.mode === "create_ai" || modal.mode === "create_paragraph") ? (
+          <GenerateProductModal
+            key={modal.mode}
+            mode={modal.mode}
+            lookups={lookups}
+            onClose={() => setModal(null)}
+            onGenerated={(data, images) => setModal({ mode: "create", initialData: data, initialImages: images })}
+          />
+        ) : (
+          <ProductModal
+            key={`${modal.mode}-${modal.mode === "edit" ? modal.product.id : "new"}`}
+            state={modal as Extract<ProductModalState, { mode: "create" | "edit" }>}
+            lookups={lookups}
+            onClose={() => setModal(null)}
+            onSaved={saveProduct}
+            onImageRemoved={removeProductImageFromState}
+            onImageUpdated={updateProductImage}
+          />
+        )
       ) : null}
     </section>
   );
