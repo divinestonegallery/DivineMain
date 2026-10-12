@@ -12,7 +12,7 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
-import { ResilientImage } from "@/components/common/resilient-image";
+import { ProtectedImage } from "@/components/common/protected-image";
 import { Modal } from "@shared/components/modal";
 import { buttonClassName } from "@shared/components/button";
 import type { PublicCatalogOption } from "@/api/catalog/repository";
@@ -124,7 +124,7 @@ function ProductCard({ item, priority = false }: { item: CatalogItem; priority?:
     <article className={styles.productCard}>
       <div className={styles.productMedia}>
         <Link href={`/products/${item.slug}`} aria-label={`View ${item.name}`}>
-          <ResilientImage
+          <ProtectedImage
             src={item.image}
             alt={`${item.name}, hand-carved marble work`}
             fill

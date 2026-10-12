@@ -5,7 +5,7 @@ import type { Product } from "@/types/product";
 import type { BackendProductImage, ProductCard as ApiProductCard, ProductPrice as ProductPriceValue } from "@/api/products";
 import { ProductPrice } from "./product-price";
 import { ProductRating } from "./product-rating";
-import { ResilientImage } from "@/components/common/resilient-image";
+import { ProtectedImage } from "@/components/common/protected-image";
 import styles from "./product.module.css";
 
 type ProductCardInput = Product | (ApiProductCard & {
@@ -99,7 +99,7 @@ export function ProductCard({ product, priority = false, href }: { product: Prod
       <div className={styles.productMedia}>
         <Link href={productHref} aria-label={`View ${name}`}>
           {image ? (
-            <ResilientImage
+            <ProtectedImage
               src={image.src}
               alt={image.alt}
               fill
