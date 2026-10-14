@@ -327,6 +327,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 1rem;
 }
 
@@ -346,6 +348,7 @@
   position: relative;
   z-index: 1;
   width: 100%;
+  min-width: 0;
   max-width: 860px;
   max-height: min(92vh, 640px);
   background: var(--surface, #ffffff);
@@ -356,6 +359,15 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.signupModal {
+  max-width: 900px;
+  max-height: min(94vh, 740px);
+}
+
+.signupModal .modalLayout {
+  min-height: min(620px, 88vh);
 }
 
 .modalLayout {
@@ -457,6 +469,7 @@
 }
 
 .modalForm input {
+  min-width: 0;
   width: 100%;
   min-height: 48px;
   padding: 0.8rem 1rem;
@@ -468,15 +481,31 @@
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+.modalForm input::placeholder {
+  color: #938b7d;
+  opacity: 0.78;
+}
+
 .modalForm input:focus {
   outline: none;
   border-color: var(--gold-soft);
   box-shadow: 0 0 0 3px rgb(179 134 63 / 0.1);
 }
 
+.modalForm input:hover:not(:disabled):not(:focus) {
+  border-color: rgb(138 100 40 / 0.5);
+}
+
 .modalForm input:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.signupPasswordHint {
+  margin: -0.8rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
 }
 
 .forgotPasswordButton {
@@ -622,6 +651,7 @@
   .modalLayout {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
+    min-height: 0;
   }
   
   .modalImageSection {
@@ -637,9 +667,37 @@
   }
   
   .modalContainer {
-    max-width: calc(100% - 2rem);
-    margin: 1rem auto;
-    max-height: calc(100vh - 2rem);
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    max-height: calc(100dvh - 1.5rem);
     border-radius: 20px;
+  }
+
+  .signupModal {
+    max-height: calc(100dvh - 1.5rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .modalOverlay {
+    align-items: flex-start;
+    padding: max(0.75rem, env(safe-area-inset-top)) 0.75rem max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .modalHeader {
+    padding: 1.25rem 1rem 0.35rem;
+  }
+
+  .modalBody {
+    padding: 0.9rem 1rem 1.25rem;
+  }
+
+  .modalForm {
+    gap: 0.95rem;
+  }
+
+  .signupModal .modalTitle {
+    font-size: clamp(1.5rem, 7vw, 1.75rem);
   }
 }

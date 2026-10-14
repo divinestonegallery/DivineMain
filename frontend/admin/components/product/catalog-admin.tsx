@@ -142,8 +142,19 @@ function addOptionalText(payload: Record<string, unknown>, form: FormData, key: 
 }
 
 function normalizeKeywords(value: AdminProduct["keywords"]): string[] {
-  const values = Array.isArray(value) ? value : typeof value === "string" ? value.split(/[\n,]/) : [];
-  return Array.from(new Set(values.map((keyword) => keyword.trim()).filter(Boolean)));
+  const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+  const seen = new Set<string>();
+
+  return values
+    .flatMap((keyword) => keyword.split(/[\n,]/))
+    .map((keyword) => keyword.trim())
+    .filter((keyword) => {
+      if (!keyword) return false;
+      const normalized = keyword.toLowerCase();
+      if (seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    });
 }
 
 function validateProduct(form: FormData) {
@@ -420,12 +431,20 @@ function ProductModal({
   const [fieldErrors, setFieldErrors] = useState<AdminFieldErrors>({});
 
   function addKeyword() {
-    const nextKeyword = keywordInput.trim();
-    if (!nextKeyword || keywords.includes(nextKeyword)) return;
-
-    setKeywords((current) => [...current, nextKeyword]);
+    if (!keywordInput.trim()) return;
+    setKeywords((current) => normalizeKeywords([...current, keywordInput]));
     setKeywordInput("");
     keywordInputRef.current?.focus();
+  }
+
+  function handleKeywordInputChange(value: string) {
+    const values = value.split(/[\n,]/);
+    if (values.length > 1) {
+      setKeywords((current) => normalizeKeywords([...current, ...values.slice(0, -1)]));
+      setKeywordInput(values[values.length - 1].trimStart());
+      return;
+    }
+    setKeywordInput(value);
   }
 
   function handleKeywordKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -546,7 +565,7 @@ function ProductModal({
                     id={keywordInputId}
                     value={keywordInput}
                     placeholder="Enter keyword"
-                    onChange={(event) => setKeywordInput(event.target.value)}
+                    onChange={(event) => handleKeywordInputChange(event.target.value)}
                     onKeyDown={handleKeywordKeyDown}
                     disabled={submitting}
                   />
