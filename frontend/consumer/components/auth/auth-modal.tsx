@@ -298,7 +298,7 @@ export function AuthModal() {
         aria-label="Close modal overlay"
         tabIndex={-1}
       />
-      <div className={styles.modalContainer} ref={modalRef}>
+      <div className={`${styles.modalContainer} ${mode === "signup" ? styles.signupModal : ""}`} ref={modalRef}>
         <div className={styles.modalLayout}>
           <div className={styles.modalImageSection}>
             <Image
@@ -372,11 +372,11 @@ export function AuthModal() {
                 <form className={styles.modalForm} onSubmit={handleSignup}>
                   <label>
                     <span>Name</span>
-                    <input name="name" type="text" required autoComplete="name" disabled={loading} />
+                    <input name="name" type="text" placeholder="Your full name" required autoComplete="name" disabled={loading} />
                   </label>
                   <label>
                     <span>Email Address</span>
-                    <input name="email" type="email" required autoComplete="email" disabled={loading} />
+                    <input name="email" type="email" placeholder="you@example.com" required autoComplete="email" disabled={loading} />
                   </label>
                   <label>
                     <span>Password</span>
@@ -386,6 +386,7 @@ export function AuthModal() {
                         type={showPassword ? "text" : "password"}
                         required
                         minLength={8}
+                        placeholder="At least 8 characters"
                         autoComplete="new-password"
                         disabled={loading}
                       />
@@ -399,6 +400,7 @@ export function AuthModal() {
                       </button>
                     </div>
                   </label>
+                  <p className={styles.signupPasswordHint}>Use at least 8 characters for your password.</p>
                   <label>
                     <span>Confirm Password</span>
                     <input
@@ -406,6 +408,7 @@ export function AuthModal() {
                       type={showPassword ? "text" : "password"}
                       required
                       minLength={8}
+                      placeholder="Re-enter your password"
                       autoComplete="new-password"
                       disabled={loading}
                     />

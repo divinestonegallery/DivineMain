@@ -10,7 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { CookieConsent } from "@/components/layout/cookie-consent";
-import { ResilientImage } from "@/components/common/resilient-image";
+import { ProtectedImage } from "@/components/common/protected-image";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/navigation/site-header";
 import { JsonLd } from "@/components/layout/json-ld";
@@ -278,7 +278,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               {related.map((item: CatalogItem) => (
                 <article key={item.id} className={styles.relatedCard}>
                   <Link className={styles.relatedImage} href={`/products/${item.slug}`}>
-                    <ResilientImage src={item.image} alt={item.imageAlt} fill sizes="(max-width: 680px) 50vw, 33vw" unoptimized={/^https?:\/\//i.test(item.image)} fallback={<span className={styles.relatedImageFallback} role="img" aria-label={`${item.name} image unavailable`}>Image coming soon</span>} />
+                    <ProtectedImage src={item.image} alt={item.imageAlt} fill sizes="(max-width: 680px) 50vw, 33vw" unoptimized={/^https?:\/\//i.test(item.image)} fallback={<span className={styles.relatedImageFallback} role="img" aria-label={`${item.name} image unavailable`}>Image coming soon</span>} />
                   </Link>
                   <div className={styles.relatedContent}>
                     <span className={styles.relatedCategory}>{item.category}</span>
