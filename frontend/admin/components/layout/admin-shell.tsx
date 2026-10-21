@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Boxes,
   ChevronRight,
+  ClipboardList,
   CircleHelp,
   Gem,
   LayoutDashboard,
@@ -47,6 +48,7 @@ const groups: Array<{ label: string; items: NavItem[] }> = [
       { label: "FAQs", href: "/faqs", icon: CircleHelp, description: "Manage frequently asked questions" },
       { label: "Contact", href: "/contact", icon: Mail, description: "Manage contact submissions" },
       { label: "Custom Moorti", href: "/custom-moorti", icon: Sparkles, description: "Track custom moorti enquiries" },
+      { label: "Leads", href: "/leads", icon: ClipboardList, description: "Assign and follow up on enquiries" },
       { label: "Staff", href: "/staff", icon: ShieldCheck, description: "Manage staff and administrators" },
     ],
   },

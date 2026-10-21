@@ -9,10 +9,18 @@ class ContactMessage(BaseModel):
         CLOSED = 'closed', 'Closed'
 
     name = models.CharField(max_length=255)
-    email = models.EmailField()
-    phone = models.CharField(max_length=20, blank=True, null=True)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=32, blank=True, null=True)
     message = models.TextField()
     status = models.CharField(max_length=50, choices=Status.choices, default=Status.NEW, db_index=True)
+    submission_key = models.CharField(max_length=36, blank=True, null=True, unique=True)
+    lead = models.ForeignKey(
+        'leads.Lead',
+        related_name='contact_messages',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
 
     def __str__(self):
         return f"Message from {self.name}"
@@ -28,7 +36,15 @@ class CustomizeRequest(BaseModel):
     user = models.ForeignKey(Customer, on_delete=models.CASCADE, blank=True, null=True)
     name = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
-    phone = models.CharField(max_length=20, blank=True, null=True)
+    phone = models.CharField(max_length=32, blank=True, null=True)
+    submission_key = models.CharField(max_length=36, blank=True, null=True, unique=True)
+    lead = models.ForeignKey(
+        'leads.Lead',
+        related_name='customize_requests',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
     city = models.CharField(max_length=100, blank=False, null=False)
     pincode = models.CharField(max_length=20, blank=True, null=True)
     approximate_height = models.CharField(max_length=100, blank=True, null=True)

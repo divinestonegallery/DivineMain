@@ -4,6 +4,7 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { ArrowRight, CheckCircle2, LockKeyhole } from "lucide-react";
 import { sendContactMessage } from "@/api/contact";
+import { rotateSubmissionId, websiteAttribution } from "@/utils/enquiry-submission";
 import { useUser } from "@/components/auth/auth-facade";
 import { buttonClassName } from "@shared/components/button";
 import { FormField, TextareaField } from "@/components/common/form-field";
@@ -56,16 +57,25 @@ export function ContactForm() {
     const form = new FormData(formElement);
     const value = (name: string) => form.get(name)?.toString().trim() || "";
     const message = value("message");
+    const email = value("email");
+    const phone = value("phone");
+    if (!email && !phone) {
+      setError("Enter an email address or phone number.");
+      return;
+    }
     setSubmitting(true);
     setError("");
 
     try {
       await sendContactMessage({
         name: value("name"),
-        email: value("email"),
-        phone: value("phone"),
+        email,
+        phone,
         message,
+        touchpoint: "contact_us",
+        ...websiteAttribution("contact-us"),
       });
+      rotateSubmissionId("contact-us");
       setSent(true);
       formElement.reset();
       if (!isSignedIn) setIdentity(emptyIdentity);
@@ -101,13 +111,13 @@ export function ContactForm() {
       <div className={styles.formHeader}>
         <p>Send an enquiry</p>
         <h2 className="font-display">How can we help?</h2>
-        <span>Share your details and the gallery team will guide you personally.</span>
+        <span>Share your email or phone number and the gallery team will guide you personally.</span>
       </div>
       {profileNotice ? <p className={styles.profileNotice}>{profileNotice}</p> : null}
       <div className={styles.formGrid}>
         <FormField label="Name" name="name" autoComplete="name" placeholder="Full name" value={identity.name} onChange={updateIdentity("name")} required />
-        <FormField label="Email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={identity.email} onChange={updateIdentity("email")} required />
-        <FormField label="Phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="e.g. +91 98765 43210" pattern="\+?[0-9][0-9\s-]{7,19}" value={identity.phone} onChange={updateIdentity("phone")} required />
+        <FormField label="Email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={identity.email} onChange={updateIdentity("email")} />
+        <FormField label="Phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="e.g. +91 98765 43210" pattern="\+?[0-9][0-9\s-]{7,19}" value={identity.phone} onChange={updateIdentity("phone")} />
         <TextareaField className={styles.fullField} label="Message" name="message" placeholder="Tell us how we can help..." required />
       </div>
       {error ? <p className={styles.formError} role="alert">{error}</p> : null}

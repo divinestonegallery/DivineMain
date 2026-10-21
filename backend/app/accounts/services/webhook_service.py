@@ -1,5 +1,6 @@
 from app.accounts.repositories.customer_repository import CustomerRepository
 from app.common.repositories import WebhookRepository
+from app.leads.services.provisioning import ensure_default_sales_membership
 
 
 class AccountWebhookService:
@@ -43,6 +44,7 @@ class AccountWebhookService:
         try:
             if event_type in {'user.created', 'user.updated'}:
                 result = CustomerRepository.sync_customer(**prepared)
+                ensure_default_sales_membership(result['customer']['id'])
                 return None, {
                     'customer_id': result['customer']['id'],
                     'created': result['created'],

@@ -7,14 +7,26 @@ import {
   type UploadImageContentType,
 } from "@shared/utils/upload-file";
 
-export interface ContactMessagePayload {
-  name: string;
-  email: string;
-  phone?: string;
-  message: string;
+export interface EnquiryAttribution {
+  submission_id?: string;
+  landing_path?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_term?: string;
+  utm_content?: string;
 }
 
-export interface CustomizeRequestPayload {
+export interface ContactMessagePayload extends EnquiryAttribution {
+  name: string;
+  email?: string;
+  phone?: string;
+  message: string;
+  city?: string;
+  touchpoint?: "contact_us" | "product_enquiry";
+}
+
+export interface CustomizeRequestPayload extends EnquiryAttribution {
   name?: string;
   email?: string;
   phone?: string;
@@ -24,6 +36,7 @@ export interface CustomizeRequestPayload {
   preferred_material?: string;
   description?: string;
   reference_object_key?: string;
+  touchpoint?: "custom_moorti";
 }
 
 export interface CustomizationUploadSessionPayload {

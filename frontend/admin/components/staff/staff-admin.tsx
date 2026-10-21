@@ -5,6 +5,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Check, History, RefreshCw, ShieldCheck, ShieldOff, UserRoundCog } from "lucide-react";
 import { apiRequest } from "@shared/utils/http";
 import { useToast } from "@shared/components/toast";
+import { StaffGroupAdmin } from "./staff-groups";
 import styles from "./system-admin.module.css";
 
 type StaffMember = {
@@ -57,18 +58,26 @@ export function StaffSecurityAdmin() {
   const { showToast } = useToast();
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [audit, setAudit] = useState<AuditLog[]>([]);
-  const [tab, setTab] = useState<"staff" | "audit">("staff");
+  const [tab, setTab] = useState<"staff" | "groups" | "audit">("staff");
+  const [canManageGroups, setCanManageGroups] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [staffPayload, auditPayload] = await Promise.all([
-        apiRequest<ListResponse<StaffMember>>("/api/admin/staff?page_size=50"),
-        apiRequest<ListResponse<AuditLog>>("/api/admin/operations/audit-logs?page_size=30"),
-      ]);
-      setStaff(staffPayload.items ?? []);
-      setAudit(auditPayload.items ?? []);
+      const accessPayload = await apiRequest<{ permissions?: string[] }>("/api/admin/leads/access").catch(() => ({ permissions: [] }));
+      const manageGroups = Boolean(accessPayload.permissions?.includes("staff.manage_groups"));
+      setCanManageGroups(manageGroups);
+      try {
+        const [staffPayload, auditPayload] = await Promise.all([
+          apiRequest<ListResponse<StaffMember>>("/api/admin/staff?page_size=50"),
+          apiRequest<ListResponse<AuditLog>>("/api/admin/operations/audit-logs?page_size=30"),
+        ]);
+        setStaff(staffPayload.items ?? []);
+        setAudit(auditPayload.items ?? []);
+      } catch (reason) {
+        if (!manageGroups) throw reason;
+      }
     } catch {
       showToast("Staff security records could not be loaded.");
     } finally {
@@ -113,9 +122,11 @@ export function StaffSecurityAdmin() {
     <>
       <div className={styles.tabs}>
         <button className={tab === "staff" ? styles.active : ""} onClick={() => setTab("staff")}><UserRoundCog size={16} />Staff accounts</button>
+        {canManageGroups ? <button className={tab === "groups" ? styles.active : ""} onClick={() => setTab("groups")}><ShieldCheck size={16} />Security groups</button> : null}
         <button className={tab === "audit" ? styles.active : ""} onClick={() => setTab("audit")}><History size={16} />Audit history</button>
         <button onClick={() => void load()} disabled={loading}><RefreshCw size={16} />{loading ? "Loading..." : "Refresh"}</button>
       </div>
+      {tab === "groups" && canManageGroups ? <StaffGroupAdmin /> : null}
       {tab === "staff" ? (
         <section className={styles.panel}>
           <header><div><small>Account security</small><h2>Admin and staff access</h2></div><ShieldCheck size={19} /></header>
@@ -137,7 +148,8 @@ export function StaffSecurityAdmin() {
             {!loading && !staff.length ? <div className={styles.empty}>No staff records found.</div> : null}
           </div>
         </section>
-      ) : (
+      ) : null}
+      {tab === "audit" ? (
         <section className={styles.panel}>
           <header><div><small>Security record</small><h2>Recent admin activity</h2></div><History size={19} /></header>
           <div className={styles.audit}>
@@ -151,7 +163,7 @@ export function StaffSecurityAdmin() {
             {!loading && !audit.length ? <div className={styles.empty}>No audit log rows found.</div> : null}
           </div>
         </section>
-      )}
+      ) : null}
     </>
   );
 }

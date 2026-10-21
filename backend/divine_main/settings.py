@@ -117,6 +117,8 @@ INSTALLED_APPS = [
     # V1 Business Domains
     'app.common',
     'app.accounts',
+    'app.leads',
+    'app.integrations',
     'app.products',
     'app.reviews',
     'app.contactus',
@@ -234,10 +236,10 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': os.getenv('THROTTLE_ANON_RATE', '120/min'),
         'user': os.getenv('THROTTLE_USER_RATE', '300/min'),
-        'reviews': os.getenv('THROTTLE_REVIEW_RATE', '5/hour'),
-        'contact': os.getenv('THROTTLE_CONTACT_RATE', '5/hour'),
-        'customization': os.getenv('THROTTLE_CUSTOMIZATION_RATE', '3/hour'),
-        'uploads': os.getenv('THROTTLE_UPLOAD_RATE', '30/hour'),
+        'reviews': os.getenv('THROTTLE_REVIEW_RATE', '50/hour'),
+        'contact': os.getenv('THROTTLE_CONTACT_RATE', '100/hour'),
+        'customization': os.getenv('THROTTLE_CUSTOMIZATION_RATE', '100/hour'),
+        'uploads': os.getenv('THROTTLE_UPLOAD_RATE', '600/hour'),
         'clerk_webhook': os.getenv('THROTTLE_WEBHOOK_RATE', '300/min'),
         'auth': os.getenv('THROTTLE_AUTH_RATE', '30/min'),
     },
@@ -338,3 +340,11 @@ LOGGING = {
 
 # Notification / Email
 EMAIL_API_KEY = os.getenv('EMAIL_API_KEY')
+
+# AI Integration
+GEMINI_API_KEY = optional_environment('GEMINI_API_KEY')
+
+# Google Ads lead-form webhook. Set a different value in each environment.
+# Placeholder only: GOOGLE_ADS_LEAD_WEBHOOK_KEY=replace-with-google-ads-webhook-key
+# No default is provided. An empty value rejects inbound lead delivery.
+GOOGLE_ADS_LEAD_WEBHOOK_KEY = optional_environment('GOOGLE_ADS_LEAD_WEBHOOK_KEY')

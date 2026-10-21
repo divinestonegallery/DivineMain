@@ -1,17 +1,43 @@
 from rest_framework import serializers
 
+from app.leads.attribution import CONTACT_TOUCHPOINT_CHOICES, CUSTOM_TOUCHPOINT, WebsiteAttributionSerializer
+from app.leads.constants import TOUCHPOINT_CONTACT
+from app.leads.normalization import normalize_email, normalize_phone
 
-class ContactMessageValidator(serializers.Serializer):
+
+class ContactMessageValidator(WebsiteAttributionSerializer):
     name = serializers.CharField(min_length=2, max_length=255)
-    email = serializers.EmailField()
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
     phone = serializers.RegexField(regex=r'^\+?[0-9][0-9\s-]{7,19}$', required=False, allow_blank=True, allow_null=True)
     message = serializers.CharField(min_length=10, max_length=5000)
+    city = serializers.CharField(max_length=100, required=False, allow_blank=True, allow_null=True)
+    touchpoint = serializers.ChoiceField(choices=CONTACT_TOUCHPOINT_CHOICES, required=False, default=TOUCHPOINT_CONTACT)
 
     def validate_email(self, value):
-        return value.strip().lower()
+        return normalize_email(value)
+
+    def validate_phone(self, value):
+        return normalize_phone(value)
+
+    def validate_name(self, value):
+        return value.strip()
+
+    def validate_city(self, value):
+        return value.strip() if value else ''
+
+    def validate_message(self, value):
+        return value.strip()
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if not attrs.get('email') and not attrs.get('phone'):
+            raise serializers.ValidationError('Provide an email address or phone number.')
+        if attrs.get('phone') and len(attrs['phone']) > 32:
+            raise serializers.ValidationError('Enter a shorter phone number.')
+        return attrs
 
 
-class CustomizeRequestValidator(serializers.Serializer):
+class CustomizeRequestValidator(WebsiteAttributionSerializer):
     name = serializers.CharField(min_length=2, max_length=255, required=False, allow_null=True)
     email = serializers.EmailField(required=False, allow_null=True)
     phone = serializers.RegexField(regex=r'^\+?[0-9][0-9\s-]{7,19}$', required=False, allow_blank=True, allow_null=True)
@@ -27,14 +53,26 @@ class CustomizeRequestValidator(serializers.Serializer):
         allow_null=True,
     )
 
+    touchpoint = serializers.ChoiceField(choices=(CUSTOM_TOUCHPOINT,), required=False, default=CUSTOM_TOUCHPOINT)
+
     def validate_email(self, value):
-        return value.strip().lower() if value else value
+        return normalize_email(value)
+
+    def validate_phone(self, value):
+        return normalize_phone(value)
+
+    def validate_name(self, value):
+        return value.strip() if value else value
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         if not attrs.get('email') and not attrs.get('phone'):
             raise serializers.ValidationError('Provide an email address or phone number.')
+        if attrs.get('phone') and len(attrs['phone']) > 32:
+            raise serializers.ValidationError('Enter a shorter phone number.')
         if not attrs.get('description') and not attrs.get('approximate_height'):
             raise serializers.ValidationError('Provide a description or approximate height.')
+        attrs['touchpoint'] = CUSTOM_TOUCHPOINT
         return attrs
 
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { ArrowRight, CheckCircle2, LockKeyhole, PackageCheck, ShieldCheck } from "lucide-react";
 import { sendContactMessage } from "@/api/contact";
+import { rotateSubmissionId, websiteAttribution } from "@/utils/enquiry-submission";
 import { buttonClassName } from "@shared/components/button";
 import { ProtectedImage } from "@/components/common/protected-image";
 import type { CatalogItem } from "@/components/product/catalog-data";
@@ -63,6 +64,9 @@ export function CheckoutExperience({ products }: { products: CatalogItem[] }) {
         name: value("name"),
         email: value("email"),
         phone: value("phone"),
+        city: value("city"),
+        touchpoint: "product_enquiry",
+        ...websiteAttribution("product-enquiry"),
         message: [
           "Checkout enquiry from selected bag:",
           "",
@@ -75,6 +79,7 @@ export function CheckoutExperience({ products }: { products: CatalogItem[] }) {
           value("message"),
         ].join("\n"),
       });
+      rotateSubmissionId("product-enquiry");
       enquiryBag.clear();
       formElement.reset();
       setSent(true);
