@@ -4,6 +4,7 @@ import { ChangeEvent, DragEvent, FormEvent, useEffect, useRef, useState } from "
 import Image from "next/image";
 import { ArrowRight, CheckCircle2, ImageIcon, LockKeyhole, PencilRuler, UploadCloud, X } from "lucide-react";
 import { submitCustomizeRequest, uploadCustomizationReferenceImage } from "@/api/contact";
+import { rotateSubmissionId, websiteAttribution } from "@/utils/enquiry-submission";
 import { friendlyUploadError, validateUploadImageFile } from "@shared/utils/upload-file";
 import { useUser } from "@/components/auth/auth-facade";
 import { buttonClassName } from "@shared/components/button";
@@ -205,6 +206,8 @@ export function ConsultationForm() {
         email: isSignedIn ? profileIdentity.email || undefined : value("email"),
         phone: isSignedIn ? profileIdentity.phone || undefined : value("phone"),
         city: value("city"),
+        touchpoint: "custom_moorti",
+        ...websiteAttribution("custom-moorti"),
         pincode: value("pincode"),
         approximate_height: value("height"),
         preferred_material: value("preferred_material") || undefined,
@@ -212,6 +215,7 @@ export function ConsultationForm() {
         reference_object_key: referenceObjectKey,
       });
 
+      rotateSubmissionId("custom-moorti");
       setSent(true);
       uploadRequestRef.current = "";
       setReferencePhoto(null);

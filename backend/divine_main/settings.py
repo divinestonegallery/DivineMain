@@ -117,6 +117,8 @@ INSTALLED_APPS = [
     # V1 Business Domains
     'app.common',
     'app.accounts',
+    'app.leads',
+    'app.integrations',
     'app.products',
     'app.reviews',
     'app.contactus',
@@ -341,3 +343,8 @@ EMAIL_API_KEY = os.getenv('EMAIL_API_KEY')
 
 # AI Integration
 GEMINI_API_KEY = optional_environment('GEMINI_API_KEY')
+
+# Google Ads lead-form webhook. Set a different value in each environment.
+# Placeholder only: GOOGLE_ADS_LEAD_WEBHOOK_KEY=replace-with-google-ads-webhook-key
+# No default is provided. An empty value rejects inbound lead delivery.
+GOOGLE_ADS_LEAD_WEBHOOK_KEY = optional_environment('GOOGLE_ADS_LEAD_WEBHOOK_KEY')

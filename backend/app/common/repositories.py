@@ -63,6 +63,14 @@ class UploadRepository:
             return UploadSessionSerializer(session).data
 
     @staticmethod
+    def release_validating_session(object_key):
+        """Return a claimed upload to pending when the enquiry transaction did not finish."""
+        return UploadSession.objects.filter(
+            object_key=object_key,
+            status=UploadSession.Status.VALIDATING,
+        ).update(status=UploadSession.Status.PENDING)
+
+    @staticmethod
     def mark_status(object_key, status, attached=False):
         updates = {'status': status}
         if attached:
