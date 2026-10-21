@@ -24,6 +24,7 @@ def iter_url_patterns(patterns, prefix=""):
             yield route, pattern
 
 
+@override_settings(ROOT_URLCONF='app.common.tests.urls')
 class AdminAuthorizationTests(TestCase):
     @classmethod
     def setUpClass(cls):

@@ -4,7 +4,7 @@ from app.contactus.validators import (
     CustomizationUploadUrlValidator,
     CustomizeRequestValidator,
 )
-from framework.core.base_apiviews import AuthenticatedAPIView, OpenAPIView
+from framework.core.base_apiviews import AuthenticatedAPIView, OpenAPIView, OptionalAuthenticatedAPIView
 from framework.core.responses import ErrorResponse, SuccessResponse
 from framework.utils import get_response
 
@@ -22,14 +22,18 @@ class ContactMessageView(OpenAPIView):
         return get_response(SuccessResponse(data=data, message='Contact message sent successfully', status_code=201))
 
 
-class CustomizeRequestView(AuthenticatedAPIView):
+class CustomizeRequestView(OptionalAuthenticatedAPIView):
+    """Public custom-moorti intake. A signed-in customer is recorded when a token is present."""
+
     throttle_scope = 'customization'
 
     def post(self, request):
         validator = CustomizeRequestValidator(data=request.data)
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid customization request', err=validator.errors, status_code=400))
-        error, data = ContactUsCustomerService.create_customize_request(validator.validated_data, user_id=request.user.id)
+        user = getattr(request, 'user', None)
+        user_id = user.id if getattr(user, 'is_authenticated', False) else None
+        error, data = ContactUsCustomerService.create_customize_request(validator.validated_data, user_id=user_id)
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(data=data, message='Customization request submitted successfully', status_code=201))

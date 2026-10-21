@@ -4,7 +4,7 @@ import hashlib
 import hmac
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from app.accounts.models import Customer
@@ -145,6 +145,7 @@ class OrderWorkflowTests(TestCase):
         order = Order.objects.get(uid=order_uid)
         self.assertEqual(order.status, Order.Status.CANCELLED)
 
+    @override_settings(ROOT_URLCONF='divine_main.urls_admin')
     def test_admin_order_flow(self):
         # Create an order directly in DB
         order = Order.objects.create(

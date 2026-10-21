@@ -114,6 +114,26 @@ class WebsiteIntakeTests(TestCase):
         self.assertEqual(ContactMessage.objects.count(), 0)
         self.assertEqual(Lead.objects.count(), 0)
 
+    def test_anonymous_custom_moorti_request_creates_an_unassigned_lead(self):
+        response = self.client.post('/api/v1/contact/customize', {
+            'name': 'Anonymous Example',
+            'email': 'anonymous-moorti@example.com',
+            'phone': '+919845011199',
+            'city': 'Udaipur',
+            'pincode': '313001',
+            'description': 'A standing marble figure for a home shrine.',
+            'submission_id': str(uuid.uuid4()),
+        }, format='json')
+        self.assertEqual(response.status_code, 201, response.content)
+        lead = Lead.objects.get()
+        request_row = CustomizeRequest.objects.get()
+        self.assertEqual(lead.touchpoint, 'custom_moorti')
+        self.assertEqual(lead.email, 'anonymous-moorti@example.com')
+        self.assertIsNone(lead.created_by_id)
+        self.assertIsNone(lead.assigned_to_id)
+        self.assertIsNone(request_row.user_id)
+        self.assertEqual(request_row.lead_id, lead.id)
+
     def test_custom_moorti_request_links_a_lead_without_assigning_it(self):
         customer = create_account('buyer@example.com', role=Customer.Role.CUSTOMER, sales=False, name='Buyer')
         self.client.force_authenticate(user=customer)
