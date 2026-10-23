@@ -532,7 +532,7 @@ function FinalCta() {
       <div className="site-container">
         <Sparkles aria-hidden="true" size={26} strokeWidth={1.35} />
         <h2 className="font-display">Let the right work find its place in your home.</h2>
-        <p>Explore the collection or speak with the gallery for help choosing deity, scale, marble and placement.</p>
+        <p>Buy authentic hand-carved marble moorties & god statues online. Crafted by master artisans in Alwar using Makrana & Vietnam marble. Custom orders welcome.</p>
         <div>
           <Link className={buttonClassName({ size: "lg" })} href="/shop">
             Explore collection <ArrowRight aria-hidden="true" size={18} />
