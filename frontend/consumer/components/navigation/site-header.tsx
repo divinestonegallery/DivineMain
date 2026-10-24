@@ -478,31 +478,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           </Link>
 
           <div className={styles.headerCenter}>
-            <nav className={styles.desktopNav} aria-label="Main navigation">
-              <Link href="/guides" className={styles.navLink}>
-                <span>Guide</span>
-              </Link>
-              <Link href="/artisans" className={styles.navLink}>
-                <span>Artisans</span>
-              </Link>
-              <Link href="/our-story" className={styles.navLink}>
-                <span>Our Story</span>
-              </Link>
-              {/* <button
-                ref={shopTriggerRef}
-                className={styles.navLink}
-                type="button"
-                aria-controls={shopMenuId}
-                aria-expanded={megaMenuOpen}
-                onClick={() => megaMenuOpen ? closeMegaMenu() : openMegaMenu()}
-              >
-                <Sparkles aria-hidden="true" size={18} strokeWidth={1.6} />
-                <span>Shop Moorti</span>
-                <small>New</small>
-                <span aria-hidden="true" className={`${styles.chevron} ${megaMenuOpen && !megaMenuClosing ? styles.chevronOpen : ""}`}>⌄</span>
-              </button> */}
-            </nav>
-
             <button
               className={`${styles.headerSearchPill} ${showDockedSearch ? styles.headerSearchPillVisible : ""}`.trim()}
               type="button"

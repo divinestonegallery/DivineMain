@@ -507,8 +507,10 @@ function HeroSection({ quickLinks }: { quickLinks: Array<{ label: string; href: 
               </div>
             </div>
           ) : null}
-          <p className={styles.heroLead}>
-            Authentic hand-carved marble moorties shaped by fourth-generation master.</p>
+          <h1 className={styles.heroLead}>
+            <span>Authentic hand-carved marble</span>
+            <span>moorties</span>
+          </h1>
           <div className={styles.heroActions}>
             <Link className={buttonClassName({ size: "lg" })} href="/shop">
               Explore moorties <ArrowRight aria-hidden="true" size={18} />
@@ -532,7 +534,7 @@ function FinalCta() {
       <div className="site-container">
         <Sparkles aria-hidden="true" size={26} strokeWidth={1.35} />
         <h2 className="font-display">Let the right work find its place in your home.</h2>
-        <p>Explore the collection or speak with the gallery for help choosing deity, scale, marble and placement.</p>
+        <p>Buy authentic hand-carved marble moorties & god statues online. Crafted by master artisans in Alwar using Makrana & Vietnam marble. Custom orders welcome.</p>
         <div>
           <Link className={buttonClassName({ size: "lg" })} href="/shop">
             Explore collection <ArrowRight aria-hidden="true" size={18} />
