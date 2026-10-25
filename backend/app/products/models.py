@@ -130,6 +130,8 @@ class Product(BaseModel):
     uid = models.CharField(max_length=255, unique=True, blank=True, null=True)
     short_description = models.CharField(max_length=500, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
+    seo_title = models.CharField(max_length=60, blank=True, default='')
+    seo_description = models.CharField(max_length=160, blank=True, default='')
     # PostgreSQL uses an ArrayField in production. SQLite has no array type,
     # so tests use JSON storage while retaining the same list-shaped API value.
     keywords = (

@@ -57,7 +57,7 @@ class ProductAdminSerializer(serializers.ModelSerializer):
         model = Product
         fields = (
             'id', 'category', 'material', 'deity', 'name', 'slug', 'uid',
-            'short_description', 'description', 'keywords',
+            'short_description', 'description', 'seo_title', 'seo_description', 'keywords',
             'height', 'min_weight', 'max_weight',
             'original_price', 'selling_price', 'discount_percentage', 'gst',
             'is_featured', 'availability', 'status', 'sales_mode',

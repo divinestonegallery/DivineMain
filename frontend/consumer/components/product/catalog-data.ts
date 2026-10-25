@@ -19,6 +19,8 @@ export type CatalogItem = {
   gallery?: Array<{ src: string; alt: string }>;
   featured: number;
   description: string;
+  seoTitle?: string;
+  seoDescription?: string;
   price?: ProductPrice | null;
   availability?: string | null;
   status?: string | null;

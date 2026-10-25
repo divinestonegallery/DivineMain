@@ -240,6 +240,7 @@ REST_FRAMEWORK = {
         'uploads': os.getenv('THROTTLE_UPLOAD_RATE', '30/hour'),
         'clerk_webhook': os.getenv('THROTTLE_WEBHOOK_RATE', '300/min'),
         'auth': os.getenv('THROTTLE_AUTH_RATE', '30/min'),
+        'product_generation': os.getenv('THROTTLE_PRODUCT_GENERATION_RATE', '10/hour'),
     },
 }
 
@@ -340,4 +341,5 @@ LOGGING = {
 EMAIL_API_KEY = os.getenv('EMAIL_API_KEY')
 
 # AI Integration
-GEMINI_API_KEY = optional_environment('GEMINI_API_KEY')
+OPENAI_API_KEY = optional_environment('OPENAI_API_KEY')
+OPENAI_MODEL = os.getenv('OPENAI_MODEL', 'gpt-4.1-mini').strip() or 'gpt-4.1-mini'

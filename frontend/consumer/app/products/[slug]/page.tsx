@@ -119,12 +119,12 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   const imageUrl = new URL(product.image, getSiteUrl()).toString();
 
   return {
-    title: productPageTitle(product),
-    description: product.description,
+    title: product.seoTitle || productPageTitle(product),
+    description: product.seoDescription || product.description,
     alternates: { canonical: `/products/${product.slug}` },
     openGraph: {
-      title: `${product.name} | Divine Stone Gallery`,
-      description: product.description,
+      title: product.seoTitle || `${product.name} | Divine Stone Gallery`,
+      description: product.seoDescription || product.description,
       images: [{ url: imageUrl, alt: product.imageAlt }],
     },
   };

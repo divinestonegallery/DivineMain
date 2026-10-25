@@ -31,6 +31,8 @@ export interface ProductDetail {
   uid?: string | null;
   short_description?: string | null;
   description?: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
   keywords?: string | null;
   is_featured?: boolean;
   status?: string | null;

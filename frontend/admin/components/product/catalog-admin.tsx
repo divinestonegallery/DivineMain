@@ -53,6 +53,8 @@ type AdminProduct = {
   uid?: string;
   short_description?: string | null;
   description?: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
   keywords?: string[] | string | null;
   height?: string | number | null;
   min_weight?: string | number | null;
@@ -191,6 +193,8 @@ function productPayload(form: FormData, keywords: string[], mode: ProductModalSt
   ["height", "min_weight", "max_weight", "original_price", "selling_price", "gst"].forEach((key) => {
     addOptionalText(payload, form, key);
   });
+  payload.seo_title = text(form.get("seo_title"));
+  payload.seo_description = text(form.get("seo_description"));
 
   return payload;
 }
@@ -599,6 +603,27 @@ function ProductModal({
           </AdminFieldGrid>
         </AdminModalSection>
 
+        <AdminModalSection title="SEO">
+          <AdminFieldGrid>
+            <AdminModalField label="SEO title" wide error={getFieldError(fieldErrors, "seo_title")}>
+              <input
+                name="seo_title"
+                maxLength={60}
+                defaultValue={product?.seo_title ?? ""}
+                aria-invalid={Boolean(getFieldError(fieldErrors, "seo_title"))}
+              />
+            </AdminModalField>
+            <AdminModalField label="Meta description" wide error={getFieldError(fieldErrors, "seo_description")}>
+              <textarea
+                name="seo_description"
+                maxLength={160}
+                defaultValue={product?.seo_description ?? ""}
+                aria-invalid={Boolean(getFieldError(fieldErrors, "seo_description"))}
+              />
+            </AdminModalField>
+          </AdminFieldGrid>
+        </AdminModalSection>
+
         <AdminModalSection title="Classification">
           <AdminFieldGrid>
             <TaxonomySelect name="category" label="Category" items={lookups.categories} currentId={product?.category} createMode={!isEdit} error={getFieldError(fieldErrors, "category")} />
@@ -610,7 +635,11 @@ function ProductModal({
         <AdminModalSection title="Publishing">
           <AdminFieldGrid>
             <AdminModalField label="Status" error={getFieldError(fieldErrors, "status")}>
-              <select name="status" defaultValue={product?.status ?? "active"} aria-invalid={Boolean(getFieldError(fieldErrors, "status"))}>
+              <select
+                name="status"
+                defaultValue={product?.status ?? (state.mode === "create" && state.initialData ? "draft" : "active")}
+                aria-invalid={Boolean(getFieldError(fieldErrors, "status"))}
+              >
                 {statusOptions.map((item) => <option value={item} key={item}>{label(item)}</option>)}
               </select>
             </AdminModalField>

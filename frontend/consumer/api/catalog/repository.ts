@@ -128,6 +128,8 @@ function toCatalogItem(product: any, index = 0): CatalogItem {
     gallery: gallery.length ? gallery : [{ src: image, alt: imageAlt }],
     featured: product.is_featured ? index : index + 10,
     description: text(product.description, text(product.short_description, "A hand-carved marble work from Divine Stone Gallery.")),
+    seoTitle: text(product.seo_title),
+    seoDescription: text(product.seo_description),
     price,
     availability: product.availability ?? null,
     status: product.status ?? null,

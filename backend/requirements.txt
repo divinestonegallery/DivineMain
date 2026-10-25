@@ -26,4 +26,4 @@ sqlparse>=0.6,<1
 gunicorn>=23,<24
 
 # AI Integration
-google-generativeai>=0.8.0,<1
+openai>=1.68.0,<3

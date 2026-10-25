@@ -1,7 +1,17 @@
+import base64
+import binascii
+
 from rest_framework import serializers
 
 from app.products.enums import Availability, ProductSort, ProductStatus, SalesMode
 from framework.utils import enum_choices
+
+
+class KeywordListField(serializers.ListField):
+    def to_internal_value(self, data):
+        if isinstance(data, str):
+            data = [keyword.strip() for keyword in data.split(',') if keyword.strip()]
+        return super().to_internal_value(data)
 
 
 class ProductRequestValidator(serializers.Serializer):
@@ -12,7 +22,9 @@ class ProductRequestValidator(serializers.Serializer):
     name = serializers.CharField(max_length=255, required=False)
     short_description = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
     description = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    keywords = serializers.ListField(
+    seo_title = serializers.CharField(max_length=60, required=False, allow_blank=True)
+    seo_description = serializers.CharField(max_length=160, required=False, allow_blank=True)
+    keywords = KeywordListField(
         child=serializers.CharField(max_length=100),
         required=False,
         allow_empty=True,
@@ -40,10 +52,11 @@ class ProductRequestValidator(serializers.Serializer):
         seen = set()
         cleaned = []
         for keyword in value:
-            keyword = keyword.strip()
-            if keyword and keyword.lower() not in seen:
-                seen.add(keyword.lower())
-                cleaned.append(keyword)
+            for part in keyword.split(','):
+                part = part.strip()
+                if part and part.lower() not in seen:
+                    seen.add(part.lower())
+                    cleaned.append(part)
         return cleaned
 
     def validate(self, attrs):
@@ -157,6 +170,23 @@ class DietyImageFinalizeValidator(serializers.Serializer):
     alt_text = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
 
+class ProductGenerationImageValidator(serializers.Serializer):
+    mime_type = serializers.ChoiceField(choices=('image/jpeg', 'image/png', 'image/webp'))
+    data = serializers.RegexField(
+        regex=r'^[A-Za-z0-9+/]+={0,2}$',
+        max_length=2_796_204,
+    )
+
+    def validate_data(self, value):
+        try:
+            decoded = base64.b64decode(value, validate=True)
+        except (binascii.Error, ValueError):
+            raise serializers.ValidationError('Image data must be valid base64.')
+        if not decoded or len(decoded) > 2 * 1024 * 1024:
+            raise serializers.ValidationError('Each image must be smaller than 2 MB.')
+        return value
+
+
 class ProductGenerateDraftValidator(serializers.Serializer):
     mode = serializers.ChoiceField(choices=('ai', 'paragraph'))
     name = serializers.CharField(max_length=255, required=False, allow_blank=True)
@@ -165,6 +195,60 @@ class ProductGenerateDraftValidator(serializers.Serializer):
     deity = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     paragraph = serializers.CharField(required=False, allow_blank=True)
     images = serializers.ListField(
-        child=serializers.DictField(), required=False, allow_empty=True
+        child=ProductGenerationImageValidator(), required=False, allow_empty=True, max_length=12
+    )
+    keywords = KeywordListField(
+        child=serializers.CharField(max_length=100),
+        required=False,
+        allow_empty=True,
+        max_length=30,
     )
 
+    def validate_images(self, value):
+        if sum(len(image['data']) for image in value) > 11_184_816:
+            raise serializers.ValidationError('The combined image data must be smaller than 8 MB.')
+        return value
+
+    def validate_keywords(self, value):
+        seen = set()
+        cleaned = []
+        for keyword in value:
+            for part in keyword.split(','):
+                part = part.strip()
+                if part and part.lower() not in seen:
+                    seen.add(part.lower())
+                    cleaned.append(part)
+        return cleaned
+
+    def validate(self, attrs):
+        mode = attrs['mode']
+        if mode == 'ai' and not attrs.get('name', '').strip():
+            raise serializers.ValidationError({'name': 'A product name is required.'})
+        if mode == 'paragraph' and not attrs.get('paragraph', '').strip():
+            raise serializers.ValidationError({'paragraph': 'Product information is required.'})
+        if not attrs.get('images'):
+            raise serializers.ValidationError({'images': 'At least one product image is required.'})
+        return attrs
+
+
+class GeneratedProductDraftValidator(serializers.Serializer):
+    name = serializers.CharField(max_length=255, allow_blank=False)
+    short_description = serializers.CharField(max_length=500, allow_blank=True)
+    description = serializers.CharField(allow_blank=True)
+    seo_title = serializers.CharField(max_length=60, allow_blank=True)
+    seo_description = serializers.CharField(max_length=160, allow_blank=True)
+    keywords = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        allow_empty=True,
+        max_length=30,
+    )
+
+    def validate_keywords(self, value):
+        seen = set()
+        cleaned = []
+        for keyword in value:
+            keyword = keyword.strip()
+            if keyword and keyword.lower() not in seen:
+                seen.add(keyword.lower())
+                cleaned.append(keyword)
+        return cleaned

@@ -8,6 +8,7 @@ DEFAULT_TEST_LABELS = (
     'app.common.tests',
     'app.accounts.tests',
     'app.orders.tests',
+    'app.products.tests',
 )
 
 
