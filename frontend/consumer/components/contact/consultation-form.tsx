@@ -147,10 +147,6 @@ export function ConsultationForm() {
       .finally(clearFileInput);
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    selectReferencePhoto(event.target.files?.[0]);
-  }
-
   function handleDrop(event: DragEvent<HTMLButtonElement>) {
     event.preventDefault();
     setDragActive(false);
@@ -277,7 +273,7 @@ export function ConsultationForm() {
             <span>Custom Moorti Image <small>(Optional)</small></span>
             <small>{isSignedIn ? "Upload a photo or design reference if you have one." : "Sign in to include the photo with your request."}</small>
           </div>
-          <input ref={fileInputRef} className={styles.fileInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} disabled={uploadDisabled} />
+          <input ref={fileInputRef} className={styles.fileInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => selectReferencePhoto(event.target.files?.[0])} disabled={uploadDisabled} />
           {referencePhoto ? (
             <div className={styles.uploadPreview} data-status={referencePhoto.status} aria-busy={referenceUploading}>
               <span className={styles.uploadPreviewImage}>

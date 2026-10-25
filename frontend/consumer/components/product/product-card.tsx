@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { Gem } from "lucide-react";
+import { Gem, Star } from "lucide-react";
 import { Badge } from "@/components/common/badge";
 import type { Product } from "@/types/product";
 import type { BackendProductImage, ProductCard as ApiProductCard, ProductPrice as ProductPriceValue } from "@/api/products";
 import { ProductPrice } from "./product-price";
-import { ProductRating } from "./product-rating";
 import { ProtectedImage } from "@/components/common/protected-image";
 import styles from "./product.module.css";
 
@@ -85,6 +84,16 @@ function isCustomizable(product: ProductCardInput) {
 function priceFallback(product: ProductCardInput) {
   const salesMode = text((product as ApiProductCard).sales_mode);
   return salesMode === "direct_purchase" || salesMode === "buy_and_quote" ? "Price on request" : "Enquire for price";
+}
+
+function ProductRating({ rating = 0, reviewCount = 0 }: { rating?: number; reviewCount?: number }) {
+  return (
+    <div className={styles.rating} aria-label={`${rating} out of 5 stars from ${reviewCount} reviews`}>
+      <Star aria-hidden="true" size={14} fill="currentColor" strokeWidth={1.4} />
+      <span>{rating.toFixed(1)}</span>
+      <small>({reviewCount})</small>
+    </div>
+  );
 }
 
 export function ProductCard({ product, priority = false, href }: { product: ProductCardInput; priority?: boolean; href?: string }) {

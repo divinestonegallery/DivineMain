@@ -371,10 +371,6 @@ export function ShopCatalog({
     updateUrl({ [name]: value || null, page: null });
   }
 
-  function updateSort(value: SortValue) {
-    updateUrl({ sort: value === "featured" ? null : value, page: null });
-  }
-
   function resetFilters() {
     startTransition(() => {
       router.replace(pathname, { scroll: false });
@@ -468,7 +464,7 @@ export function ShopCatalog({
               <button className={styles.mobileFilterButton} type="button" onClick={() => setFilterOpen(true)}>
                 <SlidersHorizontal aria-hidden="true" size={17} /> Filters {activeFilterCount ? <span>{activeFilterCount}</span> : null}
               </button>
-              <CatalogDropdown label="Sort collection" inlineLabel="Sort" value={currentSort} options={sortOptions} onChange={(value) => updateSort(value as SortValue)} disabled={isPending} />
+              <CatalogDropdown label="Sort collection" inlineLabel="Sort" value={currentSort} options={sortOptions} onChange={(value) => updateUrl({ sort: value === "featured" ? null : value, page: null })} disabled={isPending} />
             </div>
           </div>
 
