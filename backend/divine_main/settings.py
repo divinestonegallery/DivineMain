@@ -234,10 +234,10 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': os.getenv('THROTTLE_ANON_RATE', '120/min'),
         'user': os.getenv('THROTTLE_USER_RATE', '300/min'),
-        'reviews': os.getenv('THROTTLE_REVIEW_RATE', '5/hour'),
-        'contact': os.getenv('THROTTLE_CONTACT_RATE', '5/hour'),
-        'customization': os.getenv('THROTTLE_CUSTOMIZATION_RATE', '3/hour'),
-        'uploads': os.getenv('THROTTLE_UPLOAD_RATE', '30/hour'),
+        'reviews': os.getenv('THROTTLE_REVIEW_RATE', '50/hour'),
+        'contact': os.getenv('THROTTLE_CONTACT_RATE', '100/hour'),
+        'customization': os.getenv('THROTTLE_CUSTOMIZATION_RATE', '100/hour'),
+        'uploads': os.getenv('THROTTLE_UPLOAD_RATE', '600/hour'),
         'clerk_webhook': os.getenv('THROTTLE_WEBHOOK_RATE', '300/min'),
         'auth': os.getenv('THROTTLE_AUTH_RATE', '30/min'),
     },
@@ -338,3 +338,6 @@ LOGGING = {
 
 # Notification / Email
 EMAIL_API_KEY = os.getenv('EMAIL_API_KEY')
+
+# AI Integration
+GEMINI_API_KEY = optional_environment('GEMINI_API_KEY')
