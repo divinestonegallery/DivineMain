@@ -16,6 +16,7 @@ from app.integrations.google_ads.models import GoogleAdsLeadForm
 from app.integrations.google_ads.repository import GoogleAdsIngestionRepository
 from app.leads.constants import LEAD_SOURCE_GOOGLE_ADS
 from app.leads.models import Lead, LeadActivity
+from app.leads.tests.helpers import create_account, seed_lead
 from app.orders.models import Order
 from divine_main.urls_consumer import urlpatterns as consumer_patterns
 from django.urls import URLPattern, URLResolver
@@ -101,10 +102,10 @@ class GoogleAdsWebhookTests(TestCase):
         self.assertEqual(lead.city, 'Jaipur')
         self.assertIn('Marble Ganesh', lead.summary)
         self.assertIsNone(lead.assigned_to_id)
-        self.assertEqual(lead.google_ads_form.campaign_id, '77')
-        self.assertEqual(lead.google_ads_form.form_id, '55')
-        self.assertEqual(lead.google_ads_form.gcl_id, 'click-1')
-        self.assertIsNotNone(lead.google_ads_form.submitted_at)
+        self.assertEqual(lead.google_ads_forms.get().campaign_id, '77')
+        self.assertEqual(lead.google_ads_forms.get().form_id, '55')
+        self.assertEqual(lead.google_ads_forms.get().gcl_id, 'click-1')
+        self.assertIsNotNone(lead.google_ads_forms.get().submitted_at)
         self.assertTrue(ProcessedWebhook.objects.filter(provider='google_ads', event_id='lead-100', event_type='lead').exists())
 
     def test_email_only_and_phone_only_submissions(self):
@@ -150,7 +151,7 @@ class GoogleAdsWebhookTests(TestCase):
             payload.pop(field, None)
         response = self.post(payload)
         self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(Lead.objects.get().google_ads_form.campaign_id, '')
+        self.assertEqual(Lead.objects.get().google_ads_forms.get().campaign_id, '')
 
     def test_duplicate_delivery_creates_no_second_lead(self):
         first = self.post(lead_payload())
@@ -162,10 +163,12 @@ class GoogleAdsWebhookTests(TestCase):
         self.assertEqual(second.json(), {})
         self.assertEqual(Lead.objects.count(), 1)
         self.assertEqual(Lead.objects.get().email, 'asha@example.com')
+        self.assertEqual(Lead.objects.get().notes.count(), 0)
+        self.assertEqual(GoogleAdsLeadForm.objects.count(), 1)
 
     def test_integrity_conflict_returns_success_without_a_second_lead(self):
         self.post(lead_payload())
-        real_lookup = GoogleAdsIngestionRepository.production_lead
+        real_lookup = GoogleAdsIngestionRepository.lead_id_for_event
 
         def miss_once(external_id):
             if not hasattr(miss_once, 'used'):
@@ -173,7 +176,7 @@ class GoogleAdsWebhookTests(TestCase):
                 return None
             return real_lookup(external_id)
 
-        with patch.object(GoogleAdsIngestionRepository, 'production_lead', side_effect=miss_once):
+        with patch.object(GoogleAdsIngestionRepository, 'lead_id_for_event', side_effect=miss_once):
             response = self.post(lead_payload())
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(Lead.objects.filter(source=LEAD_SOURCE_GOOGLE_ADS, external_id='lead-100').count(), 1)
@@ -257,11 +260,16 @@ class GoogleAdsWebhookMatrixTests(TestCase):
         self.assertTrue(lead_constraints['lead_source_external_uniq']['unique'])
         self.assertIn('unique_processed_webhook_event', webhook_constraints)
         self.assertTrue(webhook_constraints['unique_processed_webhook_event']['unique'])
+        event_uniques = [
+            name for name, meta in form_constraints.items()
+            if meta['unique'] and meta['columns'] == ['external_id']
+        ]
         lead_uniques = [
             name for name, meta in form_constraints.items()
             if meta['unique'] and meta['columns'] == ['lead_id']
         ]
-        self.assertTrue(lead_uniques)
+        self.assertTrue(event_uniques)
+        self.assertFalse(lead_uniques)
 
     def test_omitted_is_test_is_a_production_lead_and_response_hides_the_key(self):
         payload = lead_payload(lead_id=self._id('omitted-test'))
@@ -330,13 +338,13 @@ class GoogleAdsWebhookMatrixTests(TestCase):
             gcl_id='   ',
         ))
         self.assertEqual(response.status_code, 200, response.content)
-        form = Lead.objects.get(external_id=self._id('optional')).google_ads_form
+        form = Lead.objects.get(external_id=self._id('optional')).google_ads_forms.get()
         self.assertEqual(form.form_id, '')
         self.assertEqual(form.campaign_id, '')
         self.assertEqual(form.gcl_id, '')
         self.assertIsNone(form.submitted_at)
 
-    def test_same_contact_with_a_new_provider_id_creates_a_second_lead(self):
+    def test_same_contact_with_a_new_provider_id_reuses_the_active_lead(self):
         first = self._post_columns('first', [
             {'column_id': 'EMAIL', 'string_value': 'repeat@example.com'},
             {'column_id': 'PRODUCT', 'string_value': 'First murti'},
@@ -348,25 +356,167 @@ class GoogleAdsWebhookMatrixTests(TestCase):
         self.assertEqual(first.status_code, 200, first.content)
         self.assertEqual(second.status_code, 200, second.content)
         self.assertNotIn('repeat@example.com', second.content.decode())
-        leads = list(self._scoped_leads().order_by('id'))
-        self.assertEqual(len(leads), 2)
-        self.assertEqual({item.source for item in leads}, {LEAD_SOURCE_GOOGLE_ADS})
-        self.assertIn('First murti', leads[0].summary)
-        self.assertIn('Second murti', leads[1].summary)
-        self.assertTrue(LeadActivity.objects.filter(lead=leads[1], action='possible_duplicate', new_value='1').exists())
-        self.assertFalse(LeadActivity.objects.filter(lead=leads[0], action='possible_duplicate').exists())
+        lead = self._scoped_leads().get()
+        self.assertEqual(lead.source, LEAD_SOURCE_GOOGLE_ADS)
+        self.assertEqual(lead.external_id, self._id('first'))
+        self.assertIn('First murti', lead.summary)
+        self.assertNotIn('Second murti', lead.summary)
+        forms = list(lead.google_ads_forms.order_by('id'))
+        self.assertEqual([form.external_id for form in forms], [self._id('first'), self._id('second')])
+        self.assertEqual(ProcessedWebhook.objects.filter(event_id__in=[self._id('first'), self._id('second')]).count(), 2)
+        notes = list(lead.notes.order_by('id'))
+        self.assertEqual(len(notes), 1)
+        self.assertIn(self._id('second'), notes[0].body)
+        self.assertIn('Second murti', notes[0].body)
+        self.assertNotIn('repeat@example.com', notes[0].body)
+        replay = self._post_columns('second', [
+            {'column_id': 'EMAIL', 'string_value': 'repeat@example.com'},
+            {'column_id': 'PRODUCT', 'string_value': 'Second murti again'},
+        ])
+        self.assertEqual(replay.status_code, 200, replay.content)
+        self.assertEqual(lead.notes.count(), 1)
+        self.assertEqual(lead.google_ads_forms.count(), 2)
+
+    def test_an_older_active_website_lead_is_reused_without_a_new_lead(self):
+        owner = create_account('desk@example.com')
+        existing = seed_lead(
+            email='kept@example.com',
+            status='quoted',
+            days_old=45,
+            assigned_to=owner,
+            summary='Original shrine enquiry',
+        )
+        response = self._post_columns('kept', [
+            {'column_id': 'EMAIL', 'string_value': 'kept@example.com'},
+            {'column_id': 'PRODUCT', 'string_value': 'Google murti'},
+        ])
+        self.assertEqual(response.status_code, 200, response.content)
+        existing.refresh_from_db()
+        self.assertEqual(Lead.objects.filter(email='kept@example.com').count(), 1)
+        self.assertEqual(existing.status, 'quoted')
+        self.assertEqual(existing.assigned_to_id, owner.id)
+        self.assertEqual(existing.source, 'website')
+        self.assertEqual(existing.summary, 'Original shrine enquiry')
+        self.assertIsNone(existing.external_id)
+        self.assertEqual(existing.google_ads_forms.get().external_id, self._id('kept'))
+        self.assertEqual(existing.notes.count(), 1)
+
+    def test_a_recent_won_lead_does_not_block_a_new_provider_lead(self):
+        closed = seed_lead(email='closed@example.com', status='won', days_old=2)
+        response = self._post_columns('closed', [
+            {'column_id': 'EMAIL', 'string_value': 'closed@example.com'},
+            {'column_id': 'PRODUCT', 'string_value': 'New enquiry'},
+        ])
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(Lead.objects.filter(email='closed@example.com').count(), 2)
+        self.assertEqual(closed.notes.count(), 0)
+        created = Lead.objects.get(external_id=self._id('closed'))
+        self.assertEqual(created.status, 'new')
+        self.assertEqual(created.notes.count(), 0)
+        self.assertEqual(created.google_ads_forms.count(), 1)
+
+    def test_conflicting_email_and_phone_do_not_change_either_lead(self):
+        by_email = seed_lead(email='split@example.com', status='contacted')
+        by_phone = seed_lead(phone='+919800011122', status='quoted')
+        response = self._post_columns('split', [
+            {'column_id': 'EMAIL', 'string_value': 'split@example.com'},
+            {'column_id': 'PHONE_NUMBER', 'string_value': '+919800011122'},
+            {'column_id': 'PRODUCT', 'string_value': 'Split enquiry'},
+        ])
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(by_email.notes.count(), 0)
+        self.assertEqual(by_phone.notes.count(), 0)
+        self.assertEqual(by_email.google_ads_forms.count(), 0)
+        self.assertEqual(by_phone.google_ads_forms.count(), 0)
+        created = Lead.objects.get(external_id=self._id('split'))
+        conflict = created.activities.get(action='identity_conflict')
+        self.assertIn(str(by_email.uid), conflict.new_value)
+        self.assertIn(str(by_phone.uid), conflict.new_value)
+        self.assertNotIn('split@example.com', conflict.new_value)
+        self.assertNotIn('+919800011122', conflict.new_value)
+        self.assertEqual(created.google_ads_forms.count(), 1)
+
+    def test_repeated_distinct_events_stay_separate_while_phones_disagree(self):
+        first = seed_lead(email='shared@example.com', phone='+919811100001', status='contacted')
+        second = seed_lead(email='shared@example.com', phone='+919811100002', status='quoted')
+        columns = [
+            {'column_id': 'EMAIL', 'string_value': 'shared@example.com'},
+            {'column_id': 'PHONE_NUMBER', 'string_value': '+919811100001'},
+        ]
+        first_event = self._post_columns('conflict-a', columns + [
+            {'column_id': 'PRODUCT', 'string_value': 'First conflicting form'},
+        ])
+        second_event = self._post_columns('conflict-b', columns + [
+            {'column_id': 'PRODUCT', 'string_value': 'Second conflicting form'},
+        ])
+        replay = self._post_columns('conflict-b', columns + [
+            {'column_id': 'PRODUCT', 'string_value': 'Second conflicting form again'},
+        ])
+        self.assertEqual(first_event.status_code, 200, first_event.content)
+        self.assertEqual(second_event.status_code, 200, second_event.content)
+        self.assertEqual(replay.status_code, 200, replay.content)
+        self.assertEqual(Lead.objects.filter(email='shared@example.com').count(), 4)
+        self.assertEqual(first.notes.count(), 0)
+        self.assertEqual(second.notes.count(), 0)
+        created = Lead.objects.filter(external_id__in=[self._id('conflict-a'), self._id('conflict-b')])
+        self.assertEqual(created.count(), 2)
+        for lead in created:
+            conflict = lead.activities.get(action='identity_conflict')
+            self.assertIn(str(first.uid), conflict.new_value)
+            self.assertIn(str(second.uid), conflict.new_value)
+            self.assertNotIn('shared@example.com', conflict.new_value)
+            self.assertEqual(lead.google_ads_forms.count(), 1)
+        self.assertEqual(GoogleAdsLeadForm.objects.filter(external_id__in=[
+            self._id('conflict-a'), self._id('conflict-b'),
+        ]).count(), 2)
+
+    def test_lead_detail_lists_every_provider_event(self):
+        self._post_columns('detail-a', [
+            {'column_id': 'EMAIL', 'string_value': 'detail@example.com'},
+            {'column_id': 'PRODUCT', 'string_value': 'First'},
+        ], campaign_id=11)
+        self._post_columns('detail-b', [
+            {'column_id': 'EMAIL', 'string_value': 'detail@example.com'},
+            {'column_id': 'PRODUCT', 'string_value': 'Second'},
+        ], campaign_id=22)
+        admin = create_account('ads-admin@example.com', role='admin', sales=False)
+        self.client.force_authenticate(user=admin)
+        lead = Lead.objects.get(email='detail@example.com')
+        response = self.client.get(f'/api/admin/leads/{lead.uid}')
+        self.assertEqual(response.status_code, 200, response.content)
+        data = response.json()['data']
+        self.assertEqual(data['google_ads']['campaign_id'], '22')
+        self.assertEqual(data['google_ads']['form_id'], '55')
+        self.assertEqual(
+            [event['external_id'] for event in data['google_ads_events']],
+            [self._id('detail-b'), self._id('detail-a')],
+        )
+        self.assertEqual(data['status'], 'new')
+        self.assertIsNone(data['assigned_to'])
 
     def test_attribution_or_event_failure_rolls_back_and_a_retry_succeeds(self):
         for method_name in ('save_form', 'mark_processed'):
             lead_id = self._id(method_name)
             with patch.object(GoogleAdsIngestionRepository, method_name, side_effect=RuntimeError('write failed')):
-                failed = self.post(lead_payload(lead_id=lead_id))
+                failed = self.post(lead_payload(
+                    lead_id=lead_id,
+                    user_column_data=[
+                        {'column_id': 'EMAIL', 'string_value': f'{lead_id}@example.com'},
+                        {'column_id': 'PRODUCT', 'string_value': 'Rollback'},
+                    ],
+                ))
             self.assertEqual(failed.status_code, 500, method_name)
             self.assertEqual(failed.json()['message'], 'Temporary processing failure.')
             self.assertFalse(Lead.objects.filter(external_id=lead_id).exists())
             self.assertFalse(GoogleAdsLeadForm.objects.filter(lead__external_id=lead_id).exists())
             self.assertFalse(ProcessedWebhook.objects.filter(event_id=lead_id).exists())
-            recovered = self.post(lead_payload(lead_id=lead_id))
+            recovered = self.post(lead_payload(
+                lead_id=lead_id,
+                user_column_data=[
+                    {'column_id': 'EMAIL', 'string_value': f'{lead_id}@example.com'},
+                    {'column_id': 'PRODUCT', 'string_value': 'Rollback'},
+                ],
+            ))
             self.assertEqual(recovered.status_code, 200, recovered.content)
             self.assertEqual(Lead.objects.filter(external_id=lead_id).count(), 1)
             self.assertEqual(GoogleAdsLeadForm.objects.filter(lead__external_id=lead_id).count(), 1)
@@ -418,17 +568,62 @@ class GoogleAdsPostgresConcurrencyTests(TransactionTestCase):
                 ).count(),
                 1,
             )
+            self.assertEqual(Lead.objects.get(external_id=lead_id).notes.count(), 0)
         self.assertEqual(
             Lead.objects.filter(external_id__startswith='google-ads-pg-race-').count(),
             rounds,
         )
+
+    def test_overlapping_distinct_events_keep_both_attributions_on_one_lead(self):
+        self.assertEqual(connection.vendor, 'postgresql')
+        assert_isolated_test_database(self)
+        pair = uuid.uuid4().hex[:12]
+        email = f'pair-{pair}@example.com'
+        first_id = f'google-ads-pg-pair-{pair}-a'
+        second_id = f'google-ads-pg-pair-{pair}-b'
+        payloads = [
+            lead_payload(
+                lead_id=first_id,
+                campaign_id=31,
+                user_column_data=[
+                    {'column_id': 'FULL_NAME', 'string_value': 'Pair Example'},
+                    {'column_id': 'EMAIL', 'string_value': email},
+                    {'column_id': 'PRODUCT', 'string_value': 'First event'},
+                ],
+            ),
+            lead_payload(
+                lead_id=second_id,
+                campaign_id=32,
+                user_column_data=[
+                    {'column_id': 'FULL_NAME', 'string_value': 'Pair Example'},
+                    {'column_id': 'EMAIL', 'string_value': email},
+                    {'column_id': 'PRODUCT', 'string_value': 'Second event'},
+                ],
+            ),
+        ]
+        statuses, bodies = _deliver_payloads_concurrently(payloads)
+        self.assertEqual(statuses, [200, 200], bodies)
+        lead = Lead.objects.get(email=email)
+        self.assertEqual(
+            set(lead.google_ads_forms.values_list('external_id', flat=True)),
+            {first_id, second_id},
+        )
+        self.assertEqual(
+            set(lead.google_ads_forms.values_list('campaign_id', flat=True)),
+            {'31', '32'},
+        )
+        self.assertEqual(
+            ProcessedWebhook.objects.filter(event_id__in=[first_id, second_id]).count(),
+            2,
+        )
+        self.assertEqual(lead.notes.count(), 1)
 
 
 def _deliver_same_payload_concurrently(lead_id):
     barrier = threading.Barrier(2)
     entered = {'count': 0}
     entered_lock = threading.Lock()
-    real_lookup = GoogleAdsIngestionRepository.production_lead
+    real_lookup = GoogleAdsIngestionRepository.lead_id_for_event
 
     def lookup_then_overlap(external_id):
         found = real_lookup(external_id)
@@ -470,13 +665,50 @@ def _deliver_same_payload_concurrently(lead_id):
         finally:
             connections.close_all()
 
-    with patch.object(GoogleAdsIngestionRepository, 'production_lead', side_effect=lookup_then_overlap):
+    with patch.object(GoogleAdsIngestionRepository, 'lead_id_for_event', side_effect=lookup_then_overlap):
         threads = [threading.Thread(target=worker), threading.Thread(target=worker)]
         for thread in threads:
             thread.start()
         for thread in threads:
             thread.join(timeout=30)
 
+    if errors:
+        raise AssertionError('Concurrent delivery failed: ' + '; '.join(errors))
+    if any(thread.is_alive() for thread in threads):
+        raise AssertionError('Concurrent delivery did not finish.')
+    return sorted(statuses), sorted(bodies)
+
+
+def _deliver_payloads_concurrently(payloads):
+    """Post different events at the same time, without forcing them past the lock."""
+    statuses = []
+    bodies = []
+    errors = []
+
+    def worker(payload):
+        try:
+            connections.close_all()
+            with override_settings(
+                ROOT_URLCONF='app.leads.tests.urls',
+                GOOGLE_ADS_LEAD_WEBHOOK_KEY=KEY,
+            ):
+                response = APIClient().post(
+                    WEBHOOK,
+                    data=json.dumps(payload),
+                    content_type='application/json',
+                )
+            statuses.append(response.status_code)
+            bodies.append(response.content.decode())
+        except Exception as exc:
+            errors.append(f'{type(exc).__name__}: {exc}')
+        finally:
+            connections.close_all()
+
+    threads = [threading.Thread(target=worker, args=(payload,)) for payload in payloads]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=30)
     if errors:
         raise AssertionError('Concurrent delivery failed: ' + '; '.join(errors))
     if any(thread.is_alive() for thread in threads):

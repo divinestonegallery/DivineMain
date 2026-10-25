@@ -4,6 +4,7 @@ from app.contactus.validators import (
     CustomizationUploadUrlValidator,
     CustomizeRequestValidator,
 )
+from app.leads.normalization import normalize_email
 from framework.core.base_apiviews import AuthenticatedAPIView, OpenAPIView, OptionalAuthenticatedAPIView
 from framework.core.responses import ErrorResponse, SuccessResponse
 from framework.utils import get_response
@@ -32,8 +33,12 @@ class CustomizeRequestView(OptionalAuthenticatedAPIView):
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid customization request', err=validator.errors, status_code=400))
         user = getattr(request, 'user', None)
-        user_id = user.id if getattr(user, 'is_authenticated', False) else None
-        error, data = ContactUsCustomerService.create_customize_request(validator.validated_data, user_id=user_id)
+        signed_in = getattr(user, 'is_authenticated', False)
+        error, data = ContactUsCustomerService.create_customize_request(
+            validator.validated_data,
+            user_id=user.id if signed_in else None,
+            account_email=normalize_email(user.email) if signed_in else '',
+        )
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(data=data, message='Customization request submitted successfully', status_code=201))

@@ -5,6 +5,7 @@ from app.common.services.upload_service import UploadService
 from app.contactus.repositories.contactus_repository import ContactUsRepository
 from app.leads.attribution import attribution_from
 from app.leads.constants import LEAD_SOURCE_WEBSITE
+from app.leads.repositories.lead_repository import LeadRepository
 from app.leads.services.lead_service import LeadService
 
 
@@ -34,7 +35,13 @@ class ContactUsCustomerService:
             return 'This message was already submitted recently.', None
         try:
             with transaction.atomic():
-                lead_error, lead = LeadService.create_website_lead(
+                # The check above can pass for two requests at once. Hold the
+                # same person lock the lead write uses, then look again so the
+                # waiter sees the enquiry the first request committed.
+                LeadRepository.lock_identity(email, phone)
+                if ContactUsRepository.recent_contact_duplicate(email, data['message'], phone):
+                    raise _IntakeAbort('This message was already submitted recently.')
+                lead_error, lead = LeadService.record_website_enquiry(
                     _contact_lead_data(data, attribution),
                     created_by_id=None,
                 )
@@ -59,7 +66,7 @@ class ContactUsCustomerService:
         return None, created
 
     @staticmethod
-    def create_customize_request(data, user_id=None):
+    def create_customize_request(data, user_id=None, account_email=''):
         attribution = attribution_from(data)
         submission_key = attribution['submission_key']
         if submission_key:
@@ -84,9 +91,14 @@ class ContactUsCustomerService:
 
         try:
             with transaction.atomic():
-                lead_error, lead = LeadService.create_website_lead(
+                lock_email = account_email if account_email and not (data.get('email') or '') else (data.get('email') or '')
+                LeadRepository.lock_identity(lock_email, data.get('phone') or '')
+                if ContactUsRepository.recent_customize_duplicate(data):
+                    raise _IntakeAbort('This customization request was already submitted recently.')
+                lead_error, lead = LeadService.record_website_enquiry(
                     _customize_lead_data(data, attribution),
                     created_by_id=user_id,
+                    account_email=account_email,
                 )
                 if lead_error:
                     raise _IntakeAbort(lead_error)

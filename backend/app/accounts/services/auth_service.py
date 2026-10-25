@@ -7,12 +7,38 @@ from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from app.accounts.repositories.customer_repository import CustomerRepository
 from app.accounts.services.clerk_client import ClerkClient
 from app.common.token_service import TokenService
+from app.leads.constants import (
+    SESSION_EVENT_LOGIN,
+    SESSION_EVENT_SIGNUP,
+    SESSION_EVENT_VERIFICATION,
+)
+from app.leads.services.lead_service import LeadService
 
 logger = logging.getLogger(__name__)
 
 
 class AuthService:
     """Service handling all authentication workflows delegating to Clerk and issuing JWT tokens."""
+
+    @staticmethod
+    def _issue_session(customer_dict, event):
+        """Issue tokens for a session that has just been established.
+
+        Every flow that hands a customer their first working token pair goes
+        through here, so the organic lead rules cannot drift between login,
+        signup and verification. Token refresh and profile reads do not
+        establish a session and must not call this.
+
+        Lead bookkeeping must never turn a valid session into an
+        authentication failure, so its errors are logged and dropped.
+        """
+        try:
+            error, _result = LeadService.record_customer_session(customer_dict, event)
+            if error:
+                logger.warning('Organic lead skipped after a %s session: %s', event, error)
+        except Exception:
+            logger.exception('Organic lead handling failed after a %s session', event)
+        return TokenService.generate_token_pair(customer_dict)
 
     @classmethod
     def signup(cls, data):
@@ -82,7 +108,7 @@ class AuthService:
         customer_dict = sync_result.get('customer')
 
         # 3. Generate token pair
-        tokens = TokenService.generate_token_pair(customer_dict)
+        tokens = cls._issue_session(customer_dict, SESSION_EVENT_SIGNUP)
 
         return None, {
             'user': customer_dict,
@@ -132,7 +158,7 @@ class AuthService:
             return 'User account is inactive.', None
 
         # 4. Generate tokens
-        tokens = TokenService.generate_token_pair(customer_dict)
+        tokens = cls._issue_session(customer_dict, SESSION_EVENT_VERIFICATION)
 
         return None, {
             'user': customer_dict,
@@ -180,7 +206,7 @@ class AuthService:
             return 'User account is inactive.', None
 
         # 5. Generate token pair
-        tokens = TokenService.generate_token_pair(customer_dict)
+        tokens = cls._issue_session(customer_dict, SESSION_EVENT_LOGIN)
 
         return None, {
             'user': customer_dict,

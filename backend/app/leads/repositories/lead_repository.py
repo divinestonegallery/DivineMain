@@ -1,3 +1,4 @@
+from django.db import connection
 from django.db.models import F, Q
 from django.utils import timezone
 
@@ -20,6 +21,20 @@ def _paginate(queryset, page, page_size, serializer):
             'total_pages': (total + page_size - 1) // page_size if page_size else 0,
         },
     }
+
+
+def _identity_query(email, phone):
+    """Match an email case-insensitively or a already-normalized phone exactly.
+
+    Blank values never match, so one missing contact field cannot pull in every
+    lead that also left that field empty.
+    """
+    query = Q()
+    if email:
+        query |= Q(email__iexact=email)
+    if phone:
+        query |= Q(phone=phone)
+    return query
 
 
 def _scoped(queryset, scope):
@@ -103,6 +118,47 @@ class LeadRepository:
             }
             for lead in matches[:20]
         ]
+
+    @staticmethod
+    def active_identity_matches(email, phone, limit):
+        """Open leads whose email or phone belongs to this person, newest first."""
+        query = _identity_query(email, phone)
+        if not query:
+            return []
+        matches = Lead.objects.filter(query, status__in=OPEN_LEAD_STATUSES).order_by(
+            '-created_at', '-id',
+        ).values('id', 'uid', 'email', 'phone', 'status')
+        return [
+            {**match, 'uid': str(match['uid'])}
+            for match in matches[:limit]
+        ]
+
+    @staticmethod
+    def recent_lead_exists(email, phone, since):
+        """Whether this person has a lead in any status created at or after `since`."""
+        query = _identity_query(email, phone)
+        if not query:
+            return False
+        return Lead.objects.filter(query, created_at__gte=since).exists()
+
+    @staticmethod
+    def lock_identity(email, phone):
+        """Serialize the match-then-write decision for one person.
+
+        Two enquiries for the same person can otherwise both find no active lead
+        and both insert. PostgreSQL holds a transaction-scoped advisory lock on
+        each supplied contact detail; SQLite serializes writers already, so the
+        lock is a no-op there. Keys are taken in a stable order to avoid
+        deadlocking two requests that share one of the two details.
+        """
+        if connection.vendor != 'postgresql':
+            return
+        keys = sorted(
+            key for key in (f'email:{email}' if email else '', f'phone:{phone}' if phone else '') if key
+        )
+        with connection.cursor() as cursor:
+            for key in keys:
+                cursor.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))', [key])
 
     @staticmethod
     def create_lead(data):

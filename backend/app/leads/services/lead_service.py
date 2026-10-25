@@ -1,3 +1,6 @@
+import logging
+from datetime import timedelta
+
 from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -7,8 +10,8 @@ from app.leads.constants import (
     ACTIVITY_ASSIGNED,
     ACTIVITY_CREATED,
     ACTIVITY_FOLLOW_UP_CHANGED,
+    ACTIVITY_IDENTITY_CONFLICT,
     ACTIVITY_NOTE_ADDED,
-    ACTIVITY_POSSIBLE_DUPLICATE,
     ACTIVITY_REASSIGNED,
     ACTIVITY_REOPENED,
     ACTIVITY_STATUS_CHANGED,
@@ -16,14 +19,21 @@ from app.leads.constants import (
     ADMIN_REOPEN_STATUS,
     ASSIGNEE_REJECTED,
     DUPLICATE_CONFIRMATION,
+    IDENTITY_MATCH_LIMIT,
+    LOGIN_RECENT_LEAD_DAYS,
     LEAD_SOURCE_GOOGLE_ADS,
     LEAD_SOURCE_MANUAL,
     LEAD_SOURCE_WEBSITE,
     LEAD_STATUS_LOST,
     LEAD_STATUS_NEW,
     LEAD_STATUS_ORDER,
-    LEAD_TOUCHPOINT_ORDER,
+    NOTE_BODY_LIMIT,
+    TOUCHPOINT_CONTACT,
+    TOUCHPOINT_CUSTOM,
     TOUCHPOINT_LEAD_FORM,
+    TOUCHPOINT_LOGIN,
+    TOUCHPOINT_PRODUCT,
+    WEBSITE_TOUCHPOINTS,
     LEAD_TRANSITIONS,
     LEADS_ACCESS,
     LEADS_ADD_NOTE,
@@ -36,14 +46,36 @@ from app.leads.constants import (
     PERMISSION_DENIED,
     TERMINAL_LEAD_STATUSES,
 )
+from app.leads.normalization import normalize_email, normalize_phone
 from app.leads.repositories.lead_repository import LeadRepository
 from app.leads.repositories.notification_repository import NotificationRepository
 from app.leads.services.access_service import AccessService
 
+logger = logging.getLogger(__name__)
+
+
+# Fields the lead desk already reads. A reused lead can have several provider
+# events; this object stays the newest one so the existing response shape holds.
+_GOOGLE_ADS_PUBLIC_FIELDS = (
+    'form_id',
+    'campaign_id',
+    'adgroup_id',
+    'creative_id',
+    'asset_group_id',
+    'gcl_id',
+    'lead_stage',
+    'form_origin',
+    'submitted_at',
+)
+
 
 def _google_ads_attribution(lead_id):
     from app.integrations.google_ads.repository import GoogleAdsIngestionRepository
-    return GoogleAdsIngestionRepository.form_for_lead(lead_id)
+    events = GoogleAdsIngestionRepository.forms_for_lead(lead_id)
+    if not events:
+        return None, []
+    latest = {field: events[0][field] for field in _GOOGLE_ADS_PUBLIC_FIELDS}
+    return latest, events
 
 
 def _moment(value):
@@ -115,6 +147,93 @@ def _public_lead(data, actor, include_notes=False):
     return data
 
 
+def _enquiry_note(touchpoint, summary):
+    """One sentence of context for the sales desk, without contact details."""
+    opening = {
+        TOUCHPOINT_CONTACT: 'Contact us enquiry received.',
+        TOUCHPOINT_PRODUCT: 'Product enquiry received.',
+        TOUCHPOINT_CUSTOM: 'Custom moorti enquiry received.',
+    }.get(touchpoint, 'Website enquiry received.')
+    summary = (summary or '').strip()
+    return f'{opening} {summary}'.strip() if summary else opening
+
+
+def resolve_active_lead(email, phone):
+    """Find the one active lead that unambiguously belongs to this person.
+
+    Returns (lead, conflict_uids). An empty uid list means there is no
+    conflict. A non-empty list means the open leads could describe more than
+    one person, so the caller must not mutate any of them. The uids are the
+    leads that were left unchanged. They contain no email or phone.
+
+    A later distinct enquiry still opens its own lead while those candidates
+    disagree. A lead that carries both the email and the phone can become the
+    unambiguous match for a later event with that same pair. Two open leads
+    that share an email but have different phones stay in conflict, and each
+    new distinct submission adds another separate lead.
+    """
+    matches = LeadRepository.active_identity_matches(email, phone, IDENTITY_MATCH_LIMIT + 1)
+    if not matches:
+        return None, []
+    if len(matches) > IDENTITY_MATCH_LIMIT:
+        return None, [match['uid'] for match in matches]
+
+    emails = {match['email'].strip().lower() for match in matches if match['email']}
+    phones = {match['phone'] for match in matches if match['phone']}
+    if email:
+        emails.add(email)
+    if phone:
+        phones.add(phone)
+    # Two different emails or two different phones across the candidates means
+    # one contact detail is shared by people who are not the same person.
+    if len(emails) > 1 or len(phones) > 1:
+        return None, [match['uid'] for match in matches]
+
+    if email and phone:
+        by_email = {match['id'] for match in matches if match['email'].strip().lower() == email}
+        by_phone = {match['id'] for match in matches if match['phone'] == phone}
+        # The email points at one lead and the phone at a different one, with
+        # nothing tying the two records together.
+        if by_email and by_phone and not by_email & by_phone:
+            return None, [match['uid'] for match in matches]
+
+    return matches[0], []
+
+
+def _conflict_reference(uids):
+    """Staff-facing activity text. It names lead uids and no contact details."""
+    shown = []
+    for uid in uids:
+        if uid and uid not in shown:
+            shown.append(uid)
+        if len(shown) == 8:
+            break
+    text = 'ambiguous contact details'
+    if shown:
+        text = f'{text}; unchanged_lead_uids={",".join(shown)}'
+    remaining = len([uid for uid in uids if uid]) - len(shown)
+    if remaining > 0:
+        text = f'{text}; +{remaining} more'
+    return text[:500]
+
+
+def append_event_note(lead_id, body, touchpoint):
+    """Record one append-only note plus its activity entry on an existing lead.
+
+    Nothing else on the lead changes: status, assignment, source and the
+    original summary all stay as the sales desk left them.
+    """
+    note = LeadRepository.add_note(lead_id, None, body[:NOTE_BODY_LIMIT])
+    LeadRepository.add_activity(
+        lead_id,
+        None,
+        ACTIVITY_NOTE_ADDED,
+        field_name='note',
+        new_value=touchpoint,
+    )
+    return note
+
+
 class LeadService:
     @staticmethod
     def access(actor):
@@ -156,9 +275,10 @@ class LeadService:
             return NOT_FOUND, None
         lead_id = lead['id']
         public_lead = _public_lead(lead, actor, include_notes=True)
-        google_ads = _google_ads_attribution(lead_id)
+        google_ads, google_ads_events = _google_ads_attribution(lead_id)
         if google_ads:
             public_lead['google_ads'] = google_ads
+            public_lead['google_ads_events'] = google_ads_events
         return None, public_lead
 
     @staticmethod
@@ -234,14 +354,27 @@ class LeadService:
         return None, _public_lead(lead, actor, include_notes=True)
 
     @staticmethod
-    def create_website_lead(data, created_by_id=None):
-        """Create an unassigned website lead.
+    def record_website_enquiry(data, created_by_id=None, account_email=''):
+        """Attach a website enquiry to this person's active lead, or create one.
 
-        The caller owns the transaction. A matching open phone or email does not
-        block or merge the enquiry. Staff see a possible-duplicate activity
-        without this method returning the other lead to the website visitor.
-        Repeated calls are not idempotent by themselves; the enquiry record's
-        submission key provides that.
+        The caller owns the transaction and keeps its own enquiry record, which
+        points at whichever lead this returns. An active lead is reused and
+        receives a note, however old it is; the 30-day login suppression window
+        does not apply here, so a person whose only lead is won or lost gets a
+        new one. Ambiguous contact details create a separate lead rather than
+        writing into a lead that may belong to someone else. Repeated calls are
+        not idempotent by themselves; the enquiry record's submission key is.
+
+        account_email is the signed-in customer's own address where the flow has
+        one. It is the most reliable identifier available, so it fills in a
+        submission that left the email blank and is recorded on a new lead to
+        keep later matching consistent.
+
+        When the contact details conflict, this creates a separate lead and
+        records the uids of the leads it refused to change. Repeating a new
+        submission while those leads still disagree creates another separate
+        lead. It does not merge them and it does not copy their email or phone
+        into the activity row.
         """
         email = data.get('email') or ''
         phone = data.get('phone') or ''
@@ -249,9 +382,37 @@ class LeadService:
             return 'Provide an email address or phone number.', None
         if data.get('source') != LEAD_SOURCE_WEBSITE:
             return 'Unsupported lead source.', None
-        if data.get('touchpoint') not in LEAD_TOUCHPOINT_ORDER:
+        touchpoint = data.get('touchpoint')
+        if touchpoint not in WEBSITE_TOUCHPOINTS:
             return 'Unsupported lead touchpoint.', None
-        matches = LeadRepository.open_matches(email, phone)
+
+        account_mismatch = bool(account_email) and bool(email) and account_email != email
+        if account_email and not email:
+            email = account_email
+
+        LeadRepository.lock_identity(email, phone)
+        active, conflict_uids = resolve_active_lead(email, phone)
+        if account_mismatch:
+            # The signed-in account and the typed address disagree, so neither
+            # one proves which person this enquiry belongs to.
+            if active and active['uid'] not in conflict_uids:
+                conflict_uids = [active['uid'], *conflict_uids]
+            active = None
+        if active:
+            append_event_note(
+                active['id'],
+                _enquiry_note(touchpoint, data.get('summary')),
+                touchpoint,
+            )
+            return None, {'id': active['id'], 'uid': active['uid'], 'reused': True}
+        if conflict_uids or account_mismatch:
+            logger.warning(
+                'website enquiry outcome=identity_conflict touchpoint=%s has_email=%s has_phone=%s',
+                touchpoint,
+                bool(email),
+                bool(phone),
+            )
+
         lead = LeadRepository.create_lead({
             'name': data['name'],
             'email': email,
@@ -259,7 +420,7 @@ class LeadService:
             'city': data.get('city') or '',
             'summary': data['summary'],
             'source': LEAD_SOURCE_WEBSITE,
-            'touchpoint': data['touchpoint'],
+            'touchpoint': touchpoint,
             'utm_source': data.get('utm_source') or '',
             'utm_medium': data.get('utm_medium') or '',
             'utm_campaign': data.get('utm_campaign') or '',
@@ -277,24 +438,90 @@ class LeadService:
             created_by_id,
             ACTIVITY_CREATED,
             field_name='touchpoint',
-            new_value=data['touchpoint'],
+            new_value=touchpoint,
         )
-        if matches:
+        if conflict_uids or account_mismatch:
             LeadRepository.add_activity(
                 lead['id'],
                 created_by_id,
-                ACTIVITY_POSSIBLE_DUPLICATE,
+                ACTIVITY_IDENTITY_CONFLICT,
                 field_name='open_leads',
-                new_value=str(len(matches)),
+                new_value=_conflict_reference(conflict_uids),
             )
-        return None, {'id': lead['id'], 'uid': str(lead['uid'])}
+        return None, {'id': lead['id'], 'uid': str(lead['uid']), 'reused': False}
+
+    @staticmethod
+    def record_customer_session(customer, event):
+        """Apply the organic lead rule for one successful customer session.
+
+        The order is deliberate. An active lead is reused and noted however old
+        it is. Otherwise any lead created inside the suppression window, in any
+        status including won and lost, stops a second lead from appearing and
+        leaves that lead completely untouched. Only a customer with neither
+        gets a new login lead.
+
+        This owns its own transaction because the caller is an authentication
+        flow whose success must not depend on lead bookkeeping.
+        """
+        if customer.get('role') != Customer.Role.CUSTOMER:
+            return None, {'outcome': 'skipped_not_a_customer'}
+        email = normalize_email(customer.get('email'))
+        phone = normalize_phone(customer.get('phone'))
+        if not email and not phone:
+            return None, {'outcome': 'skipped_no_contact_details'}
+
+        with transaction.atomic():
+            LeadRepository.lock_identity(email, phone)
+            active, conflict_uids = resolve_active_lead(email, phone)
+            if active:
+                append_event_note(active['id'], f'Customer {event}.', TOUCHPOINT_LOGIN)
+                return None, {'outcome': 'note_added', 'lead_uid': active['uid']}
+            if conflict_uids:
+                logger.warning(
+                    'customer session lead outcome=identity_conflict customer_id=%s open_leads=%s',
+                    customer.get('id'),
+                    len(conflict_uids),
+                )
+                return None, {'outcome': 'skipped_identity_conflict'}
+            window_start = timezone.now() - timedelta(days=LOGIN_RECENT_LEAD_DAYS)
+            if LeadRepository.recent_lead_exists(email, phone, window_start):
+                return None, {'outcome': 'skipped_recent_lead'}
+            lead = LeadRepository.create_lead({
+                'name': (customer.get('name') or email or phone)[:255],
+                'email': email,
+                'phone': phone,
+                'city': '',
+                'summary': f'Organic lead recorded when the customer {event}.',
+                'source': LEAD_SOURCE_WEBSITE,
+                'touchpoint': TOUCHPOINT_LOGIN,
+                'external_id': None,
+                'status': LEAD_STATUS_NEW,
+                'assigned_to_id': None,
+                'created_by_id': customer.get('id'),
+                'lost_reason': '',
+            })
+            LeadRepository.add_activity(
+                lead['id'],
+                None,
+                ACTIVITY_CREATED,
+                field_name='touchpoint',
+                new_value=TOUCHPOINT_LOGIN,
+            )
+        return None, {'outcome': 'created', 'lead_uid': str(lead['uid'])}
 
     @staticmethod
     def create_provider_lead(data):
-        """Create an unassigned provider lead. The caller owns the transaction.
+        """Attach one provider event to this person's active lead, or open one.
 
-        external_id is the provider's stable lead id. A matching phone or email
-        does not merge this lead into an older enquiry.
+        The caller owns the transaction and records the event's attribution
+        separately. The 30-day login window does not apply: a won or lost lead
+        does not block a new provider lead. An active lead is reused and noted
+        without changing its status, source, assignee or external id, so a
+        second provider event can keep its own attribution row.         Conflicting
+        contact details do not update either existing lead. Each new provider
+        event that still cannot choose one person creates its own lead and
+        points staff at the unchanged lead uids. The same provider event id
+        stays idempotent and does not add another lead.
         """
         email = data.get('email') or ''
         phone = data.get('phone') or ''
@@ -305,13 +532,29 @@ class LeadService:
             return 'A provider lead id is required.', None
         if data.get('source') != LEAD_SOURCE_GOOGLE_ADS or data.get('touchpoint') != TOUCHPOINT_LEAD_FORM:
             return 'Unsupported provider attribution.', None
-        matches = LeadRepository.open_matches(email, phone)
+
+        summary = (data.get('summary') or 'Google Ads lead form submission.')[:5000]
+        LeadRepository.lock_identity(email, phone)
+        active, conflict_uids = resolve_active_lead(email, phone)
+        if active:
+            interest = '' if summary == 'Google Ads lead form submission.' else summary
+            body = f'Google Ads lead form received ({external_id[:255]}).'
+            append_event_note(active['id'], f'{body} {interest}'.strip(), TOUCHPOINT_LEAD_FORM)
+            return None, {'id': active['id'], 'uid': active['uid'], 'reused': True}
+        if conflict_uids:
+            logger.warning(
+                'provider lead outcome=identity_conflict has_email=%s has_phone=%s open_leads=%s',
+                bool(email),
+                bool(phone),
+                len(conflict_uids),
+            )
+
         lead = LeadRepository.create_lead({
             'name': data['name'][:255],
             'email': email,
             'phone': phone,
             'city': (data.get('city') or '')[:100],
-            'summary': (data.get('summary') or 'Google Ads lead form submission.')[:5000],
+            'summary': summary,
             'source': LEAD_SOURCE_GOOGLE_ADS,
             'touchpoint': TOUCHPOINT_LEAD_FORM,
             'external_id': external_id[:255],
@@ -327,15 +570,15 @@ class LeadService:
             field_name='source',
             new_value=LEAD_SOURCE_GOOGLE_ADS,
         )
-        if matches:
+        if conflict_uids:
             LeadRepository.add_activity(
                 lead['id'],
                 None,
-                ACTIVITY_POSSIBLE_DUPLICATE,
+                ACTIVITY_IDENTITY_CONFLICT,
                 field_name='open_leads',
-                new_value=str(len(matches)),
+                new_value=_conflict_reference(conflict_uids),
             )
-        return None, {'id': lead['id'], 'uid': str(lead['uid'])}
+        return None, {'id': lead['id'], 'uid': str(lead['uid']), 'reused': False}
 
     @staticmethod
     def update_lead(actor, uid, data):

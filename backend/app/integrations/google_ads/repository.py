@@ -1,7 +1,5 @@
 from app.common.models import ProcessedWebhook
 from app.integrations.google_ads.models import GoogleAdsLeadForm
-from app.leads.constants import LEAD_SOURCE_GOOGLE_ADS
-from app.leads.models import Lead
 
 
 PROVIDER = 'google_ads'
@@ -9,16 +7,22 @@ PROVIDER = 'google_ads'
 
 class GoogleAdsIngestionRepository:
     @staticmethod
-    def production_lead(external_id):
-        return Lead.objects.filter(
-            source=LEAD_SOURCE_GOOGLE_ADS,
+    def lead_id_for_event(external_id):
+        """The lead a provider event was already attributed to, if any.
+
+        This is the event-level idempotency check. It reads the attribution row
+        rather than Lead.external_id because an event that reused an existing
+        lead never writes its id onto that lead.
+        """
+        return GoogleAdsLeadForm.objects.filter(
             external_id=external_id,
-        ).values_list('id', flat=True).first()
+        ).values_list('lead_id', flat=True).first()
 
     @staticmethod
     def save_form(lead_id, detail):
         GoogleAdsLeadForm.objects.create(
             lead_id=lead_id,
+            external_id=detail['lead_id'],
             form_id=detail['form_id'],
             campaign_id=detail['campaign_id'],
             adgroup_id=detail['adgroup_id'],
@@ -39,18 +43,20 @@ class GoogleAdsIngestionRepository:
         )
 
     @staticmethod
-    def form_for_lead(lead_id):
-        form = GoogleAdsLeadForm.objects.filter(lead_id=lead_id).first()
-        if not form:
-            return None
-        return {
-            'form_id': form.form_id,
-            'campaign_id': form.campaign_id,
-            'adgroup_id': form.adgroup_id,
-            'creative_id': form.creative_id,
-            'asset_group_id': form.asset_group_id,
-            'gcl_id': form.gcl_id,
-            'lead_stage': form.lead_stage,
-            'form_origin': form.form_origin,
-            'submitted_at': form.submitted_at,
-        }
+    def forms_for_lead(lead_id):
+        """Every provider event attributed to this lead, newest first."""
+        return [
+            {
+                'external_id': form.external_id,
+                'form_id': form.form_id,
+                'campaign_id': form.campaign_id,
+                'adgroup_id': form.adgroup_id,
+                'creative_id': form.creative_id,
+                'asset_group_id': form.asset_group_id,
+                'gcl_id': form.gcl_id,
+                'lead_stage': form.lead_stage,
+                'form_origin': form.form_origin,
+                'submitted_at': form.submitted_at,
+            }
+            for form in GoogleAdsLeadForm.objects.filter(lead_id=lead_id)
+        ]

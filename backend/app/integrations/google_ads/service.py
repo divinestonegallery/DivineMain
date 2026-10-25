@@ -50,7 +50,7 @@ def _record_production(lead):
         return 400, 'A phone number or email address is required.'
     try:
         with transaction.atomic():
-            if GoogleAdsIngestionRepository.production_lead(lead['lead_id']):
+            if GoogleAdsIngestionRepository.lead_id_for_event(lead['lead_id']):
                 logger.info('google_ads webhook outcome=duplicate lead_id=%s', lead['lead_id'])
                 return 200, ''
             error, created = LeadService.create_provider_lead({
@@ -67,16 +67,17 @@ def _record_production(lead):
                 raise _PermanentIntakeError(error)
             GoogleAdsIngestionRepository.save_form(created['id'], lead)
             GoogleAdsIngestionRepository.mark_processed(lead['lead_id'], 'lead')
+            outcome = 'reused' if created.get('reused') else 'created'
     except _PermanentIntakeError as exc:
         logger.warning('google_ads webhook outcome=rejected lead_id=%s', lead['lead_id'])
         return 400, exc.message
     except IntegrityError:
-        if GoogleAdsIngestionRepository.production_lead(lead['lead_id']):
+        if GoogleAdsIngestionRepository.lead_id_for_event(lead['lead_id']):
             logger.info('google_ads webhook outcome=duplicate lead_id=%s', lead['lead_id'])
             return 200, ''
         logger.exception('google_ads webhook outcome=conflict_without_lead lead_id=%s', lead['lead_id'])
         raise
-    logger.info('google_ads webhook outcome=created lead_id=%s', lead['lead_id'])
+    logger.info('google_ads webhook outcome=%s lead_id=%s', outcome, lead['lead_id'])
     return 200, ''
 
 

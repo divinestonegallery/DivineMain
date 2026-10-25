@@ -59,11 +59,13 @@ class ContactUsRepository:
 
     @staticmethod
     def recent_customize_duplicate(data):
+        # Omitted optional fields are stored as empty strings. Compare those
+        # the same way, or a second identical request never looks like the first.
         filters = {
             'city__iexact': data['city'],
-            'description': data.get('description'),
-            'approximate_height': data.get('approximate_height'),
-            'preferred_material': data.get('preferred_material'),
+            'description': data.get('description') or '',
+            'approximate_height': data.get('approximate_height') or '',
+            'preferred_material': data.get('preferred_material') or '',
             'created_at__gte': timezone.now() - timedelta(minutes=10),
         }
         email = data.get('email')

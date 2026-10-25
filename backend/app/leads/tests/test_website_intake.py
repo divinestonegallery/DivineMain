@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 from app.accounts.models import Customer
 from app.contactus.models import ContactMessage, CustomizeRequest
 from app.contactus.services.admin_service import ContactUsAdminService
-from app.leads.models import Lead, LeadActivity
+from app.leads.models import Lead, LeadActivity, LeadNote
 from app.leads.tests.helpers import create_account
 
 
@@ -80,7 +80,7 @@ class WebsiteIntakeTests(TestCase):
         self.assertEqual(Lead.objects.count(), 1)
         self.assertEqual(second.json()['data']['message'], first.json()['data']['message'])
 
-    def test_repeated_genuine_enquiry_stays_separate_and_does_not_merge(self):
+    def test_repeated_genuine_enquiry_reuses_the_active_lead_and_adds_one_note(self):
         first = self.post_contact(submission_id=str(uuid.uuid4()))
         second = self.post_contact(
             submission_id=str(uuid.uuid4()),
@@ -88,13 +88,18 @@ class WebsiteIntakeTests(TestCase):
         )
         self.assertEqual(first.status_code, 201, first.content)
         self.assertEqual(second.status_code, 201, second.content)
-        self.assertEqual(Lead.objects.count(), 2)
-        original = Lead.objects.order_by('id').first()
-        follow_up = Lead.objects.order_by('id').last()
-        self.assertEqual(original.source, 'website')
-        self.assertEqual(follow_up.source, 'website')
-        self.assertNotEqual(original.summary, follow_up.summary)
-        self.assertTrue(LeadActivity.objects.filter(lead=follow_up, action='possible_duplicate').exists())
+        lead = Lead.objects.get()
+        self.assertEqual(lead.source, 'website')
+        self.assertEqual(lead.summary, 'Please help me choose a granite murti.')
+        self.assertEqual(ContactMessage.objects.count(), 2)
+        self.assertEqual(list(ContactMessage.objects.values_list('lead_id', flat=True)), [lead.id, lead.id])
+        notes = list(LeadNote.objects.filter(lead=lead))
+        self.assertEqual(len(notes), 1)
+        self.assertIn('Contact us enquiry received.', notes[0].body)
+        self.assertIn('delivery to Chennai', notes[0].body)
+        self.assertIsNone(notes[0].author_id)
+        self.assertEqual(LeadActivity.objects.filter(lead=lead, action='note_added').count(), 1)
+        self.assertFalse(LeadActivity.objects.filter(lead=lead, action='identity_conflict').exists())
         self.assertNotIn('uid', second.json()['data'])
 
     def test_identical_retry_without_a_submission_id_does_not_create_another_lead(self):
