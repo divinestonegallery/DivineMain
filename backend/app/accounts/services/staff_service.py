@@ -2,6 +2,7 @@ from django.conf import settings
 
 from app.accounts.repositories.customer_repository import CustomerRepository
 from app.accounts.services.clerk_client import ClerkClient
+from app.leads.services.provisioning import ensure_default_sales_membership
 
 
 class StaffService:
@@ -57,4 +58,5 @@ class StaffService:
             if error:
                 return error, None
         updated = CustomerRepository.update_staff(customer_id, data)
+        ensure_default_sales_membership(customer_id)
         return None, updated

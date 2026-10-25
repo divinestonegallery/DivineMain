@@ -142,8 +142,8 @@ export function hasAdminRole(user: unknown) {
 }
 
 export function statusTone(value?: string) {
-  if (["approved", "accepted", "closed"].includes(text(value))) return styles.good;
-  if (["contacted", "quoted", "pending"].includes(text(value))) return styles.pending;
+  if (["approved", "accepted", "closed", "won"].includes(text(value))) return styles.good;
+  if (["contacted", "quoted", "qualified", "pending"].includes(text(value))) return styles.pending;
   return styles.bad;
 }
 

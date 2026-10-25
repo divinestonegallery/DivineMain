@@ -13,6 +13,9 @@ urlpatterns = [
     path('api/admin/contact', include('app.contactus.urls_admin')),
     path('api/admin/faqs', include('app.faq.urls_admin')),
     path('api/admin/staff', include('app.accounts.urls_admin')),
+    path('api/admin/leads', include('app.leads.urls_admin')),
+    path('api/admin/notifications', include('app.leads.urls_notifications')),
     path('api/admin/orders', include('app.orders.urls_admin')),
     path('api/admin/operations', include('app.common.urls_admin')),
+    path('api/integrations/google-ads', include('app.integrations.google_ads.urls')),
 ]

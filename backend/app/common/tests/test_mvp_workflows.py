@@ -12,6 +12,7 @@ from django.db import connection
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from PIL import Image
+from rest_framework.settings import api_settings
 from rest_framework.test import APIClient
 
 from app.accounts.models import Customer
@@ -29,6 +30,7 @@ from app.reviews.models import Review
 
 
 
+@override_settings(ROOT_URLCONF='app.common.tests.urls')
 class MVPTestCase(TestCase):
     def setUp(self):
         cache.clear()
@@ -276,12 +278,17 @@ class MVPTestCase(TestCase):
             name='Throttle Product', status=ProductStatus.ACTIVE.value,
         )
         self.authenticate(self.customer)
-        responses = [
-            self.client.post('/api/v1/reviews', {
-                'product': product.id, 'rating': 5, 'comment': f'Attempt number {index}'
-            }, format='json')
-            for index in range(6)
-        ]
+        # A customer may review a product only once, so the second attempt is 400.
+        # The scoped limiter is still exercised by lowering this test's review rate.
+        with patch.dict(api_settings.DEFAULT_THROTTLE_RATES, {'reviews': '5/hour'}):
+            responses = [
+                self.client.post('/api/v1/reviews', {
+                    'product': product.id, 'rating': 5, 'comment': f'Attempt number {index}'
+                }, format='json')
+                for index in range(6)
+            ]
+        self.assertEqual(responses[0].status_code, 201)
+        self.assertEqual(responses[1].status_code, 400)
         self.assertEqual(responses[-1].status_code, 429)
 
     def test_audit_and_error_logs_capture_safe_metadata(self):
