@@ -1,18 +1,21 @@
 from rest_framework.permissions import BasePermission
 
+from app.accounts.models import Employee
+
 
 class IsStaffOrAdmin(BasePermission):
-    """Allow only active local customers explicitly assigned a staff role."""
+    """Allow an active employee with a staff or admin role."""
 
     message = "Administrator access is required."
 
     def has_permission(self, request, view):
-        user = request.user
+        employee = request.user
         return bool(
-            user
-            and getattr(user, "is_authenticated", False)
-            and getattr(user, "is_active", False)
-            and getattr(user, "role", None) in {"staff", "admin"}
+            isinstance(employee, Employee)
+            and employee.is_authenticated
+            and employee.is_active
+            and employee.user.is_active
+            and employee.role in {Employee.Role.STAFF, Employee.Role.ADMIN}
         )
 
 
@@ -22,10 +25,11 @@ class IsAdmin(BasePermission):
     message = "Administrator role is required."
 
     def has_permission(self, request, view):
-        user = request.user
+        employee = request.user
         return bool(
-            user
-            and getattr(user, "is_authenticated", False)
-            and getattr(user, "is_active", False)
-            and getattr(user, "role", None) == "admin"
+            isinstance(employee, Employee)
+            and employee.is_authenticated
+            and employee.is_active
+            and employee.user.is_active
+            and employee.role == Employee.Role.ADMIN
         )

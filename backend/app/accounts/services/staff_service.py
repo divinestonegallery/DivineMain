@@ -48,7 +48,7 @@ class StaffService:
         if removing_last_admin:
             return 'At least one active administrator is required.', None
 
-        if 'role' in data and data['role'] != current['role']:
+        if 'role' in data and data['role'] != current['role'] and current.get('clerk_user_id'):
             if not ClerkClient.is_configured():
                 return 'Clerk secret key is not configured.', None
             error, _ = ClerkClient.update_user_public_metadata(

@@ -166,7 +166,12 @@ class StaffMembershipCollectionView(AdminAPIView):
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid membership', err=validator.errors, status_code=400))
         payload = validator.validated_data
-        error, data = GroupService.add_membership(_actor(request), payload['customer_id'], payload['group_id'])
+        error, data = GroupService.add_membership(
+            _actor(request),
+            payload['employee_id'],
+            payload['user_id'],
+            payload['group_id'],
+        )
         return service_response(error, data, 'Group membership added', status.HTTP_201_CREATED)
 
 

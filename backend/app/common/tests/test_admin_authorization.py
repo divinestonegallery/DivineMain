@@ -6,7 +6,7 @@ from django.test import TestCase, override_settings
 from django.urls import URLPattern, URLResolver, get_resolver
 from rest_framework.test import APIClient
 
-from app.accounts.models import Customer
+from app.accounts.models import Employee, User
 from app.accounts.services.webhook_service import AccountWebhookService
 from app.common.permissions import IsAdmin, IsStaffOrAdmin
 
@@ -93,9 +93,11 @@ class AdminAuthorizationTests(TestCase):
                 "/api/admin/products",
                 HTTP_AUTHORIZATION=f"Bearer {token}",
             )
-        self.assert_standard_error(response, 403)
+        self.assert_standard_error(response, 401)
+        self.assertFalse(User.objects.filter(clerk_user_id="user_customer").exists())
+        self.assertFalse(Employee.objects.filter(clerk_user_id="user_customer").exists())
 
-    def test_allowlisted_owner_is_bootstrapped_as_admin(self):
+    def test_allowlisted_owner_is_not_bootstrapped_as_admin(self):
         with self.clerk_settings():
             token = self.token(
                 subject="user_owner",
@@ -106,12 +108,11 @@ class AdminAuthorizationTests(TestCase):
                 HTTP_AUTHORIZATION=f"Bearer {token}",
             )
 
-        self.assertEqual(response.status_code, 200)
-        owner = Customer.objects.get(clerk_user_id="user_owner")
-        self.assertEqual(owner.role, Customer.Role.ADMIN)
+        self.assert_standard_error(response, 401)
+        self.assertFalse(Employee.objects.filter(clerk_user_id="user_owner").exists())
 
-    def test_existing_placeholder_user_is_promoted_when_verified_email_arrives(self):
-        Customer.objects.create(
+    def test_verified_email_does_not_promote_a_user_without_an_employee_record(self):
+        owner = User.objects.create(
             clerk_user_id="user_owner_late_email",
             email="user_owner_late_email@users.invalid",
         )
@@ -125,16 +126,18 @@ class AdminAuthorizationTests(TestCase):
                 HTTP_AUTHORIZATION=f"Bearer {token}",
             )
 
-        self.assertEqual(response.status_code, 200)
-        owner = Customer.objects.get(clerk_user_id="user_owner_late_email")
-        self.assertEqual(owner.email, "divinestonegallery@gmail.com")
-        self.assertEqual(owner.role, Customer.Role.ADMIN)
+        self.assert_standard_error(response, 401)
+        owner.refresh_from_db()
+        self.assertEqual(owner.email, "user_owner_late_email@users.invalid")
+        self.assertFalse(Employee.objects.filter(user=owner).exists())
 
     def test_clerk_deleted_user_is_deactivated_and_loses_admin_access(self):
-        owner = Customer.objects.create(
+        user = User.objects.create(email="deleted-owner@example.com")
+        owner = Employee.objects.create(
+            user=user,
             clerk_user_id="user_deleted_owner",
-            email="deleted-owner@example.com",
-            role=Customer.Role.ADMIN,
+            role="admin",
+            is_active=True,
         )
         error, result = AccountWebhookService.process_clerk_webhook(
             {"type": "user.deleted", "data": {"id": owner.clerk_user_id}},
@@ -152,18 +155,19 @@ class AdminAuthorizationTests(TestCase):
 
     def test_staff_and_admin_are_allowed_but_inactive_staff_is_forbidden(self):
         for role, is_active, expected_status in (
-            (Customer.Role.STAFF, True, 200),
-            (Customer.Role.ADMIN, True, 200),
-            (Customer.Role.STAFF, False, 403),
+            ("staff", True, 200),
+            ("admin", True, 200),
+            ("staff", False, 403),
         ):
             with self.subTest(role=role, is_active=is_active):
-                user = Customer.objects.create(
+                user = User.objects.create(email=f"{role}-{is_active}@example.com")
+                employee = Employee.objects.create(
+                    user=user,
                     clerk_user_id=f"{role}-{is_active}",
-                    email=f"{role}-{is_active}@example.com",
                     role=role,
                     is_active=is_active,
                 )
-                self.client.force_authenticate(user=user)
+                self.client.force_authenticate(user=employee)
                 response = self.client.get("/api/admin/products")
                 self.assertEqual(response.status_code, expected_status)
                 self.client.force_authenticate(user=None)

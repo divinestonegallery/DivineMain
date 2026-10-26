@@ -4,7 +4,7 @@ from app.products.models import Category, Material, Product
 
 
 class ProductKeywordsRoundTripTests(TestCase):
-    """Keywords stay a list on SQLite and on the PostgreSQL array column."""
+    """Keywords stay a list on the PostgreSQL array column."""
 
     def test_empty_and_non_empty_keywords_round_trip(self):
         category = Category.objects.create(name='Keyword Category', slug='keyword-category')

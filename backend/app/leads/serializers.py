@@ -1,18 +1,34 @@
 from rest_framework import serializers
 
-from app.accounts.models import Customer
 from app.leads.models import Lead, LeadActivity, LeadNote, LeadNotification
 
 
-class LeadPersonSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Customer
-        fields = ('id', 'name', 'email', 'role')
+def employee_person(employee):
+    if employee is None:
+        return None
+    return {
+        'id': employee.id,
+        'user_id': employee.user_id,
+        'name': employee.name,
+        'email': employee.email,
+        'role': employee.role,
+    }
+
+
+def user_person(user):
+    if user is None:
+        return None
+    return {
+        'id': user.id,
+        'name': user.name,
+        'email': user.email,
+        'role': None,
+    }
 
 
 class LeadSerializer(serializers.ModelSerializer):
-    assigned_to = LeadPersonSerializer(read_only=True)
-    created_by = LeadPersonSerializer(read_only=True)
+    assigned_to = serializers.SerializerMethodField()
+    created_by = serializers.SerializerMethodField()
 
     class Meta:
         model = Lead
@@ -43,17 +59,28 @@ class LeadSerializer(serializers.ModelSerializer):
             'updated_at',
         )
 
+    def get_assigned_to(self, lead):
+        return employee_person(lead.assigned_to)
+
+    def get_created_by(self, lead):
+        if lead.created_by_employee_id:
+            return employee_person(lead.created_by_employee)
+        return user_person(lead.created_by)
+
 
 class LeadNoteSerializer(serializers.ModelSerializer):
-    author = LeadPersonSerializer(read_only=True)
+    author = serializers.SerializerMethodField()
 
     class Meta:
         model = LeadNote
         fields = ('id', 'body', 'author', 'created_at')
 
+    def get_author(self, note):
+        return employee_person(note.author)
+
 
 class LeadActivitySerializer(serializers.ModelSerializer):
-    actor = LeadPersonSerializer(read_only=True)
+    actor = serializers.SerializerMethodField()
 
     class Meta:
         model = LeadActivity
@@ -66,6 +93,9 @@ class LeadActivitySerializer(serializers.ModelSerializer):
             'actor',
             'created_at',
         )
+
+    def get_actor(self, activity):
+        return employee_person(activity.actor)
 
 
 class LeadNotificationSerializer(serializers.ModelSerializer):

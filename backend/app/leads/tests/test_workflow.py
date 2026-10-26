@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from app.accounts.models import Customer
 from app.leads.constants import (
     ACTIVITY_ASSIGNED,
     ACTIVITY_CREATED,
@@ -33,7 +32,7 @@ class LeadWorkflowTests(LeadApiTestCase):
         self.assertTrue(LeadNotification.objects.filter(recipient=staff, lead=lead, kind='assigned').exists())
 
     def test_admin_can_assign_an_active_staff_member(self):
-        admin = create_account('desk-admin@example.com', role=Customer.Role.ADMIN, sales=False, name='Desk Admin')
+        admin = create_account('desk-admin@example.com', role='admin', sales=False, name='Desk Admin')
         staff = create_account('desk-staff@example.com', name='Desk Staff')
         created = self.create_lead(admin, email='desk@example.com', phone='9845055555')
         self.assertIsNone(created.json()['data']['assigned_to'])
@@ -49,7 +48,7 @@ class LeadWorkflowTests(LeadApiTestCase):
         self.assertTrue(LeadActivity.objects.filter(lead__uid=uid, action='assigned').exists())
 
     def test_invalid_assignment_is_rejected(self):
-        admin = create_account('invalid-admin@example.com', role=Customer.Role.ADMIN, sales=False)
+        admin = create_account('invalid-admin@example.com', role='admin', sales=False)
         inactive = create_account('inactive-assignee@example.com', active=False, sales=False)
         created = self.create_lead(admin, email='invalid-assign@example.com', phone='9845066666')
         uid = created.json()['data']['uid']
@@ -62,7 +61,7 @@ class LeadWorkflowTests(LeadApiTestCase):
         self.assertIsNone(Lead.objects.get(uid=uid).assigned_to_id)
 
     def test_status_transitions_loss_reason_and_admin_reopen(self):
-        admin = create_account('status-admin@example.com', role=Customer.Role.ADMIN, sales=False, name='Status Admin')
+        admin = create_account('status-admin@example.com', role='admin', sales=False, name='Status Admin')
         staff = create_account('status-staff@example.com', name='Status Staff')
         created = self.create_lead(staff, email='status@example.com', phone='9845077777')
         uid = created.json()['data']['uid']

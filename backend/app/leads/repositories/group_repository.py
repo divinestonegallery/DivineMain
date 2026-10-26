@@ -1,9 +1,9 @@
 from django.db import IntegrityError, transaction
 
-from app.accounts.models import Customer
+from app.accounts.models import Employee
 from app.leads.constants import PERMISSION_CATALOGUE, SALES_GROUP_CODE, SALES_GROUP_NAME, SALES_PERMISSIONS
 from app.leads.models import StaffGroupMembership, StaffGroupPermission, StaffSecurityGroup
-from app.leads.serializers import LeadPersonSerializer
+from app.leads.serializers import employee_person
 
 
 def _permission_codes(group):
@@ -11,14 +11,14 @@ def _permission_codes(group):
 
 
 def _member_payload(membership):
-    person = LeadPersonSerializer(membership.customer).data
+    person = employee_person(membership.employee)
     person['membership_id'] = membership.id
-    person['is_active'] = membership.customer.is_active
+    person['is_active'] = membership.employee.is_active
     return person
 
 
 def _group_payload(group):
-    memberships = group.memberships.select_related('customer').order_by('customer__email')
+    memberships = group.memberships.select_related('employee__user').order_by('employee__user__email')
     return {
         'id': group.id,
         'code': group.code,
@@ -32,10 +32,10 @@ def _group_payload(group):
 
 class GroupRepository:
     @staticmethod
-    def permission_codes_for_customer(customer_id):
+    def permission_codes_for_employee(employee_id):
         return set(
             StaffGroupPermission.objects.filter(
-                group__memberships__customer_id=customer_id,
+                group__memberships__employee_id=employee_id,
             ).values_list('code', flat=True)
         )
 
@@ -57,32 +57,32 @@ class GroupRepository:
         return group
 
     @staticmethod
-    def ensure_sales_membership(customer_id):
+    def ensure_sales_membership(employee_id):
         group = GroupRepository.ensure_sales_group()
-        StaffGroupMembership.objects.get_or_create(customer_id=customer_id, group=group)
+        StaffGroupMembership.objects.get_or_create(employee_id=employee_id, group=group)
 
     @staticmethod
     def list_groups():
         groups = StaffSecurityGroup.objects.prefetch_related(
-            'permissions', 'memberships__customer',
+            'permissions', 'memberships__employee__user',
         ).order_by('name')
-        eligible = Customer.objects.filter(
+        eligible = Employee.objects.select_related('user').filter(
             is_active=True,
-            role__in=(Customer.Role.STAFF, Customer.Role.ADMIN),
-        ).order_by('name', 'email')
+            user__is_active=True,
+        ).order_by('user__name', 'user__email')
         return {
             'groups': [_group_payload(group) for group in groups],
             'catalogue': [
                 {'code': code, 'label': label}
                 for code, label in PERMISSION_CATALOGUE
             ],
-            'eligible_staff': LeadPersonSerializer(eligible, many=True).data,
+            'eligible_staff': [employee_person(employee) for employee in eligible],
         }
 
     @staticmethod
     def get_group(group_id):
         group = StaffSecurityGroup.objects.prefetch_related(
-            'permissions', 'memberships__customer',
+            'permissions', 'memberships__employee__user',
         ).filter(id=group_id).first()
         return _group_payload(group) if group else None
 
@@ -128,8 +128,8 @@ class GroupRepository:
 
     @staticmethod
     def list_memberships(group_id=None):
-        queryset = StaffGroupMembership.objects.select_related('customer', 'group').order_by(
-            'group__name', 'customer__email',
+        queryset = StaffGroupMembership.objects.select_related('employee__user', 'group').order_by(
+            'group__name', 'employee__user__email',
         )
         if group_id:
             queryset = queryset.filter(group_id=group_id)
@@ -138,29 +138,30 @@ class GroupRepository:
                 'id': membership.id,
                 'group_id': membership.group_id,
                 'group_name': membership.group.name,
-                'customer': {
-                    **LeadPersonSerializer(membership.customer).data,
-                    'is_active': membership.customer.is_active,
-                },
+            'employee': {
+                **employee_person(membership.employee),
+                'is_active': membership.employee.is_active,
+            },
             }
             for membership in queryset
         ]
 
     @staticmethod
-    def active_staff_or_admin(customer_id):
-        return Customer.objects.filter(
-            id=customer_id,
+    def matching_active_employee(employee_id, user_id):
+        return Employee.objects.filter(
+            id=employee_id,
+            user_id=user_id,
             is_active=True,
-            role__in=(Customer.Role.STAFF, Customer.Role.ADMIN),
-        ).exists()
+            user__is_active=True,
+        ).first()
 
     @staticmethod
-    def add_membership(customer_id, group_id):
+    def add_membership(employee_id, group_id):
         if not StaffSecurityGroup.objects.filter(id=group_id).exists():
             return 'missing-group'
-        if StaffGroupMembership.objects.filter(customer_id=customer_id, group_id=group_id).exists():
+        if StaffGroupMembership.objects.filter(employee_id=employee_id, group_id=group_id).exists():
             return 'duplicate'
-        membership = StaffGroupMembership.objects.create(customer_id=customer_id, group_id=group_id)
+        membership = StaffGroupMembership.objects.create(employee_id=employee_id, group_id=group_id)
         return membership.id
 
     @staticmethod

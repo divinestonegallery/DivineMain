@@ -30,7 +30,7 @@ class UploadSession(BaseModel):
     expires_at = models.DateTimeField(db_index=True)
     attached_at = models.DateTimeField(blank=True, null=True)
     created_by = models.ForeignKey(
-        "accounts.Customer",
+        "accounts.User",
         related_name="upload_sessions",
         on_delete=models.SET_NULL,
         blank=True,
@@ -54,7 +54,7 @@ class ProcessedWebhook(BaseModel):
 
 class StaffAuditLog(BaseModel):
     actor = models.ForeignKey(
-        "accounts.Customer",
+        "accounts.Employee",
         related_name="audit_logs",
         on_delete=models.SET_NULL,
         blank=True,
@@ -70,7 +70,7 @@ class StaffAuditLog(BaseModel):
 class APIErrorLog(BaseModel):
     request_id = models.UUIDField(db_index=True)
     actor = models.ForeignKey(
-        "accounts.Customer",
+        "accounts.Employee",
         related_name="api_errors",
         on_delete=models.SET_NULL,
         blank=True,

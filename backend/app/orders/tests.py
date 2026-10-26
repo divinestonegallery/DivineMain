@@ -7,7 +7,8 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from app.accounts.models import Customer
+from app.accounts.identity import ADMIN_AUDIENCE, CONSUMER_AUDIENCE
+from app.accounts.models import Employee, User
 from app.common.token_service import TokenService
 from app.orders.models import Order, Payment
 from app.products.models import Category, Diety, Material, Product
@@ -18,35 +19,33 @@ class OrderWorkflowTests(TestCase):
         self.client = APIClient()
 
         # Customer setup
-        self.customer = Customer.objects.create(
+        self.customer = User.objects.create(
             clerk_user_id='user_cust_123',
             email='customer@example.com',
             name='Test Customer',
-            role=Customer.Role.CUSTOMER,
             is_active=True,
         )
         token = TokenService.generate_access_token({
             'id': self.customer.id,
             'clerk_user_id': self.customer.clerk_user_id,
             'email': self.customer.email,
-            'role': self.customer.role,
-        })
+            'role': 'customer',
+        }, audience=CONSUMER_AUDIENCE)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
 
-        # Admin customer setup
-        self.admin_customer = Customer.objects.create(
+        admin_user = User.objects.create(email='admin@example.com', name='Admin User')
+        self.admin_customer = Employee.objects.create(
+            user=admin_user,
             clerk_user_id='user_admin_123',
-            email='admin@example.com',
-            name='Admin User',
-            role=Customer.Role.ADMIN,
+            role='admin',
             is_active=True,
         )
         self.admin_token = TokenService.generate_access_token({
-            'id': self.admin_customer.id,
+            'id': self.admin_customer.user_id,
             'clerk_user_id': self.admin_customer.clerk_user_id,
             'email': self.admin_customer.email,
             'role': self.admin_customer.role,
-        })
+        }, audience=ADMIN_AUDIENCE)
 
         # Product taxonomy and product setup
         self.category = Category.objects.create(name='Murti', slug='murti')

@@ -158,7 +158,8 @@ class StaffGroupUpdateValidator(StaffGroupWriteValidator):
 
 
 class MembershipValidator(serializers.Serializer):
-    customer_id = serializers.IntegerField(min_value=1)
+    employee_id = serializers.IntegerField(min_value=1)
+    user_id = serializers.IntegerField(min_value=1)
     group_id = serializers.IntegerField(min_value=1)
 
 

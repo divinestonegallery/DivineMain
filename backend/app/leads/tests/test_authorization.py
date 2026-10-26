@@ -2,7 +2,6 @@ from pathlib import Path
 
 from django.urls import URLPattern, URLResolver
 
-from app.accounts.models import Customer
 from app.leads.models import Lead, LeadActivity
 from app.leads.tests.helpers import LeadApiTestCase, create_account
 from divine_main.test_runner import DEFAULT_TEST_LABELS
@@ -40,7 +39,7 @@ class LeadAuthorizationTests(LeadApiTestCase):
         self.assertEqual(anonymous.status_code, 401)
         self.assertFalse(anonymous.json()['success'])
 
-        customer = create_account('buyer@example.com', role=Customer.Role.CUSTOMER, sales=False)
+        customer = create_account('buyer@example.com', role='customer', sales=False)
         self.as_user(customer)
         forbidden = self.client.get('/api/admin/leads')
         self.assertEqual(forbidden.status_code, 403)
@@ -96,7 +95,7 @@ class LeadAuthorizationTests(LeadApiTestCase):
         self.assertFalse(LeadActivity.objects.filter(new_value='Should not be saved').exists())
 
     def test_view_all_does_not_grant_assignment_or_group_management(self):
-        admin = create_account('admin@example.com', role=Customer.Role.ADMIN, sales=False, name='Gallery Admin')
+        admin = create_account('admin@example.com', role='admin', sales=False, name='Gallery Admin')
         wide = create_account('wide@example.com', sales=False, name='Wide Staff')
         owner = create_account('source@example.com', name='Source Staff')
         created = self.create_lead(owner, email='hidden@example.com', phone='9845022222')
@@ -110,7 +109,8 @@ class LeadAuthorizationTests(LeadApiTestCase):
         }, format='json')
         self.assertEqual(group.status_code, 201, group.content)
         membership = self.client.post('/api/admin/staff/memberships', {
-            'customer_id': wide.id,
+            'employee_id': wide.id,
+            'user_id': wide.user_id,
             'group_id': group.json()['data']['id'],
         }, format='json')
         self.assertEqual(membership.status_code, 201, membership.content)
@@ -132,8 +132,8 @@ class LeadAuthorizationTests(LeadApiTestCase):
         self.assertEqual(denied_group.status_code, 403)
 
     def test_customer_cannot_be_assigned(self):
-        admin = create_account('assign-admin@example.com', role=Customer.Role.ADMIN, sales=False)
-        buyer = create_account('buyer-assign@example.com', role=Customer.Role.CUSTOMER, sales=False)
+        admin = create_account('assign-admin@example.com', role='admin', sales=False)
+        buyer = create_account('buyer-assign@example.com', role='customer', sales=False)
         created = self.create_lead(admin, email='assign@example.com', phone='9845033333', assigned_to=None)
         self.assertEqual(created.status_code, 201, created.content)
         uid = created.json()['data']['uid']

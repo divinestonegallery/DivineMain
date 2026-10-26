@@ -4,6 +4,8 @@ import jwt
 from django.conf import settings
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
 
+from app.accounts.identity import CONSUMER_AUDIENCE
+
 logger = logging.getLogger(__name__)
 
 ACCESS_TOKEN_LIFETIME_SECONDS = getattr(settings, 'AUTH_ACCESS_TOKEN_LIFETIME', 86400)  # 1 day
@@ -20,13 +22,10 @@ class TokenService:
         return getattr(settings, 'DJANGO_SECRET_KEY', None) or getattr(settings, 'SECRET_KEY', 'default-key')
 
     @classmethod
-    def generate_token_pair(cls, customer_dict):
-        """
-        Generate both access and refresh tokens for an authenticated customer.
-        customer_dict is expected to be a dictionary with id, clerk_user_id, email, role, etc.
-        """
-        access_token = cls.generate_access_token(customer_dict)
-        refresh_token = cls.generate_refresh_token(customer_dict)
+    def generate_token_pair(cls, customer_dict, audience=CONSUMER_AUDIENCE):
+        """Issue an access token and a refresh token for one audience."""
+        access_token = cls.generate_access_token(customer_dict, audience=audience)
+        refresh_token = cls.generate_refresh_token(customer_dict, audience=audience)
         return {
             'access_token': access_token,
             'refresh_token': refresh_token,
@@ -35,7 +34,7 @@ class TokenService:
         }
 
     @classmethod
-    def generate_access_token(cls, customer_dict):
+    def generate_access_token(cls, customer_dict, audience=CONSUMER_AUDIENCE):
         now = datetime.datetime.now(datetime.timezone.utc)
         payload = {
             'sub': customer_dict.get('clerk_user_id'),
@@ -43,6 +42,7 @@ class TokenService:
             'email': customer_dict.get('email'),
             'name': customer_dict.get('name', ''),
             'role': customer_dict.get('role', 'customer'),
+            'aud': audience,
             'token_type': 'access',
             'iss': TOKEN_ISSUER,
             'iat': int(now.timestamp()),
@@ -51,12 +51,13 @@ class TokenService:
         return jwt.encode(payload, cls._get_secret_key(), algorithm='HS256')
 
     @classmethod
-    def generate_refresh_token(cls, customer_dict):
+    def generate_refresh_token(cls, customer_dict, audience=CONSUMER_AUDIENCE):
         now = datetime.datetime.now(datetime.timezone.utc)
         payload = {
             'sub': customer_dict.get('clerk_user_id'),
             'customer_id': customer_dict.get('id'),
             'email': customer_dict.get('email'),
+            'aud': audience,
             'token_type': 'refresh',
             'iss': TOKEN_ISSUER,
             'iat': int(now.timestamp()),
@@ -87,7 +88,7 @@ class TokenService:
                 cls._get_secret_key(),
                 algorithms=['HS256'],
                 issuer=TOKEN_ISSUER,
-                options={'verify_exp': True},
+                options={'verify_exp': True, 'verify_aud': False},
             )
             token_type = payload.get('token_type')
             if token_type != expected_type:

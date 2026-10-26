@@ -1,6 +1,6 @@
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import generics, serializers
-from app.common.authentication import ApplicationAuthentication
+from app.common.authentication import AdminAuthentication, ApplicationAuthentication, ConsumerAuthentication
 from app.common.permissions import IsAdmin, IsStaffOrAdmin
 
 
@@ -13,8 +13,8 @@ class BaseAPIView(generics.GenericAPIView):
     serializer_class = EmptySerializer
 
 class AuthenticatedAPIView(BaseAPIView):
-    """API View that requires user authentication"""
-    authentication_classes = [ApplicationAuthentication]
+    """API View that requires a consumer user."""
+    authentication_classes = [ConsumerAuthentication]
     permission_classes = [IsAuthenticated]
 
 class OpenAPIView(BaseAPIView):
@@ -26,18 +26,18 @@ class OpenAPIView(BaseAPIView):
 class OptionalAuthenticatedAPIView(BaseAPIView):
     """Public endpoint that resolves a valid authenticated user when a token is supplied."""
 
-    authentication_classes = [ApplicationAuthentication]
+    authentication_classes = [ConsumerAuthentication]
     permission_classes = [AllowAny]
 
 class AdminAPIView(BaseAPIView):
     """API View restricted to active staff and administrators."""
 
-    authentication_classes = [ApplicationAuthentication]
+    authentication_classes = [AdminAuthentication]
     permission_classes = [IsAuthenticated, IsStaffOrAdmin]
 
 
 class OwnerAPIView(BaseAPIView):
     """API View restricted to active administrators."""
 
-    authentication_classes = [ApplicationAuthentication]
+    authentication_classes = [AdminAuthentication]
     permission_classes = [IsAuthenticated, IsAdmin]

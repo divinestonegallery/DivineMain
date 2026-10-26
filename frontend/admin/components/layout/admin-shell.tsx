@@ -21,6 +21,7 @@ import {
   Star,
   Store,
   Tags,
+  Users,
   X,
 } from "lucide-react";
 import { storefrontHref } from "./storefront";
@@ -50,6 +51,7 @@ const groups: Array<{ label: string; items: NavItem[] }> = [
       { label: "Custom Moorti", href: "/custom-moorti", icon: Sparkles, description: "Track custom moorti enquiries" },
       { label: "Leads", href: "/leads", icon: ClipboardList, description: "Assign and follow up on enquiries" },
       { label: "Staff", href: "/staff", icon: ShieldCheck, description: "Manage staff and administrators" },
+      { label: "Users", href: "/users", icon: Users, description: "Find customers and create employee records" },
     ],
   },
 ];

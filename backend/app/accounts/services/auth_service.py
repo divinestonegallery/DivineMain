@@ -4,6 +4,10 @@ import jwt
 from django.core.cache import cache
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
 
+from django.conf import settings
+
+from app.accounts.identity import ADMIN_AUDIENCE, CONSUMER_AUDIENCE
+from app.accounts.models import Employee
 from app.accounts.repositories.customer_repository import CustomerRepository
 from app.accounts.services.clerk_client import ClerkClient
 from app.common.token_service import TokenService
@@ -16,12 +20,14 @@ from app.leads.services.lead_service import LeadService
 
 logger = logging.getLogger(__name__)
 
+CUSTOMER_AUTH_ONLY = 'This account action is only available on the customer application.'
+
 
 class AuthService:
     """Service handling all authentication workflows delegating to Clerk and issuing JWT tokens."""
 
     @staticmethod
-    def _issue_session(customer_dict, event):
+    def _issue_session(customer_dict, event, audience=CONSUMER_AUDIENCE):
         """Issue tokens for a session that has just been established.
 
         Every flow that hands a customer their first working token pair goes
@@ -38,10 +44,19 @@ class AuthService:
                 logger.warning('Organic lead skipped after a %s session: %s', event, error)
         except Exception:
             logger.exception('Organic lead handling failed after a %s session', event)
-        return TokenService.generate_token_pair(customer_dict)
+        return TokenService.generate_token_pair(customer_dict, audience=audience)
+
+    @classmethod
+    def _reject_unless_consumer(cls):
+        if settings.DEPLOYMENT_MODE != 'consumer':
+            return CUSTOMER_AUTH_ONLY
+        return None
 
     @classmethod
     def signup(cls, data):
+        rejected = cls._reject_unless_consumer()
+        if rejected:
+            return rejected, None
         email = data['email']
         password = data['password']
         name = data.get('name', '')
@@ -117,6 +132,9 @@ class AuthService:
 
     @classmethod
     def verify_signup(cls, data):
+        rejected = cls._reject_unless_consumer()
+        if rejected:
+            return rejected, None
         email = data['email']
         code = data['code']
         name = data.get('name', '')
@@ -193,7 +211,9 @@ class AuthService:
         phone_numbers = clerk_user.get('phone_numbers', [])
         phone = phone_numbers[0].get('phone_number') if phone_numbers else None
 
-        # 4. Upsert/sync local Customer record
+        if settings.DEPLOYMENT_MODE == 'admin':
+            return cls._issue_admin_login(clerk_user_id, email, full_name)
+
         sync_result = CustomerRepository.sync_customer(
             clerk_id=clerk_user_id,
             email=email,
@@ -205,16 +225,41 @@ class AuthService:
         if not customer_dict.get('is_active', True):
             return 'User account is inactive.', None
 
-        # 5. Generate token pair
         tokens = cls._issue_session(customer_dict, SESSION_EVENT_LOGIN)
-
         return None, {
             'user': customer_dict,
             **tokens,
         }
 
     @classmethod
+    def _issue_admin_login(cls, clerk_user_id, email, full_name):
+        """Admin login resolves an existing employee. It does not create one."""
+        employee = CustomerRepository.get_active_employee_by_clerk_id(clerk_user_id)
+        if employee is None:
+            return 'Employee access is required.', None
+        employee_dict = {
+            'id': employee.user_id,
+            'clerk_user_id': employee.clerk_user_id,
+            'email': employee.email,
+            'name': employee.name or full_name or '',
+            'phone': employee.phone,
+            'role': employee.role,
+            'is_active': employee.is_active,
+        }
+        tokens = TokenService.generate_token_pair(employee_dict, audience=ADMIN_AUDIENCE)
+        return None, {
+            'user': {
+                **employee_dict,
+                'employee_id': employee.id,
+            },
+            **tokens,
+        }
+
+    @classmethod
     def forgot_password(cls, data):
+        rejected = cls._reject_unless_consumer()
+        if rejected:
+            return rejected, None
         email = data['email']
 
         # Look up customer in Clerk and locally
@@ -270,6 +315,9 @@ class AuthService:
 
     @classmethod
     def reset_password(cls, data):
+        rejected = cls._reject_unless_consumer()
+        if rejected:
+            return rejected, None
         token = data.get('token')
         code = data.get('code')
         email = data.get('email')
@@ -342,25 +390,37 @@ class AuthService:
         except AuthenticationFailed as exc:
             return str(exc), None
 
-        customer_id = payload.get('customer_id')
+        audience = payload.get('aud') or CONSUMER_AUDIENCE
         clerk_id = payload.get('sub')
+        if settings.DEPLOYMENT_MODE == 'admin' and audience != ADMIN_AUDIENCE:
+            return 'Employee access is required.', None
+        if settings.DEPLOYMENT_MODE != 'admin' and audience == ADMIN_AUDIENCE:
+            return 'Employee access is required.', None
+        if audience == ADMIN_AUDIENCE:
+            employee = CustomerRepository.get_active_employee_by_clerk_id(clerk_id)
+            if employee is None:
+                return 'Employee access is required.', None
+            employee_dict = {
+                'id': employee.user_id,
+                'clerk_user_id': employee.clerk_user_id,
+                'email': employee.email,
+                'name': employee.name or '',
+                'role': employee.role,
+                'is_active': True,
+            }
+            return None, TokenService.generate_token_pair(employee_dict, audience=ADMIN_AUDIENCE)
 
-        # 2. Fetch customer
+        customer_id = payload.get('customer_id')
         customer_dict = None
         if customer_id:
             customer_dict = CustomerRepository.get_customer_dict_by_id(customer_id)
         if not customer_dict and clerk_id:
             customer_dict = CustomerRepository.get_customer_dict_by_clerk_id(clerk_id)
-
         if not customer_dict:
             return 'User account not found.', None
-
         if not customer_dict.get('is_active', True):
             return 'User account is inactive.', None
-
-        # 3. Issue fresh tokens
-        tokens = TokenService.generate_token_pair(customer_dict)
-        return None, tokens
+        return None, TokenService.generate_token_pair(customer_dict, audience=CONSUMER_AUDIENCE)
 
     @classmethod
     def get_current_user_profile(cls, customer_id):

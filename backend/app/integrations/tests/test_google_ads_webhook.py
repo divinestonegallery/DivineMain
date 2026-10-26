@@ -1,9 +1,7 @@
 import json
-import os
 import threading
 import uuid
 from pathlib import Path
-from unittest import skipUnless
 from unittest.mock import patch
 
 from django.db import connection, connections
@@ -38,19 +36,14 @@ def flatten_routes(patterns, prefix=''):
 
 
 def assert_isolated_test_database(test):
-    """Reject anything other than SQLite memory or a local PostgreSQL test database."""
+    """Reject anything other than the local disposable PostgreSQL test database."""
     name = str(connection.settings_dict.get('NAME') or '')
     host = str(connection.settings_dict.get('HOST') or '')
-    if connection.vendor == 'sqlite':
-        test.assertIn('memory', name)
-        return
-    if connection.vendor == 'postgresql':
-        test.assertIn(host, {'127.0.0.1', 'localhost'})
-        test.assertTrue(name.startswith('test_'))
-        test.assertNotIn('neon', name.lower())
-        test.assertNotIn('neon', host.lower())
-        return
-    test.fail('Refusing database vendor %s' % connection.vendor)
+    test.assertEqual(connection.vendor, 'postgresql')
+    test.assertIn(host, {'127.0.0.1', 'localhost'})
+    test.assertTrue(name.startswith('test_divine_pgtest'))
+    test.assertNotIn('neon', name.lower())
+    test.assertNotIn('neon', host.lower())
 
 
 def lead_payload(**overrides):
@@ -225,9 +218,6 @@ class GoogleAdsWebhookMatrixTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.run_id = f'google-ads-e2e-{uuid.uuid4().hex[:10]}'
-        # SQLite stays in a private memory database. PostgreSQL is accepted only
-        # when Django is pointed at a local database whose name Django created
-        # for this test run.
         assert_isolated_test_database(self)
         self.assertEqual(self._scoped_leads().count(), 0)
 
@@ -531,17 +521,12 @@ class GoogleAdsWebhookMatrixTests(TestCase):
         self.assertNotIn('app.leads', consumer_text)
 
 
-@skipUnless(
-    os.environ.get('DIVINE_PGTEST_REQUIRED') == '1',
-    'Disposable PostgreSQL target check runs only for the local PostgreSQL validation command.',
-)
 class DisposablePostgreSQLTargetTests(TestCase):
     def test_vendor_host_and_test_database_name(self):
         self.assertEqual(connection.vendor, 'postgresql')
         assert_isolated_test_database(self)
 
 
-@skipUnless(connection.vendor == 'postgresql', 'Concurrent delivery is verified on PostgreSQL only.')
 @override_settings(
     ROOT_URLCONF='app.leads.tests.urls',
     GOOGLE_ADS_LEAD_WEBHOOK_KEY=KEY,

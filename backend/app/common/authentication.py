@@ -6,6 +6,10 @@ from django.conf import settings
 from jwt import PyJWKClient
 from rest_framework import authentication, exceptions
 
+from django.conf import settings
+
+from app.accounts.identity import ADMIN_AUDIENCE, CONSUMER_AUDIENCE
+from app.accounts.models import Employee, User
 from app.accounts.repositories.customer_repository import CustomerRepository
 
 logger = logging.getLogger(__name__)
@@ -28,19 +32,8 @@ class ClerkAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed("Invalid Authorization header.")
         try:
             payload = self._decode_token(token)
-            clerk_user_id = payload.get("sub")
-            if not clerk_user_id:
-                raise exceptions.AuthenticationFailed("Token contains no valid subject.")
-
-            customer = CustomerRepository.get_or_create_authenticated_customer(
-                clerk_id=clerk_user_id,
-                email=payload.get("email"),
-                name=payload.get("name", ""),
-            )
-            if not customer.is_active:
-                raise exceptions.AuthenticationFailed("User account is inactive.")
-
-            return customer, token
+            principal = self._principal(payload)
+            return principal, token
         except exceptions.AuthenticationFailed:
             raise
         except ValueError as exc:
@@ -66,7 +59,11 @@ class ClerkAuthentication(authentication.BaseAuthentication):
 
         if alg == "HS256":
             from app.common.token_service import TokenService
-            return TokenService.decode_hs256_token(token, expected_type="access")
+            payload = TokenService.decode_hs256_token(token, expected_type="access")
+            audience = payload.get("aud")
+            if audience not in {CONSUMER_AUDIENCE, ADMIN_AUDIENCE}:
+                raise exceptions.AuthenticationFailed("Token audience is not accepted.")
+            return payload
 
         if not settings.CLERK_JWT_ISSUER:
             raise exceptions.AuthenticationFailed("Clerk issuer not configured.")
@@ -94,6 +91,33 @@ class ClerkAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed("Token origin is not authorized.")
         return payload
 
+    def _principal(self, payload):
+        clerk_user_id = payload.get("sub")
+        if not clerk_user_id:
+            raise exceptions.AuthenticationFailed("Token contains no valid subject.")
+        audience = payload.get("aud")
+        if settings.DEPLOYMENT_MODE == "admin" and audience == CONSUMER_AUDIENCE:
+            raise exceptions.AuthenticationFailed("Token audience is not accepted.")
+        if settings.DEPLOYMENT_MODE != "admin" and audience == ADMIN_AUDIENCE:
+            raise exceptions.AuthenticationFailed("Token audience is not accepted.")
+        if audience == ADMIN_AUDIENCE or (
+            audience is None and settings.DEPLOYMENT_MODE == "admin"
+        ):
+            employee = CustomerRepository.get_active_employee_by_clerk_id(clerk_user_id)
+            if employee is None:
+                raise exceptions.AuthenticationFailed("Employee access is required.")
+            return employee
+        if audience not in {None, CONSUMER_AUDIENCE}:
+            raise exceptions.AuthenticationFailed("Token audience is not accepted.")
+        user = CustomerRepository.get_or_create_authenticated_customer(
+            clerk_id=clerk_user_id,
+            email=payload.get("email"),
+            name=payload.get("name", ""),
+        )
+        if not isinstance(user, User) or not user.is_active:
+            raise exceptions.AuthenticationFailed("User account is inactive.")
+        return user
+
     @staticmethod
     def _get_verification_key(token):
         if settings.CLERK_JWT_KEY:
@@ -115,6 +139,33 @@ def _get_jwks_client(jwks_url, timeout):
         lifespan=300,
         timeout=timeout,
     )
+
+
+class ConsumerAuthentication(ClerkAuthentication):
+    """Consumer sessions resolve to a User and never to an Employee."""
+
+    def _principal(self, payload):
+        if payload.get("aud") == ADMIN_AUDIENCE:
+            raise exceptions.AuthenticationFailed("Token audience is not accepted.")
+        clerk_user_id = payload.get("sub")
+        if clerk_user_id and Employee.objects.filter(clerk_user_id=clerk_user_id).exists():
+            raise exceptions.AuthenticationFailed("Token audience is not accepted.")
+        return super()._principal(payload)
+
+
+class AdminAuthentication(ClerkAuthentication):
+    """Admin sessions resolve to an active Employee. A missing row does not grant access."""
+
+    def _principal(self, payload):
+        if payload.get("aud") == CONSUMER_AUDIENCE:
+            raise exceptions.AuthenticationFailed("Token audience is not accepted.")
+        clerk_user_id = payload.get("sub")
+        if not clerk_user_id:
+            raise exceptions.AuthenticationFailed("Token contains no valid subject.")
+        employee = CustomerRepository.get_active_employee_by_clerk_id(clerk_user_id)
+        if employee is None:
+            raise exceptions.AuthenticationFailed("Employee access is required.")
+        return employee
 
 
 # Framework base views depend on this name so they do not import Clerk.

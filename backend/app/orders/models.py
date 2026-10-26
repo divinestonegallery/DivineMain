@@ -30,7 +30,11 @@ class Order(BaseModel):
         'products.Product', on_delete=models.PROTECT, related_name='orders',
     )
     customer = models.ForeignKey(
-        'accounts.Customer', on_delete=models.PROTECT, related_name='orders',
+        'accounts.User',
+        on_delete=models.PROTECT,
+        related_name='orders',
+        blank=True,
+        null=True,
     )
     quantity = models.PositiveIntegerField(default=1)
 

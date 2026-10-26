@@ -3,7 +3,6 @@
 import threading
 import uuid
 from datetime import timedelta
-from unittest import skipUnless
 from unittest.mock import patch
 
 from django.db import connection, connections
@@ -11,8 +10,8 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from app.accounts.models import Customer
-from app.accounts.serializers import CustomerSerializer
+from app.accounts.models import Employee, User
+from app.accounts.serializers import UserSerializer
 from app.accounts.services.auth_service import AuthService
 from app.leads.constants import (
     LOGIN_RECENT_LEAD_DAYS,
@@ -32,13 +31,12 @@ PHONE = '+919845011111'
 CLERK_ID = 'user_session_lead'
 
 
-def make_customer(email=EMAIL, phone=PHONE, role=Customer.Role.CUSTOMER, name='Asha Rao'):
-    return Customer.objects.create(
+def make_customer(email=EMAIL, phone=PHONE, role='customer', name='Asha Rao'):
+    return User.objects.create(
         clerk_user_id=f'clerk-{email}-{role}',
         email=email,
         name=name,
         phone=phone,
-        role=role,
     )
 
 
@@ -46,7 +44,7 @@ class SessionLeadDecisionTests(TestCase):
     """The decision order is active lead, then the 30-day window, then creation."""
 
     def setUp(self):
-        self.customer = CustomerSerializer(make_customer()).data
+        self.customer = UserSerializer(make_customer()).data
 
     def record(self, event=SESSION_EVENT_LOGIN):
         return LeadService.record_customer_session(self.customer, event)
@@ -144,7 +142,7 @@ class SessionLeadDecisionTests(TestCase):
         self.assertEqual(LeadNote.objects.count(), 1)
 
     def test_staff_and_admin_sessions_never_touch_leads(self):
-        for role in (Customer.Role.STAFF, Customer.Role.ADMIN):
+        for role in ('staff', 'admin'):
             with self.subTest(role=role):
                 Lead.objects.all().delete()
                 existing = seed_lead(email=EMAIL, phone=PHONE, status='contacted')
@@ -158,7 +156,7 @@ class SessionLeadDecisionTests(TestCase):
                 self.assertEqual(LeadNote.objects.filter(lead=existing).count(), 0)
 
     def test_a_customer_without_contact_details_is_skipped(self):
-        customer = CustomerSerializer(make_customer(email='', phone='')).data
+        customer = UserSerializer(make_customer(email='', phone='')).data
         error, result = LeadService.record_customer_session(customer, SESSION_EVENT_LOGIN)
         self.assertIsNone(error)
         self.assertEqual(result['outcome'], 'skipped_no_contact_details')
@@ -176,7 +174,7 @@ class SessionLeadDecisionTests(TestCase):
 
     def test_an_unnormalized_account_phone_still_matches_the_stored_lead(self):
         existing = seed_lead(phone=PHONE, status='contacted')
-        customer = CustomerSerializer(make_customer(email='', phone=' +91 98450 11111 ')).data
+        customer = UserSerializer(make_customer(email='', phone=' +91 98450 11111 ')).data
         error, result = LeadService.record_customer_session(customer, SESSION_EVENT_LOGIN)
         self.assertIsNone(error)
         self.assertEqual(result['outcome'], 'note_added')
@@ -238,7 +236,8 @@ class SessionLeadAuthenticationCoverageTests(TestCase):
         lead = Lead.objects.get()
         self.assertEqual(lead.touchpoint, 'login')
         self.assertEqual(lead.email, EMAIL)
-        self.assertEqual(lead.created_by_id, Customer.objects.get(clerk_user_id=CLERK_ID).id)
+        self.assertEqual(lead.created_by_id, User.objects.get(clerk_user_id=CLERK_ID).id)
+        self.assertEqual(lead.user_id, lead.created_by_id)
 
     def test_a_second_login_reuses_the_lead_and_adds_a_note(self):
         self.assertEqual(self.login().status_code, 200)
@@ -331,7 +330,7 @@ class SessionLeadAuthenticationCoverageTests(TestCase):
 
     def test_profile_read_and_update_do_not_touch_leads(self):
         self.assertEqual(self.login().status_code, 200)
-        customer = Customer.objects.get(clerk_user_id=CLERK_ID)
+        customer = User.objects.get(clerk_user_id=CLERK_ID)
         Lead.objects.all().delete()
         self.client.force_authenticate(user=customer)
         self.assertEqual(self.client.get('/api/v1/auth/profile').status_code, 200)
@@ -339,13 +338,10 @@ class SessionLeadAuthenticationCoverageTests(TestCase):
         self.assertEqual(Lead.objects.count(), 0)
         self.assertEqual(LeadNote.objects.count(), 0)
 
+    @override_settings(DEPLOYMENT_MODE='admin')
     def test_staff_login_creates_no_customer_lead(self):
-        Customer.objects.create(
-            clerk_user_id=CLERK_ID,
-            email=EMAIL,
-            name='Staff Member',
-            role=Customer.Role.STAFF,
-        )
+        user = User.objects.create(email=EMAIL, name='Staff Member')
+        Employee.objects.create(user=user, clerk_user_id=CLERK_ID, role='staff', is_active=True)
         response = self.login()
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(Lead.objects.count(), 0)
@@ -397,7 +393,7 @@ class SessionLeadWindowBoundaryTests(TestCase):
     """
 
     def setUp(self):
-        self.customer = CustomerSerializer(make_customer()).data
+        self.customer = UserSerializer(make_customer()).data
         self.frozen = timezone.now()
         seed_lead(email=EMAIL, phone=PHONE, status='lost')
 
@@ -419,16 +415,16 @@ class SessionLeadWindowBoundaryTests(TestCase):
         self.assertEqual(Lead.objects.filter(touchpoint='login').count(), 1)
 
 
-@skipUnless(connection.vendor == 'postgresql', 'Concurrent first-session leads are verified on PostgreSQL only.')
 class SessionLeadPostgresConcurrencyTests(TransactionTestCase):
     def test_overlapping_first_sessions_create_one_lead_and_one_note(self):
         name = str(connection.settings_dict.get('NAME') or '')
         host = str(connection.settings_dict.get('HOST') or '')
+        self.assertEqual(connection.vendor, 'postgresql')
         self.assertIn(host, {'127.0.0.1', 'localhost'})
-        self.assertTrue(name.startswith('test_'))
+        self.assertTrue(name.startswith('test_divine_pgtest'))
         self.assertNotIn('neon', name.lower())
         email = f'race-{uuid.uuid4().hex[:10]}@example.com'
-        customer = CustomerSerializer(make_customer(email=email, phone='+919845033333')).data
+        customer = UserSerializer(make_customer(email=email, phone='+919845033333')).data
         outcomes = []
         errors = []
 

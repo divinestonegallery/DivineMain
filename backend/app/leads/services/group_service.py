@@ -55,19 +55,25 @@ class GroupService:
         return None, {'items': GroupRepository.list_memberships(group_id)}
 
     @staticmethod
-    def add_membership(actor, customer_id, group_id):
+    def add_membership(actor, employee_id, user_id, group_id):
         error = GroupService._guard(actor)
         if error:
             return error, None
-        if not GroupRepository.active_staff_or_admin(customer_id):
+        employee = GroupRepository.matching_active_employee(employee_id, user_id)
+        if employee is None:
             return MEMBER_REJECTED, None
         with transaction.atomic():
-            result = GroupRepository.add_membership(customer_id, group_id)
+            result = GroupRepository.add_membership(employee.id, group_id)
         if result == 'missing-group':
             return GROUP_NOT_FOUND, None
         if result == 'duplicate':
             return 'This person is already in that group.', None
-        return None, {'id': result, 'customer_id': customer_id, 'group_id': group_id}
+        return None, {
+            'id': result,
+            'employee_id': employee.id,
+            'user_id': employee.user_id,
+            'group_id': group_id,
+        }
 
     @staticmethod
     def remove_membership(actor, membership_id):

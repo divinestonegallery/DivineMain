@@ -4,7 +4,6 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from app.accounts.models import Customer
 from app.contactus.models import ContactMessage, CustomizeRequest
 from app.contactus.services.admin_service import ContactUsAdminService
 from app.leads.models import Lead, LeadActivity, LeadNote
@@ -140,7 +139,7 @@ class WebsiteIntakeTests(TestCase):
         self.assertEqual(request_row.lead_id, lead.id)
 
     def test_custom_moorti_request_links_a_lead_without_assigning_it(self):
-        customer = create_account('buyer@example.com', role=Customer.Role.CUSTOMER, sales=False, name='Buyer')
+        customer = create_account('buyer@example.com', role='customer', sales=False, name='Buyer')
         self.client.force_authenticate(user=customer)
         response = self.client.post('/api/v1/contact/customize', {
             'name': 'Buyer',
@@ -174,7 +173,7 @@ class WebsiteIntakeTests(TestCase):
         self.post_contact(submission_id=str(uuid.uuid4()))
         hidden = self.client.get('/api/admin/leads')
         self.assertEqual(hidden.status_code, 404)
-        admin = create_account('gallery-admin@example.com', role=Customer.Role.ADMIN, sales=False)
+        admin = create_account('gallery-admin@example.com', role='admin', sales=False)
         with override_settings(ROOT_URLCONF=ADMIN_URLS):
             self.client.force_authenticate(user=admin)
             listing = self.client.get('/api/admin/leads?source=website&assignment=unassigned')

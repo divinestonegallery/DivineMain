@@ -2,7 +2,7 @@ import uuid
 
 from django.db import models
 
-from app.accounts.models import Customer
+from app.accounts.models import Employee, User
 from app.common.models import BaseModel
 from app.leads.constants import (
     LEAD_SOURCES,
@@ -50,8 +50,8 @@ class StaffGroupPermission(BaseModel):
 
 
 class StaffGroupMembership(BaseModel):
-    customer = models.ForeignKey(
-        Customer,
+    employee = models.ForeignKey(
+        Employee,
         related_name='staff_group_memberships',
         on_delete=models.CASCADE,
     )
@@ -64,7 +64,7 @@ class StaffGroupMembership(BaseModel):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=('customer', 'group'),
+                fields=('employee', 'group'),
                 name='unique_staff_group_membership',
             ),
         ]
@@ -87,15 +87,29 @@ class Lead(BaseModel):
     landing_path = models.CharField(max_length=200, blank=True, default='')
     external_id = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(max_length=20, choices=LEAD_STATUSES, default=LEAD_STATUS_NEW)
+    user = models.ForeignKey(
+        User,
+        related_name='owned_leads',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
     assigned_to = models.ForeignKey(
-        Customer,
+        Employee,
         related_name='assigned_leads',
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
     )
     created_by = models.ForeignKey(
-        Customer,
+        User,
+        related_name='created_leads',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
+    created_by_employee = models.ForeignKey(
+        Employee,
         related_name='created_leads',
         on_delete=models.SET_NULL,
         blank=True,
@@ -142,7 +156,7 @@ class Lead(BaseModel):
 class LeadNote(BaseModel):
     lead = models.ForeignKey(Lead, related_name='notes', on_delete=models.CASCADE)
     author = models.ForeignKey(
-        Customer,
+        Employee,
         related_name='lead_notes',
         on_delete=models.SET_NULL,
         blank=True,
@@ -157,7 +171,7 @@ class LeadNote(BaseModel):
 class LeadActivity(BaseModel):
     lead = models.ForeignKey(Lead, related_name='activities', on_delete=models.CASCADE)
     actor = models.ForeignKey(
-        Customer,
+        Employee,
         related_name='lead_activities',
         on_delete=models.SET_NULL,
         blank=True,
@@ -174,7 +188,7 @@ class LeadActivity(BaseModel):
 
 class LeadNotification(BaseModel):
     recipient = models.ForeignKey(
-        Customer,
+        Employee,
         related_name='lead_notifications',
         on_delete=models.CASCADE,
     )
