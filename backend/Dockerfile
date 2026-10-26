@@ -15,7 +15,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN python manage.py collectstatic --noinput \
+# collectstatic only parses settings. This URL is not stored in the image and
+# is never used as the application database. Runtime still requires DATABASE_URL.
+RUN DATABASE_URL=postgres://collectstatic:unused@127.0.0.1:5432/collectstatic \
+    python manage.py collectstatic --noinput --skip-checks \
     && addgroup --system django \
     && adduser --system --ingroup django django \
     && chown -R django:django /app
