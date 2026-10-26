@@ -1,5 +1,4 @@
 from app.products.enums import ProductStatus
-import gzip
 import io
 import tempfile
 from datetime import timedelta
@@ -7,6 +6,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from django.core import checks
+from django.core.management.base import CommandError
 from django.core.cache import cache
 from django.db import connection
 from django.test import TestCase, override_settings
@@ -15,7 +15,7 @@ from PIL import Image
 from rest_framework.settings import api_settings
 from rest_framework.test import APIClient
 
-from app.accounts.models import Customer
+from app.accounts.models import Employee, User
 from app.accounts.services.webhook_service import AccountWebhookService
 from app.applicationmodule.constants import HOME_CACHE_KEY
 from app.common.checks import production_configuration_check
@@ -35,20 +35,18 @@ class MVPTestCase(TestCase):
     def setUp(self):
         cache.clear()
         self.client = APIClient()
-        self.admin = Customer.objects.create(
-            clerk_user_id='admin_1',
-            email='admin@example.com',
-            role=Customer.Role.ADMIN,
+        admin_user = User.objects.create(email='admin@example.com', name='Admin')
+        self.admin = Employee.objects.create(
+            user=admin_user, clerk_user_id='admin_1', role='admin', is_active=True,
         )
-        self.staff = Customer.objects.create(
-            clerk_user_id='staff_1',
-            email='staff@example.com',
-            role=Customer.Role.STAFF,
+        staff_user = User.objects.create(email='staff@example.com', name='Staff')
+        self.staff = Employee.objects.create(
+            user=staff_user, clerk_user_id='staff_1', role='staff', is_active=True,
         )
-        self.customer = Customer.objects.create(
+        self.customer = User.objects.create(
             clerk_user_id='customer_1',
             email='customer@example.com',
-            role=Customer.Role.CUSTOMER,
+            name='Customer',
         )
         self.category = Category.objects.create(name='Deity Idol')
         self.material = Material.objects.create(name='White Marble')
@@ -81,7 +79,7 @@ class MVPTestCase(TestCase):
             expected_content_type='image/jpeg',
             expected_size=1000,
             expires_at=timezone.now() + timedelta(minutes=30),
-            created_by=self.admin,
+            created_by=self.admin.user,
         )
         with (
             patch.object(UploadService, 'inspect_image', return_value=(None, {
@@ -199,7 +197,7 @@ class MVPTestCase(TestCase):
                 )
         self.assertEqual(promoted.status_code, 200)
         self.staff.refresh_from_db()
-        self.assertEqual(self.staff.role, Customer.Role.ADMIN)
+        self.assertEqual(self.staff.role, 'admin')
         self.assertEqual(role_request.call_args.args[1], {'role': 'admin'})
 
         response = self.client.patch(
@@ -209,7 +207,8 @@ class MVPTestCase(TestCase):
         self.admin.refresh_from_db()
         self.assertTrue(self.admin.is_active)
 
-    def test_clerk_sync_is_idempotent_and_honors_signed_role_metadata(self):
+    @override_settings(DEPLOYMENT_MODE='admin')
+    def test_clerk_sync_is_idempotent_and_does_not_create_an_employee(self):
         payload = {
             'type': 'user.created',
             'data': {
@@ -225,8 +224,10 @@ class MVPTestCase(TestCase):
         second = AccountWebhookService.process_clerk_webhook(payload, 'evt_1')
         self.assertIsNone(first[0])
         self.assertTrue(second[1]['duplicate'])
-        self.assertEqual(Customer.objects.filter(clerk_user_id='user_webhook').count(), 1)
-        self.assertEqual(Customer.objects.get(clerk_user_id='user_webhook').role, Customer.Role.STAFF)
+        self.assertFalse(Employee.objects.filter(clerk_user_id='user_webhook').exists())
+        user = User.objects.get(email='newstaff@example.com')
+        self.assertIsNone(user.clerk_user_id)
+        self.assertIsNone(first[1]['employee_id'])
 
     def test_review_moderation_duplicate_protection_and_public_visibility(self):
         product = Product.objects.create(
@@ -348,7 +349,7 @@ class MVPTestCase(TestCase):
         self.assertIn('deities', search_res.json()['data'])
 
     def test_customer_upsert_handles_email_conflict(self):
-        Customer.objects.create(
+        User.objects.create(
             clerk_user_id='user_original',
             email='recreated@example.com',
             name='Original Name',
@@ -365,7 +366,7 @@ class MVPTestCase(TestCase):
         }
         error, result = AccountWebhookService.process_clerk_webhook(payload, 'evt_recreated')
         self.assertIsNone(error)
-        customer = Customer.objects.get(email='recreated@example.com')
+        customer = User.objects.get(email='recreated@example.com')
         self.assertEqual(customer.clerk_user_id, 'user_new_clerk_id')
 
 
@@ -399,26 +400,24 @@ class MVPTestCase(TestCase):
             object_key='product-images/expired.jpg',
             purpose=UploadSession.Purpose.PRODUCT_IMAGE,
             expected_content_type='image/jpeg', expected_size=100,
-            expires_at=timezone.now() - timedelta(minutes=1), created_by=self.admin,
+            expires_at=timezone.now() - timedelta(minutes=1), created_by=self.admin.user,
         )
         with patch.object(UploadService, 'delete_object', return_value=None):
             self.assertEqual(UploadService.cleanup_expired(), 1)
         expired.refresh_from_db()
         self.assertEqual(expired.status, UploadSession.Status.DELETED)
 
-    def test_sqlite_backup_is_gzipped_and_production_checks_fail_closed(self):
+    def test_backup_rejects_non_postgresql_and_production_checks_fail_closed(self):
         with tempfile.TemporaryDirectory() as directory:
-            source = Path(directory) / 'source.sqlite3'
-            source.write_bytes(b'sqlite-backup-data')
             original = connection.settings_dict.copy()
-            connection.settings_dict.update({'ENGINE': 'django.db.backends.sqlite3', 'NAME': str(source)})
+            connection.settings_dict['ENGINE'] = 'django.db.backends.postgresql'
             try:
-                backup = BackupCommand()._create_backup(Path(directory), '20260818T000000Z')
+                with patch.dict('os.environ', {'DATABASE_URL': 'sqlite:///unused.db'}, clear=False):
+                    with self.assertRaises(CommandError):
+                        BackupCommand()._create_backup(Path(directory), '20260818T000000Z')
             finally:
                 connection.settings_dict.clear()
                 connection.settings_dict.update(original)
-            with gzip.open(backup, 'rb') as handle:
-                self.assertEqual(handle.read(), b'sqlite-backup-data')
 
         with override_settings(
             DEBUG=False,

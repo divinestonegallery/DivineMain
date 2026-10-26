@@ -10,6 +10,7 @@ venv/
 *.pem
 
 # Django
+# Leftover local files only. PostgreSQL is the only supported database.
 *.sqlite3
 media/
 staticfiles/

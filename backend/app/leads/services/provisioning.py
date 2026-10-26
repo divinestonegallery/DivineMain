@@ -1,12 +1,10 @@
-from app.accounts.repositories.customer_repository import CustomerRepository
+from app.accounts.models import Employee
 from app.leads.repositories.group_repository import GroupRepository
 
 
-def ensure_default_sales_membership(customer_id):
-    """Give an active staff account the default Sales group. Customers and admins are left unchanged."""
-    customer = CustomerRepository.get_staff(customer_id)
-    if not customer:
+def ensure_default_sales_membership(employee_id):
+    """Give an active staff employee the default Sales group. Admins are left unchanged."""
+    employee = Employee.objects.filter(id=employee_id, is_active=True).first()
+    if not employee or employee.role != Employee.Role.STAFF:
         return
-    if customer.get('role') != 'staff' or not customer.get('is_active'):
-        return
-    GroupRepository.ensure_sales_membership(customer['id'])
+    GroupRepository.ensure_sales_membership(employee.id)

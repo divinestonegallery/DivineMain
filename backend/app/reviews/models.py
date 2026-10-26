@@ -1,6 +1,6 @@
 from django.db import models
 from app.products.models import Product
-from app.accounts.models import Customer
+from app.accounts.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from app.common.models import BaseModel
 
@@ -11,7 +11,7 @@ class Review(BaseModel):
         REJECTED = 'rejected', 'Rejected'
 
     product = models.ForeignKey(Product, related_name='reviews', on_delete=models.CASCADE)
-    user = models.ForeignKey(Customer, related_name='reviews', on_delete=models.CASCADE, blank=True, null=True)
+    user = models.ForeignKey(User, related_name='reviews', on_delete=models.CASCADE, blank=True, null=True)
     rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField()
     is_approved = models.BooleanField(default=False)

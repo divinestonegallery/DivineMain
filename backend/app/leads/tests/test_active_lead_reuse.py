@@ -2,14 +2,12 @@
 
 import threading
 import uuid
-from unittest import skipUnless
 from unittest.mock import patch
 
 from django.db import connection, connections
 from django.test import TestCase, TransactionTestCase, override_settings
 from rest_framework.test import APIClient
 
-from app.accounts.models import Customer
 from app.contactus.models import ContactMessage, CustomizeRequest
 from app.contactus.repositories.contactus_repository import ContactUsRepository
 from app.leads.models import Lead, LeadActivity, LeadNote
@@ -26,7 +24,7 @@ def _assert_isolated_test_database(test):
     host = str(connection.settings_dict.get('HOST') or '')
     test.assertEqual(connection.vendor, 'postgresql')
     test.assertIn(host, {'127.0.0.1', 'localhost'})
-    test.assertTrue(name.startswith('test_'))
+    test.assertTrue(name.startswith('test_divine_pgtest'))
     test.assertNotIn('neon', name.lower())
 
 
@@ -290,7 +288,7 @@ class WebsiteEnquiryIdentityTests(TestCase):
         self.assertEqual(LeadNote.objects.filter(lead=unrelated).count(), 0)
 
     def test_signed_in_customize_without_an_email_matches_on_the_account_email(self):
-        customer = create_account('buyer@example.com', role=Customer.Role.CUSTOMER, sales=False)
+        customer = create_account('buyer@example.com', role='customer', sales=False)
         existing = seed_lead(email='buyer@example.com', status='contacted')
         self.client.force_authenticate(user=customer)
         response = self.client.post('/api/v1/contact/customize', {
@@ -306,7 +304,7 @@ class WebsiteEnquiryIdentityTests(TestCase):
         self.assertEqual(CustomizeRequest.objects.get().lead_id, existing.id)
 
     def test_signed_in_customize_with_a_different_email_does_not_reuse_either_lead(self):
-        customer = create_account('buyer@example.com', role=Customer.Role.CUSTOMER, sales=False)
+        customer = create_account('buyer@example.com', role='customer', sales=False)
         account_lead = seed_lead(email='buyer@example.com', status='contacted')
         typed_lead = seed_lead(email=EMAIL, status='contacted')
         self.client.force_authenticate(user=customer)
@@ -361,7 +359,6 @@ class WebsiteEnquiryIdentityTests(TestCase):
         )
 
 
-@skipUnless(connection.vendor == 'postgresql', 'Concurrent enquiry delivery is verified on PostgreSQL only.')
 @override_settings(ROOT_URLCONF=CONSUMER_URLS)
 class WebsiteEnquiryPostgresConcurrencyTests(TransactionTestCase):
     """Identical posts without a submission id must not both create an enquiry."""

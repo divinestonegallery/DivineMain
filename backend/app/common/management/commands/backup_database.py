@@ -1,4 +1,3 @@
-import gzip
 import os
 import shutil
 # pg_dump is invoked below without a shell or user-controlled flags.
@@ -55,19 +54,10 @@ class Command(BaseCommand):
 
     def _create_backup(self, temporary, timestamp):
         engine = connection.settings_dict['ENGINE']
-        if engine.endswith('sqlite3'):
-            source = Path(connection.settings_dict['NAME'])
-            if str(source) == ':memory:' or not source.exists():
-                raise CommandError('An in-memory SQLite database cannot be backed up.')
-            target = temporary / f'divine-stone-gallery-{timestamp}.sqlite3.gz'
-            with source.open('rb') as source_file, gzip.open(target, 'wb') as target_file:
-                shutil.copyfileobj(source_file, target_file)
-            return target
-
         database_url = os.getenv('DATABASE_URL', '')
         parsed = urlparse(database_url)
-        if parsed.scheme not in {'postgres', 'postgresql'}:
-            raise CommandError('DATABASE_URL must be PostgreSQL or SQLite.')
+        if not engine.endswith('postgresql') or parsed.scheme not in {'postgres', 'postgresql'}:
+            raise CommandError('Database backups require PostgreSQL.')
         target = temporary / f'divine-stone-gallery-{timestamp}.dump'
         environment = os.environ.copy()
         environment['PGPASSWORD'] = unquote(parsed.password or '')

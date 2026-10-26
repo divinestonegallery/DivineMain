@@ -1,8 +1,6 @@
-import os
 import secrets
 import string
 
-from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -131,15 +129,7 @@ class Product(BaseModel):
     uid = models.CharField(max_length=255, unique=True, blank=True, null=True)
     short_description = models.CharField(max_length=500, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-    # Production and PostgreSQL tests use the array column created by the
-    # migrations. SQLite tests store the same list as JSON text, because
-    # SQLite has no array type. Treating every test run as JSON made
-    # PostgreSQL reject the text "[]".
-    keywords = (
-        models.JSONField(blank=True, default=list)
-        if getattr(settings, 'IS_TESTING', False) and not os.getenv('DIVINE_TEST_DATABASE_URL', '').strip()
-        else ArrayField(models.CharField(max_length=100), blank=True, default=list)
-    )
+    keywords = ArrayField(models.CharField(max_length=100), blank=True, default=list)
     height = models.CharField(max_length=100, blank=True, null=True)
     min_weight = models.CharField(max_length=100, blank=True, null=True)
     max_weight = models.CharField(max_length=100, blank=True, null=True)

@@ -2,7 +2,14 @@ from rest_framework import status
 from drf_spectacular.utils import extend_schema
 
 from app.accounts.services.staff_service import StaffService
-from app.accounts.validators import StaffInviteValidator, StaffListValidator, StaffUpdateValidator
+from app.accounts.services.user_admin_service import UserAdminService
+from app.accounts.validators import (
+    PromoteEmployeeValidator,
+    StaffInviteValidator,
+    StaffListValidator,
+    StaffUpdateValidator,
+    UserListValidator,
+)
 from framework.core.base_apiviews import OwnerAPIView
 from framework.core.responses import ErrorResponse, SuccessResponse
 from framework.utils import get_response
@@ -34,6 +41,28 @@ class StaffView(OwnerAPIView):
             code = 404 if error == 'Staff member not found.' else 400
             return get_response(ErrorResponse(message=error, status_code=code))
         return get_response(SuccessResponse(data=data, message='Staff access updated'))
+
+
+class UserListView(OwnerAPIView):
+    def get(self, request):
+        validator = UserListValidator(data=request.query_params)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid query parameters', err=validator.errors, status_code=400))
+        error, data = UserAdminService.list_users(validator.validated_data)
+        return get_response(SuccessResponse(data=data, message='Users fetched successfully'))
+
+
+class PromoteEmployeeView(OwnerAPIView):
+    def post(self, request, user_id):
+        validator = PromoteEmployeeValidator(data=request.data)
+        if not validator.is_valid():
+            return get_response(ErrorResponse(message='Invalid employee role', err=validator.errors, status_code=400))
+        error, data = UserAdminService.promote(user_id, validator.validated_data['role'])
+        if error:
+            code = 404 if error == 'User not found.' else 400
+            return get_response(ErrorResponse(message=error, status_code=code))
+        message = 'Employee record created' if data.get('created') else 'Employee record already exists'
+        return get_response(SuccessResponse(data=data, message=message))
 
 
 class StaffListView(StaffView):

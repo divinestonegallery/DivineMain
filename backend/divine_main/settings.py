@@ -161,47 +161,51 @@ TEMPLATES = [
 WSGI_APPLICATION = 'divine_main.wsgi.application'
 TEST_RUNNER = 'divine_main.test_runner.ProjectTestRunner'
 
-# Database Setup (Neon PostgreSQL)
+# PostgreSQL is the only supported database. A missing or non-PostgreSQL
+# DATABASE_URL is a startup error. Tests never open that URL: they require
+# DIVINE_TEST_DATABASE_URL and a separate local disposable database.
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
-# Never point Django's test runner at the configured Neon database. Tests get
-# an isolated in-memory SQLite database so they cannot create or delete remote
-# test databases and remain deterministic on developer machines and CI.
-# DIVINE_TEST_DATABASE_URL opts into a local disposable PostgreSQL server for
-# the webhook concurrency checks. It is refused unless the host is local and
-# the database name is the disposable divine_pgtest name.
+from divine_main.test_database import validate_disposable_test_database
+
+
+def _postgresql_url(url, purpose):
+    if not url:
+        raise ImproperlyConfigured(
+            f'{purpose} is required and must be a PostgreSQL URL. SQLite is not supported.'
+        )
+    try:
+        parsed = dj_database_url.parse(url)
+    except (ValueError, dj_database_url.UnknownSchemeError) as exc:
+        raise ImproperlyConfigured(
+            f'{purpose} must be a PostgreSQL URL. SQLite is not supported.'
+        ) from exc
+    if not str(parsed.get('ENGINE') or '').endswith('postgresql'):
+        raise ImproperlyConfigured(
+            f'{purpose} must use PostgreSQL. SQLite is not supported.'
+        )
+    return parsed
+
+
+_application_url = os.getenv('DATABASE_URL', '').strip()
 if IS_TESTING:
-    _local_test_url = os.getenv('DIVINE_TEST_DATABASE_URL', '').strip()
-    if _local_test_url:
-        _local_test = dj_database_url.parse(_local_test_url)
-        _test_host = (_local_test.get('HOST') or '').lower()
-        _test_name = str(_local_test.get('NAME') or '').lower()
-        _test_engine = _local_test.get('ENGINE') or ''
-        if (
-            _test_host not in {'127.0.0.1', 'localhost'}
-            or 'neon' in _test_host
-            or 'neon' in _test_name
-            or not _test_engine.endswith('postgresql')
-            or not _test_name.startswith('divine_pgtest')
-        ):
-            raise ImproperlyConfigured(
-                'DIVINE_TEST_DATABASE_URL must be a local disposable PostgreSQL '
-                'database whose name starts with divine_pgtest.'
-            )
-        _local_test['CONN_MAX_AGE'] = 0
-        DATABASES = {'default': _local_test}
-    else:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': ':memory:',
-            },
-        }
+    _test_url = os.getenv('DIVINE_TEST_DATABASE_URL', '').strip()
+    if not _test_url:
+        raise ImproperlyConfigured(
+            'DIVINE_TEST_DATABASE_URL is required. Tests use a local disposable '
+            'PostgreSQL database and will not fall back to SQLite or DATABASE_URL.'
+        )
+    _local_test = _postgresql_url(_test_url, 'DIVINE_TEST_DATABASE_URL')
+    _local_test['CONN_MAX_AGE'] = 0
+    _local_test['TEST'] = {'NAME': 'test_%s' % _local_test.get('NAME')}
+    _application = _postgresql_url(_application_url, 'DATABASE_URL') if _application_url else None
+    validate_disposable_test_database(_local_test, _application)
+    DATABASES = {'default': _local_test}
 else:
+    _postgresql_url(_application_url, 'DATABASE_URL')
     DATABASES = {
         'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL', f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
             conn_max_age=600,
             conn_health_checks=True,
         )

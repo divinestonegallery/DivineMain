@@ -1,12 +1,13 @@
+from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.db.models import F, Q
 from django.utils import timezone
 
-from app.accounts.models import Customer
+from app.accounts.models import Employee
 from app.leads.constants import OPEN_LEAD_STATUSES
 from app.leads.models import Lead, LeadActivity, LeadNote
 from app.leads.normalization import normalize_phone
-from app.leads.serializers import LeadActivitySerializer, LeadNoteSerializer, LeadPersonSerializer, LeadSerializer
+from app.leads.serializers import LeadActivitySerializer, LeadNoteSerializer, LeadSerializer, employee_person
 
 
 def _paginate(queryset, page, page_size, serializer):
@@ -41,13 +42,15 @@ def _scoped(queryset, scope):
     if scope.get('unrestricted'):
         return queryset
     actor_id = scope['actor_id']
-    return queryset.filter(Q(created_by_id=actor_id) | Q(assigned_to_id=actor_id))
+    return queryset.filter(Q(created_by_employee_id=actor_id) | Q(assigned_to_id=actor_id))
 
 
 class LeadRepository:
     @staticmethod
     def list_leads(params, scope):
-        queryset = Lead.objects.select_related('assigned_to', 'created_by').all()
+        queryset = Lead.objects.select_related(
+            'assigned_to__user', 'created_by', 'created_by_employee__user',
+        ).all()
         queryset = _scoped(queryset, scope)
         if params.get('status'):
             queryset = queryset.filter(status=params['status'])
@@ -85,7 +88,9 @@ class LeadRepository:
     @staticmethod
     def get_lead(uid, scope):
         lead = _scoped(
-            Lead.objects.select_related('assigned_to', 'created_by'),
+            Lead.objects.select_related(
+            'assigned_to__user', 'created_by', 'created_by_employee__user',
+        ),
             scope,
         ).filter(uid=uid).first()
         return LeadSerializer(lead).data if lead else None
@@ -103,9 +108,7 @@ class LeadRepository:
             query |= Q(phone=phone)
         if not query:
             return []
-        matches = Lead.objects.filter(query, status__in=OPEN_LEAD_STATUSES).select_related(
-            'assigned_to', 'created_by',
-        ).order_by('-created_at', '-id')
+        matches = Lead.objects.filter(query, status__in=OPEN_LEAD_STATUSES).order_by('-created_at', '-id')
         return [
             {
                 'uid': str(lead.uid),
@@ -114,6 +117,7 @@ class LeadRepository:
                 'city': lead.city,
                 'source': lead.source,
                 'created_by_id': lead.created_by_id,
+                'created_by_employee_id': lead.created_by_employee_id,
                 'assigned_to_id': lead.assigned_to_id,
             }
             for lead in matches[:20]
@@ -147,12 +151,11 @@ class LeadRepository:
 
         Two enquiries for the same person can otherwise both find no active lead
         and both insert. PostgreSQL holds a transaction-scoped advisory lock on
-        each supplied contact detail; SQLite serializes writers already, so the
-        lock is a no-op there. Keys are taken in a stable order to avoid
+        each supplied contact detail. Keys are taken in a stable order to avoid
         deadlocking two requests that share one of the two details.
         """
         if connection.vendor != 'postgresql':
-            return
+            raise ImproperlyConfigured('Lead identity locking requires PostgreSQL.')
         keys = sorted(
             key for key in (f'email:{email}' if email else '', f'phone:{phone}' if phone else '') if key
         )
@@ -163,30 +166,36 @@ class LeadRepository:
     @staticmethod
     def create_lead(data):
         lead = Lead.objects.create(**data)
-        lead = Lead.objects.select_related('assigned_to', 'created_by').get(pk=lead.pk)
+        lead = Lead.objects.select_related(
+            'assigned_to__user', 'created_by', 'created_by_employee__user',
+        ).get(pk=lead.pk)
         return LeadSerializer(lead).data
 
     @staticmethod
     def update_lead(lead_id, changes):
-        lead = Lead.objects.select_related('assigned_to', 'created_by').filter(id=lead_id).first()
+        lead = Lead.objects.select_related(
+            'assigned_to__user', 'created_by', 'created_by_employee__user',
+        ).filter(id=lead_id).first()
         if not lead:
             return None
         for field, value in changes.items():
             setattr(lead, field, value)
         lead.save(update_fields=[*changes.keys(), 'updated_at'])
         lead.refresh_from_db()
-        lead = Lead.objects.select_related('assigned_to', 'created_by').get(pk=lead.pk)
+        lead = Lead.objects.select_related(
+            'assigned_to__user', 'created_by', 'created_by_employee__user',
+        ).get(pk=lead.pk)
         return LeadSerializer(lead).data
 
     @staticmethod
     def list_notes(lead_id):
-        notes = LeadNote.objects.select_related('author').filter(lead_id=lead_id)
+        notes = LeadNote.objects.select_related('author__user').filter(lead_id=lead_id)
         return LeadNoteSerializer(notes, many=True).data
 
     @staticmethod
     def add_note(lead_id, author_id, body):
         note = LeadNote.objects.create(lead_id=lead_id, author_id=author_id, body=body)
-        note = LeadNote.objects.select_related('author').get(pk=note.pk)
+        note = LeadNote.objects.select_related('author__user').get(pk=note.pk)
         return LeadNoteSerializer(note).data
 
     @staticmethod
@@ -199,22 +208,22 @@ class LeadRepository:
             old_value=(old_value or '')[:500],
             new_value=(new_value or '')[:500],
         )
-        activity = LeadActivity.objects.select_related('actor').get(pk=activity.pk)
+        activity = LeadActivity.objects.select_related('actor__user').get(pk=activity.pk)
         return LeadActivitySerializer(activity).data
 
     @staticmethod
     def list_activity(lead_id, page, page_size):
-        queryset = LeadActivity.objects.select_related('actor').filter(lead_id=lead_id)
+        queryset = LeadActivity.objects.select_related('actor__user').filter(lead_id=lead_id)
         return _paginate(queryset, page, page_size, LeadActivitySerializer)
 
     @staticmethod
-    def active_employee(customer_id):
-        customer = Customer.objects.filter(
-            id=customer_id,
+    def active_employee(employee_id):
+        employee = Employee.objects.select_related('user').filter(
+            id=employee_id,
             is_active=True,
-            role__in=(Customer.Role.STAFF, Customer.Role.ADMIN),
+            user__is_active=True,
         ).first()
-        return LeadPersonSerializer(customer).data if customer else None
+        return employee_person(employee)
 
     @staticmethod
     def due_follow_up_ids(now):
@@ -244,8 +253,8 @@ class LeadRepository:
 
     @staticmethod
     def list_active_employees():
-        queryset = Customer.objects.filter(
+        queryset = Employee.objects.select_related('user').filter(
             is_active=True,
-            role__in=(Customer.Role.STAFF, Customer.Role.ADMIN),
-        ).order_by('name', 'email')
-        return LeadPersonSerializer(queryset, many=True).data
+            user__is_active=True,
+        ).order_by('user__name', 'user__email')
+        return [employee_person(employee) for employee in queryset]

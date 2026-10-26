@@ -23,6 +23,7 @@ from app.products.validators import (
     ProductListValidator,
     ProductRequestValidator,
 )
+from app.accounts.identity import acting_user_id
 from framework.core.base_apiviews import AdminAPIView
 from framework.core.responses import ErrorResponse, SuccessResponse
 from framework.utils import get_response
@@ -88,7 +89,7 @@ class AdminProductImageListCreateView(AdminAPIView):
         validator = ProductImageFinalizeValidator(data=request.data)
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid product image', err=validator.errors, status_code=400))
-        error, data = ProductImageService.attach_image(product_id, validator.validated_data, request.user.id)
+        error, data = ProductImageService.attach_image(product_id, validator.validated_data, acting_user_id(request.user))
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(message='Product image attached successfully', data=data, status_code=status.HTTP_201_CREATED))
@@ -134,7 +135,7 @@ class AdminProductImageUploadUrlView(AdminAPIView):
         validator = ImageUploadUrlValidator(data=request.data)
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid upload request', err=validator.errors, status_code=400))
-        error, data = ProductImageService.generate_upload_url(validator.validated_data, request.user.id)
+        error, data = ProductImageService.generate_upload_url(validator.validated_data, acting_user_id(request.user))
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(message='Product image upload URL generated', data=data))
@@ -152,7 +153,7 @@ class AdminCategoryImageUploadUrlView(AdminAPIView):
         validator = ImageUploadUrlValidator(data=request.data)
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid upload request', err=validator.errors, status_code=400))
-        error, data = CategoryAdminService.generate_upload_url(validator.validated_data, request.user.id)
+        error, data = CategoryAdminService.generate_upload_url(validator.validated_data, acting_user_id(request.user))
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(message='Category image upload URL generated', data=data))
@@ -163,7 +164,7 @@ class AdminCategoryImageFinalizeView(AdminAPIView):
         validator = CategoryImageFinalizeValidator(data=request.data)
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid category image', err=validator.errors, status_code=400))
-        error, data = CategoryAdminService.finalize_image(category_id, validator.validated_data, request.user.id)
+        error, data = CategoryAdminService.finalize_image(category_id, validator.validated_data, acting_user_id(request.user))
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(message='Category image attached successfully', data=data, status_code=status.HTTP_201_CREATED))
@@ -312,7 +313,7 @@ class AdminDeityImageUploadUrlView(AdminAPIView):
         validator = ImageUploadUrlValidator(data=request.data)
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid upload request', err=validator.errors, status_code=400))
-        error, data = DietyAdminService.generate_upload_url(validator.validated_data, request.user.id)
+        error, data = DietyAdminService.generate_upload_url(validator.validated_data, acting_user_id(request.user))
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(message='Deity image upload URL generated', data=data))
@@ -323,7 +324,7 @@ class AdminDietyImageFinalizeView(AdminAPIView):
         validator = DietyImageFinalizeValidator(data=request.data)
         if not validator.is_valid():
             return get_response(ErrorResponse(message='Invalid deity image', err=validator.errors, status_code=400))
-        error, data = DietyAdminService.finalize_image(diety_id, validator.validated_data, request.user.id)
+        error, data = DietyAdminService.finalize_image(diety_id, validator.validated_data, acting_user_id(request.user))
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(message='Deity image attached successfully', data=data, status_code=status.HTTP_201_CREATED))

@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from app.accounts.models import Customer
+from app.accounts.models import Employee, User
 from app.leads.models import Lead
 from app.leads.services.provisioning import ensure_default_sales_membership
 
@@ -35,19 +35,32 @@ def seed_lead(email='', phone='', status='new', days_old=0, **overrides):
     return lead
 
 
-def create_account(email, role='staff', active=True, sales=None, name=''):
-    account = Customer.objects.create(
-        clerk_user_id=f'clerk-{email}',
+def create_account(email, role='staff', active=True, sales=None, name='', clerk_user_id=None):
+    """Return an Employee for staff and admin, and a User for a customer."""
+    display_name = name or email.split('@')[0]
+    if role in ('staff', 'admin'):
+        user = User.objects.create(
+            email=email,
+            name=display_name,
+            is_active=True,
+        )
+        employee = Employee.objects.create(
+            user=user,
+            clerk_user_id=clerk_user_id or f'clerk-{email}',
+            role=role,
+            is_active=active,
+        )
+        if sales is None:
+            sales = role == 'staff' and active
+        if sales:
+            ensure_default_sales_membership(employee.id)
+        return employee
+    return User.objects.create(
+        clerk_user_id=clerk_user_id or f'clerk-{email}',
         email=email,
-        name=name or email.split('@')[0],
-        role=role,
+        name=display_name,
         is_active=active,
     )
-    if sales is None:
-        sales = role == 'staff' and active
-    if sales:
-        ensure_default_sales_membership(account.id)
-    return account
 
 
 class LeadApiTestCase(TestCase):

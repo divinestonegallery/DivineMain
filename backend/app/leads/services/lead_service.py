@@ -5,7 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from app.accounts.models import Customer
+from app.accounts.models import Employee
 from app.leads.constants import (
     ACTIVITY_ASSIGNED,
     ACTIVITY_CREATED,
@@ -98,7 +98,7 @@ def _person_label(person):
 
 def _allowed_targets(status, actor):
     targets = set(LEAD_TRANSITIONS.get(status, set()))
-    if actor.get('role') == Customer.Role.ADMIN and status in TERMINAL_LEAD_STATUSES:
+    if actor.get('role') == Employee.Role.ADMIN and status in TERMINAL_LEAD_STATUSES:
         targets.add(ADMIN_REOPEN_STATUS)
     return targets
 
@@ -114,7 +114,7 @@ def _visible_match(match, scope):
     if not scope:
         return False
     actor_id = scope['actor_id']
-    return match['created_by_id'] == actor_id or match['assigned_to_id'] == actor_id
+    return match.get('created_by_employee_id') == actor_id or match['assigned_to_id'] == actor_id
 
 
 def _duplicate_payload(matches, scope):
@@ -237,7 +237,7 @@ def append_event_note(lead_id, body, touchpoint):
 class LeadService:
     @staticmethod
     def access(actor):
-        if actor.get('role') not in {Customer.Role.STAFF, Customer.Role.ADMIN} or not actor.get('is_active'):
+        if actor.get('role') not in {Employee.Role.STAFF, Employee.Role.ADMIN} or not actor.get('is_active'):
             return PERMISSION_DENIED, None
         return None, AccessService.describe(actor)
 
@@ -316,7 +316,9 @@ class LeadService:
             'external_id': None,
                 'status': LEAD_STATUS_NEW,
                 'assigned_to_id': assignee_id,
-                'created_by_id': actor['id'],
+                'user_id': None,
+                'created_by_id': None,
+                'created_by_employee_id': actor['id'],
                 'follow_up_at': data.get('follow_up_at'),
                 'lost_reason': '',
             })
@@ -430,12 +432,14 @@ class LeadService:
             'external_id': None,
             'status': LEAD_STATUS_NEW,
             'assigned_to_id': None,
+            'user_id': created_by_id,
             'created_by_id': created_by_id,
+            'created_by_employee_id': None,
             'lost_reason': '',
         })
         LeadRepository.add_activity(
             lead['id'],
-            created_by_id,
+            None,
             ACTIVITY_CREATED,
             field_name='touchpoint',
             new_value=touchpoint,
@@ -443,7 +447,7 @@ class LeadService:
         if conflict_uids or account_mismatch:
             LeadRepository.add_activity(
                 lead['id'],
-                created_by_id,
+                None,
                 ACTIVITY_IDENTITY_CONFLICT,
                 field_name='open_leads',
                 new_value=_conflict_reference(conflict_uids),
@@ -463,7 +467,7 @@ class LeadService:
         This owns its own transaction because the caller is an authentication
         flow whose success must not depend on lead bookkeeping.
         """
-        if customer.get('role') != Customer.Role.CUSTOMER:
+        if customer.get('role') in {Employee.Role.STAFF, Employee.Role.ADMIN}:
             return None, {'outcome': 'skipped_not_a_customer'}
         email = normalize_email(customer.get('email'))
         phone = normalize_phone(customer.get('phone'))
@@ -497,7 +501,9 @@ class LeadService:
                 'external_id': None,
                 'status': LEAD_STATUS_NEW,
                 'assigned_to_id': None,
+                'user_id': customer.get('id'),
                 'created_by_id': customer.get('id'),
+                'created_by_employee_id': None,
                 'lost_reason': '',
             })
             LeadRepository.add_activity(
@@ -560,7 +566,9 @@ class LeadService:
             'external_id': external_id[:255],
             'status': LEAD_STATUS_NEW,
             'assigned_to_id': None,
+            'user_id': None,
             'created_by_id': None,
+            'created_by_employee_id': None,
             'lost_reason': '',
         })
         LeadRepository.add_activity(
@@ -759,7 +767,7 @@ class LeadService:
 
 def _assignee_for_create(actor, requested):
     if AccessService.can_assign_others(actor):
-        if requested is None and actor.get('role') != Customer.Role.ADMIN:
+        if requested is None and actor.get('role') != Employee.Role.ADMIN:
             requested = actor['id']
         if requested is None:
             return None, None

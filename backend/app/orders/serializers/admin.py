@@ -15,9 +15,15 @@ class PaymentAdminSerializer(serializers.ModelSerializer):
 class OrderAdminSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_slug = serializers.CharField(source='product.slug', read_only=True)
-    customer_name = serializers.CharField(source='customer.name', read_only=True)
-    customer_email = serializers.CharField(source='customer.email', read_only=True)
+    customer_name = serializers.SerializerMethodField()
+    customer_email = serializers.SerializerMethodField()
     payment = PaymentAdminSerializer(read_only=True)
+
+    def get_customer_name(self, order):
+        return order.customer.name if order.customer_id else ''
+
+    def get_customer_email(self, order):
+        return order.customer.email if order.customer_id else ''
 
     class Meta:
         model = Order
@@ -40,7 +46,10 @@ class OrderAdminSerializer(serializers.ModelSerializer):
 class OrderAdminListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for list endpoints — no nested payment."""
     product_name = serializers.CharField(source='product.name', read_only=True)
-    customer_email = serializers.CharField(source='customer.email', read_only=True)
+    customer_email = serializers.SerializerMethodField()
+
+    def get_customer_email(self, order):
+        return order.customer.email if order.customer_id else ''
 
     class Meta:
         model = Order

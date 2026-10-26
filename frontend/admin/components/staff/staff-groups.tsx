@@ -16,7 +16,7 @@ type SecurityGroup = {
   permissions: string[];
   members: Member[];
 };
-type StaffMember = { id: number; name?: string | null; email?: string | null; role?: string };
+type StaffMember = { id: number; user_id: number; name?: string | null; email?: string | null; role?: string };
 
 export function StaffGroupAdmin() {
   const { showToast } = useToast();
@@ -94,12 +94,13 @@ export function StaffGroupAdmin() {
 
   async function addMember(group: SecurityGroup, event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const selected = Number(new FormData(event.currentTarget).get("customer_id"));
-    if (!selected) return;
+    const employeeId = Number(new FormData(event.currentTarget).get("employee_id"));
+    const person = staff.find((item) => item.id === employeeId);
+    if (!person?.user_id) return;
     try {
       await apiRequest("/api/admin/staff/memberships", {
         method: "POST",
-        body: JSON.stringify({ customer_id: selected, group_id: group.id }),
+        body: JSON.stringify({ employee_id: person.id, user_id: person.user_id, group_id: group.id }),
       });
       showToast("Staff member added to the group.");
       await load();
@@ -161,7 +162,7 @@ export function StaffGroupAdmin() {
             <form className={styles.memberRow} onSubmit={(event) => void addMember(group, event)}>
               <label>
                 <span>Add staff</span>
-                <select name="customer_id" defaultValue="" aria-label={`Add staff to ${group.name}`}>
+                <select name="employee_id" defaultValue="" aria-label={`Add staff to ${group.name}`}>
                   <option value="">Choose a staff account</option>
                   {staff.map((person) => <option value={person.id} key={person.id}>{person.name || person.email}</option>)}
                 </select>

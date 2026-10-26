@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from app.accounts.models import Employee
 from app.common.repositories import OperationsRepository
 
 logger = logging.getLogger(__name__)
@@ -30,14 +31,15 @@ class ObservabilityMiddleware:
 
         response['X-Request-ID'] = str(request_id)
         actor = getattr(request, 'user', None)
-        if not getattr(actor, 'is_authenticated', False):
+        if not isinstance(actor, Employee):
             actor = None
 
         if (
             request.path.startswith('/api/admin/')
             and request.method in self.MUTATING_METHODS
             and actor is not None
-            and getattr(actor, 'role', None) in {'staff', 'admin'}
+            and actor.is_active
+            and actor.role in {'staff', 'admin'}
         ):
             try:
                 OperationsRepository.write_audit({
@@ -64,7 +66,7 @@ class ObservabilityMiddleware:
     @staticmethod
     def _write_error(request, request_id, status_code, error_type, message):
         actor = getattr(request, 'user', None)
-        if not getattr(actor, 'is_authenticated', False):
+        if not isinstance(actor, Employee):
             actor = None
         try:
             OperationsRepository.write_error({
