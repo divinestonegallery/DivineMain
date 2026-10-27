@@ -136,6 +136,7 @@
   box-shadow: var(--shadow-soft);
   font-size: 0.86rem;
   font-weight: 750;
+  white-space: nowrap;
   letter-spacing: 0;
   cursor: pointer;
   transition: color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
