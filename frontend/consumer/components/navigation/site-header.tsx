@@ -5,14 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LogOut,
-  Menu,
   Search,
   Sparkles,
   X,
   ChevronRight
 } from "lucide-react";
-import { FormEvent, MouseEvent, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { AccountControl } from "@/components/auth/account-control";
+import { FormEvent, MouseEvent, useCallback, useEffect, useId, useRef, useState } from "react";
+import { HomeNavbar } from "./home-navbar";
+import { InnerPageNavbar } from "./inner-page-navbar";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { useAuth, useUser } from "@/components/auth/auth-facade";
 import { getDeities, getHome, searchApplication } from "@/api/products";
@@ -138,7 +138,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const [megaMenuClosing, setMegaMenuClosing] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [dockedSearchVisible, setDockedSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<null | {
     products: SearchProductResult[];
@@ -151,8 +150,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const [deityLinks, setDeityLinks] = useState<ReadonlyArray<readonly [string, string]>>(defaultDeityLinks);
   const [popularSearches, setPopularSearches] = useState<ReadonlyArray<readonly [string, string]>>([]);
   const [visiblePopularSearches, setVisiblePopularSearches] = useState(INITIAL_VISIBLE_POPULAR_SEARCHES);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isCompactHeader, setIsCompactHeader] = useState(false);
   const shopTriggerRef = useRef<HTMLButtonElement>(null);
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const searchPanelRef = useRef<HTMLElement>(null);
@@ -163,8 +160,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const popularSearchesLoadingRef = useRef(false);
   const searchTitleId = useId();
   const shopMenuId = useId();
-  const showDockedSearch = pathname === "/" ? dockedSearchVisible && !isCompactHeader : !isCompactHeader;
-  const headerLogoSrc = pathname === "/" && !isScrolled ? "/brand/DSG-White.png" : "/brand/DSG-New.png";
+  const Navbar = pathname === "/" ? HomeNavbar : InnerPageNavbar;
   const visiblePopularSearchLinks = popularSearches.slice(0, visiblePopularSearches);
   const hasMorePopularSearches = popularSearches.length > visiblePopularSearches;
 
@@ -181,39 +177,11 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
     if (megaMenuOpen && !megaMenuClosing) setMegaMenuClosing(true);
   }, [megaMenuClosing, megaMenuOpen]);
 
-  useLayoutEffect(() => {
-    const homePage = pathname === "/";
-
-    const handleScroll = () => {
-      const nextScrolled = window.scrollY > 16;
-      const nextCompactHeader = nextScrolled && window.innerWidth >= 1024;
-      if (!homePage) {
-        setIsScrolled(false);
-        setIsCompactHeader(nextCompactHeader);
-        return;
-      }
-      setIsScrolled(nextScrolled);
-      setIsCompactHeader(nextCompactHeader);
-    };
-
-    const handleResize = () => {
-      const nextCompactHeader = window.scrollY > 16 && window.innerWidth >= 1024;
-      setIsCompactHeader(nextCompactHeader);
-    };
-
-    if (!homePage) {
-      setIsScrolled(false);
-      setIsCompactHeader(false);
-      return;
-    }
-
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleResize);
-    };
+  useEffect(() => {
+    setMegaMenuOpen(false);
+    setMegaMenuClosing(false);
+    setMobileMenuOpen(false);
+    setSearchOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -281,52 +249,6 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   useEffect(() => {
     if (searchOpen) setVisiblePopularSearches(INITIAL_VISIBLE_POPULAR_SEARCHES);
   }, [searchOpen]);
-
-  useEffect(() => {
-    if (pathname !== "/") return;
-
-    const heroSearch = document.querySelector<HTMLElement>("[data-hero-search]");
-    if (!heroSearch) {
-      const frame = window.requestAnimationFrame(() => setDockedSearchVisible(true));
-      return () => window.cancelAnimationFrame(frame);
-    }
-
-    let frame = 0;
-    const scheduleDockedSearchUpdate = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        const headerOffset = 84;
-        const rect = heroSearch.getBoundingClientRect();
-        setDockedSearchVisible(rect.bottom <= headerOffset || rect.top >= window.innerHeight);
-      });
-    };
-
-    scheduleDockedSearchUpdate();
-
-    if (typeof window.IntersectionObserver === "undefined") {
-      window.addEventListener("scroll", scheduleDockedSearchUpdate, { passive: true });
-      window.addEventListener("resize", scheduleDockedSearchUpdate);
-      return () => {
-        window.cancelAnimationFrame(frame);
-        window.removeEventListener("scroll", scheduleDockedSearchUpdate);
-        window.removeEventListener("resize", scheduleDockedSearchUpdate);
-      };
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        window.cancelAnimationFrame(frame);
-        frame = window.requestAnimationFrame(() => setDockedSearchVisible(!entry.isIntersecting));
-      },
-      { rootMargin: "-84px 0px 0px 0px", threshold: 0.1 },
-    );
-
-    observer.observe(heroSearch);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      observer.disconnect();
-    };
-  }, [pathname]);
 
   useEffect(() => {
     const query = searchQuery.trim();
@@ -467,69 +389,13 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
         </div>
       </div>
 
-      <header
-        className={`${styles.siteHeader} ${
-          pathname === "/" ? styles.siteHeaderHome : ""
-        } ${pathname === "/" && !isScrolled ? styles.siteHeaderTransparent : ""} ${isCompactHeader ? styles.siteHeaderCompact : ""}`.trim()}
+      <Navbar
+        animateLogo={animateLogo}
+        searchOpen={searchOpen}
+        mobileMenuOpen={mobileMenuOpen}
+        onSearchOpen={() => setSearchOpen(true)}
+        onMenuOpen={() => setMobileMenuOpen(true)}
       >
-        <div className={`${styles.headerMain} site-container`}>
-          <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home">
-            <Image className={`${styles.brandLogo} ${animateLogo ? styles.brandLogoAnimated : ""}`.trim()} src={headerLogoSrc} alt="Divine Stone Gallery" width={1600} height={1600} priority />
-          </Link>
-
-          <div className={styles.headerCenter}>
-            <button
-              className={`${styles.headerSearchPill} ${showDockedSearch ? styles.headerSearchPillVisible : ""}`.trim()}
-              type="button"
-              aria-label="Search Divine Stone Gallery"
-              aria-expanded={searchOpen}
-              aria-hidden={!showDockedSearch}
-              tabIndex={showDockedSearch ? 0 : -1}
-              onClick={() => setSearchOpen(true)}
-            >
-              <Search aria-hidden="true" size={19} strokeWidth={1.6} />
-              <span>Search for Moorti</span>
-              <span className={styles.headerSearchSubmit} aria-hidden="true">
-                <Search size={20} strokeWidth={1.8} />
-              </span>
-            </button>
-          </div>
-
-          <div className={styles.headerActions}>
-            {isCompactHeader ? (
-              <button
-                className={styles.headerCompactSearchButton}
-                type="button"
-                aria-label="Search"
-                title="Search"
-                onClick={() => setSearchOpen(true)}
-              >
-                <Search aria-hidden="true" size={20} strokeWidth={1.8} />
-              </button>
-            ) : null}
-            <Link href="/custom-murti" className={`${styles.navLink} ${styles.desktopOnlyAction}`}>
-              <Sparkles aria-hidden="true" size={18} strokeWidth={1.6} />
-              <span>Customize Your Moorti</span>
-            </Link>
-            {/* <Link className={`${styles.bookingButton} ${styles.desktopOnlyAction}`} href="/cart" aria-label={`Enquiry bag with ${enquiryBag.count} ${enquiryBag.count === 1 ? "work" : "works"}`}>
-              <ShoppingBag aria-hidden="true" size={18} strokeWidth={1.6} />
-              <span>Enquiry Bag</span>
-              {enquiryBag.count ? <strong>{enquiryBag.count}</strong> : null}
-            </Link> */}
-            <AccountControl className={`${styles.headerAction} ${styles.desktopOnlyAction}`} />
-
-            <button
-              className={styles.headerAction}
-              type="button"
-              aria-label="Open menu"
-              aria-expanded={mobileMenuOpen}
-              onClick={() => setMobileMenuOpen(true)}
-            >
-              <Menu aria-hidden="true" size={23} strokeWidth={1.7} />
-            </button>
-          </div>
-        </div>
-
         {megaMenuOpen ? (
           <div className={`${styles.megaMenuWrap} ${megaMenuClosing ? styles.megaMenuClosing : ""}`} id={shopMenuId}>
             <button
@@ -584,7 +450,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
             </div>
           </div>
         ) : null}
-      </header>
+      </Navbar>
 
       {searchOpen ? (
         <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby={searchTitleId}>
