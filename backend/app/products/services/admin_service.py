@@ -109,8 +109,8 @@ class ProductAdminService:
             return 'Product not found.'
         if not readiness['taxonomy_active']:
             return 'Category, material and deity must all be active before publishing.'
-        if not readiness['has_cover']:
-            return 'Add and select a cover image before publishing.'
+        # Photos are optional while the catalog is being entered. Restore this
+        # check when every live product should have a cover image again.
         return None
 
     @staticmethod
@@ -193,9 +193,6 @@ class ProductImageService:
         image = ProductImageRepository.get_image_by_id(product_id, image_id)
         if not image:
             return 'Product image not found.', None
-        status = ProductRepository.get_product_status(product_id)
-        if status == ProductStatus.ACTIVE.value and ProductImageRepository.get_image_count(product_id) <= 1:
-            return 'A published product must keep at least one image.', None
         error = UploadService.delete_object(image['object_key'])
         if error:
             return error, None
