@@ -40,7 +40,7 @@ export async function createAdminUploadSession(file: File, target: AdminImageUpl
       } satisfies AdminUploadSessionPayload),
     });
   } catch (reason) {
-    if (reason instanceof ApiError && (reason.status === 401 || reason.status === 403)) throw reason;
+    if (reason instanceof ApiError) throw reason;
     throw new Error("Unable to prepare image upload. Please try again.");
   }
 

@@ -2,9 +2,17 @@ import time
 import jwt
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from django.test import TestCase, override_settings
+from django.conf import settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import URLPattern, URLResolver, get_resolver
+from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.test import APIClient
+
+from app.products.views.admin_views import (
+    AdminCategoryImageUploadUrlView,
+    AdminDeityImageUploadUrlView,
+    AdminProductImageUploadUrlView,
+)
 
 from app.accounts.models import Customer
 from app.accounts.services.webhook_service import AccountWebhookService
@@ -231,3 +239,27 @@ class AdminAuthorizationTests(TestCase):
     def test_public_catalogue_remains_public(self):
         response = self.client.post("/api/v1/products", {}, format='json')
         self.assertEqual(response.status_code, 200)
+
+
+class AdminCatalogUploadCapacityTests(SimpleTestCase):
+    def test_product_image_uploads_can_cover_one_hundred_products(self):
+        views = (
+            AdminProductImageUploadUrlView,
+            AdminCategoryImageUploadUrlView,
+            AdminDeityImageUploadUrlView,
+        )
+        for view in views:
+            self.assertEqual(view.throttle_scope, 'admin_uploads')
+
+        rate = settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES']['admin_uploads']
+
+        class _RateParser(SimpleRateThrottle):
+            rate = '1/hour'
+
+            def get_cache_key(self, request, view):
+                return None
+
+        limit, duration = _RateParser().parse_rate(rate)
+        uploads_per_hour = limit * (3600 / duration)
+        # 100 products with the 12-image product cap, inside one hour.
+        self.assertGreaterEqual(uploads_per_hour, 1200)
