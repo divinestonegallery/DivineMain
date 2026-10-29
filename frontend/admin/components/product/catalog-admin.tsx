@@ -708,7 +708,6 @@ function GenerateProductModal({
     const errors: AdminFieldErrors = {};
     if (mode === "create_ai" && !text(form.get("name"))) errors.name = "Product name is required.";
     if (mode === "create_paragraph" && !text(form.get("paragraph"))) errors.paragraph = "Description is required.";
-    if (selectedImages.length === 0) errors.images = "Please upload at least one product image.";
 
     setError(null);
     setFieldErrors(errors);

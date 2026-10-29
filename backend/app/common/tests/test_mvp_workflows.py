@@ -102,11 +102,10 @@ class MVPTestCase(TestCase):
         self.assertEqual(hidden.json()['data']['pagination']['total_items'], 0)
 
         self.authenticate()
-        rejected = self.client.patch(
+        published_without_image = self.client.patch(
             f"/api/admin/products/{product['id']}", {'status': 'active'}, format='json'
         )
-        self.assertEqual(rejected.status_code, 400)
-        self.assertIn('cover image', rejected.json()['message'])
+        self.assertEqual(published_without_image.status_code, 200, published_without_image.content)
 
         image, _ = self.attach_image(product['id'])
         published = self.client.patch(
