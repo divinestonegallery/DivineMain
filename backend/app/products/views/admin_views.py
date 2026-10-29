@@ -128,7 +128,7 @@ class AdminProductImageUploadUrlView(AdminAPIView):
     POST body: { content_type, file_size, filename? }
     After uploading, finalise with POST /products/<id>/images using the returned object_key.
     """
-    throttle_scope = 'uploads'
+    throttle_scope = 'admin_uploads'
 
     def post(self, request):
         validator = ImageUploadUrlValidator(data=request.data)
@@ -146,7 +146,7 @@ class AdminCategoryImageUploadUrlView(AdminAPIView):
     POST body: { content_type, file_size, filename? }
     After uploading, finalise with POST /products/categories/<id>/finalize-image.
     """
-    throttle_scope = 'uploads'
+    throttle_scope = 'admin_uploads'
 
     def post(self, request):
         validator = ImageUploadUrlValidator(data=request.data)
@@ -306,7 +306,7 @@ class AdminDeityImageUploadUrlView(AdminAPIView):
     POST body: { content_type, file_size, filename? }
     After uploading, finalise with POST /products/deities/<id>/finalize-image.
     """
-    throttle_scope = 'uploads'
+    throttle_scope = 'admin_uploads'
 
     def post(self, request):
         validator = ImageUploadUrlValidator(data=request.data)

@@ -238,6 +238,10 @@ REST_FRAMEWORK = {
         'contact': os.getenv('THROTTLE_CONTACT_RATE', '100/hour'),
         'customization': os.getenv('THROTTLE_CUSTOMIZATION_RATE', '100/hour'),
         'uploads': os.getenv('THROTTLE_UPLOAD_RATE', '600/hour'),
+        # Catalog uploads are a separate bucket from public customization
+        # uploads. 100 products with up to 12 images need more than the
+        # public hourly cap, including replacements during one work session.
+        'admin_uploads': os.getenv('THROTTLE_ADMIN_UPLOAD_RATE', '5000/hour'),
         'clerk_webhook': os.getenv('THROTTLE_WEBHOOK_RATE', '300/min'),
         'auth': os.getenv('THROTTLE_AUTH_RATE', '30/min'),
     },
