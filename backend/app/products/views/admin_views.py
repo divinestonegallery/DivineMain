@@ -259,7 +259,13 @@ class AdminMaterialDetailView(AdminAPIView):
 class AdminDietyListCreateView(AdminAPIView):
     @extend_schema(operation_id='admin_deities_list')
     def get(self, request):
-        error, data = DietyAdminService.get_all_deities()
+        category = request.query_params.get('category')
+        category_id = None
+        if category not in (None, ''):
+            if not str(category).isdigit():
+                return get_response(ErrorResponse(message='Invalid category filter', status_code=400))
+            category_id = int(category)
+        error, data = DietyAdminService.get_all_deities(category_id)
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(message='Deities fetched successfully', data=data))
