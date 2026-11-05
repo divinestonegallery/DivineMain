@@ -71,7 +71,7 @@ export function AdminEntityModal({
   const safeClose = submitting ? () => undefined : onClose;
 
   return (
-    <Modal open={open} title={title} onClose={safeClose} panelClassName={size === "wide" ? styles.widePanel : ""}>
+    <Modal open={open} title={title} onClose={safeClose} size={size}>
       <div className={styles.modalContent}>
         {error ? (
           <div className={styles.errorBanner} role="alert">

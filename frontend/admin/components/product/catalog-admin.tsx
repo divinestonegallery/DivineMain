@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown, ExternalLink, Image as ImageIcon, Plus, RefreshCw, Search, Sparkles, AlignLeft } from "lucide-react";
 import { ApiError, apiRequest } from "@shared/utils/http";
 import {
@@ -69,9 +69,17 @@ type AdminProduct = {
   images?: ProductImage[];
 };
 
+type ProductPagination = {
+  page?: number;
+  page_size?: number;
+  total_items?: number;
+  total_pages?: number;
+  active_items?: number;
+};
+
 type ProductList = {
   items?: AdminProduct[];
-  pagination?: { total_items?: number };
+  pagination?: ProductPagination;
 };
 
 type Lookups = {
@@ -97,6 +105,8 @@ const sortOptions: Array<{ label: string; value: SortValue }> = [
 ];
 
 const emptyLookups: Lookups = { categories: [], materials: [], deities: [] };
+const productPageSize = 25;
+const emptyPagination: ProductPagination = { page: 1, page_size: productPageSize, total_items: 0, total_pages: 0, active_items: 0 };
 const availabilityOptions: AdminProduct["availability"][] = ["in_stock", "made_to_order", "out_of_stock"];
 const statusOptions: AdminProduct["status"][] = ["active", "draft", "archived"];
 const salesModeOptions: AdminProduct["sales_mode"][] = ["quote_only", "buy_and_quote", "direct_purchase"];
@@ -211,34 +221,28 @@ function removeImage(images: ProductImage[] | undefined, imageId: number) {
   return (images ?? []).filter((image) => image.id !== imageId);
 }
 
-function sortProducts(products: AdminProduct[], sort: SortValue) {
-  return [...products].sort((first, second) => {
-    if (sort === "featured") {
-      const featuredDifference = Number(second.is_featured) - Number(first.is_featured);
-      if (featuredDifference) return featuredDifference;
-      return Number(first.display_order ?? 999) - Number(second.display_order ?? 999);
-    }
-
-    if (sort === "display_order") return Number(first.display_order ?? 999) - Number(second.display_order ?? 999);
-    if (sort === "name_asc") return first.name.localeCompare(second.name);
-    if (sort === "name_desc") return second.name.localeCompare(first.name);
-
-    const firstPrice = Number(first.selling_price);
-    const secondPrice = Number(second.selling_price);
-    const firstValue = Number.isFinite(firstPrice) ? firstPrice : Number.POSITIVE_INFINITY;
-    const secondValue = Number.isFinite(secondPrice) ? secondPrice : Number.POSITIVE_INFINITY;
-    return sort === "price_asc" ? firstValue - secondValue : secondValue - firstValue;
-  });
-}
-
-function AdminSortDropdown({ value, onChange }: { value: SortValue; onChange: (value: SortValue) => void }) {
+function AdminOptionDropdown({
+  label: controlLabel,
+  menuLabel,
+  value,
+  options,
+  onChange,
+  className = "",
+}: {
+  label: string;
+  menuLabel: string;
+  value: string;
+  options: Array<{ label: string; value: string }>;
+  onChange: (value: string) => void;
+  className?: string;
+}) {
   const [open, setOpen] = useState(false);
   const listboxId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const currentIndex = Math.max(0, sortOptions.findIndex((option) => option.value === value));
-  const currentOption = sortOptions[currentIndex] ?? sortOptions[0];
+  const currentIndex = Math.max(0, options.findIndex((option) => option.value === value));
+  const currentOption = options[currentIndex] ?? options[0];
 
   useEffect(() => {
     if (!open) return;
@@ -263,17 +267,21 @@ function AdminSortDropdown({ value, onChange }: { value: SortValue; onChange: (v
   }, [open]);
 
   function focusOption(index: number) {
-    window.requestAnimationFrame(() => optionRefs.current[index]?.focus());
+    window.requestAnimationFrame(() => {
+      const option = optionRefs.current[index];
+      option?.focus();
+      option?.scrollIntoView({ block: "nearest" });
+    });
   }
 
-  function handleOptionKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {
+  function handleOptionKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      focusOption((index + 1) % sortOptions.length);
+      focusOption((index + 1) % options.length);
     }
     if (event.key === "ArrowUp") {
       event.preventDefault();
-      focusOption((index - 1 + sortOptions.length) % sortOptions.length);
+      focusOption((index - 1 + options.length) % options.length);
     }
     if (event.key === "Home") {
       event.preventDefault();
@@ -281,17 +289,19 @@ function AdminSortDropdown({ value, onChange }: { value: SortValue; onChange: (v
     }
     if (event.key === "End") {
       event.preventDefault();
-      focusOption(sortOptions.length - 1);
+      focusOption(options.length - 1);
     }
   }
 
+  if (!currentOption) return null;
+
   return (
-    <div className={`${styles.sortControl} ${open ? styles.sortControlOpen : ""}`} ref={rootRef}>
-      <span>Sort</span>
+    <div className={`${styles.sortControl} ${className} ${open ? styles.sortControlOpen : ""}`.trim()} ref={rootRef}>
+      <span>{controlLabel}</span>
       <button
         type="button"
         className={styles.sortTrigger}
-        aria-label={`Sort: ${currentOption.label}`}
+        aria-label={`${controlLabel}: ${currentOption.label}`}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls={listboxId}
@@ -309,8 +319,8 @@ function AdminSortDropdown({ value, onChange }: { value: SortValue; onChange: (v
         <ChevronDown className={styles.sortChevron} aria-hidden="true" size={17} />
       </button>
       {open ? (
-        <div className={styles.sortMenu} id={listboxId} role="listbox" aria-label="Sort products">
-          {sortOptions.map((option, index) => {
+        <div className={styles.sortMenu} id={listboxId} role="listbox" aria-label={menuLabel}>
+          {options.map((option, index) => {
             const selected = option.value === value;
             return (
               <button
@@ -334,6 +344,28 @@ function AdminSortDropdown({ value, onChange }: { value: SortValue; onChange: (v
           })}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function PaginationControls({
+  pagination,
+  loading,
+  onPageChange,
+}: {
+  pagination: ProductPagination;
+  loading: boolean;
+  onPageChange: (page: number) => void;
+}) {
+  const page = Math.max(1, pagination.page ?? 1);
+  const totalPages = Math.max(0, pagination.total_pages ?? 0);
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className={styles.pagination}>
+      <button type="button" onClick={() => onPageChange(page - 1)} disabled={loading || page <= 1}>Previous</button>
+      <span>Page {page} of {totalPages}</span>
+      <button type="button" onClick={() => onPageChange(page + 1)} disabled={loading || page >= totalPages}>Next</button>
     </div>
   );
 }
@@ -836,73 +868,143 @@ function GenerateProductModal({
 export function CatalogAdmin() {
   const { showToast } = useToast();
   const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [pagination, setPagination] = useState<ProductPagination>(emptyPagination);
   const [lookups, setLookups] = useState<Lookups>(emptyLookups);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [subcategoryFilter, setSubcategoryFilter] = useState("all");
+  const [categoryDeities, setCategoryDeities] = useState<Taxonomy[]>([]);
+  const [subcategoriesReady, setSubcategoriesReady] = useState(false);
   const [sort, setSort] = useState<SortValue>("featured");
+  const [page, setPage] = useState(1);
   const [modal, setModal] = useState<ProductModalState | null>(null);
   const [loading, setLoading] = useState(true);
+  const productRequest = useRef(0);
+  const deityRequest = useRef(0);
+  const listRef = useRef<HTMLElement>(null);
+  const nextFilterKey = `${categoryFilter}|${subcategoryFilter}|${sort}|${debouncedQuery}`;
+  const [filterKey, setFilterKey] = useState(nextFilterKey);
+  if (filterKey !== nextFilterKey) {
+    setFilterKey(nextFilterKey);
+    setProducts([]);
+    setPagination(emptyPagination);
+    setPage(1);
+  }
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  const loadLookups = useCallback(async () => {
     try {
-      const [productList, categories, materials, deities] = await Promise.all([
-        apiRequest<ProductList>("/api/admin/products?page_size=100"),
+      const [categories, materials, deities] = await Promise.all([
         apiRequest<Taxonomy[]>("/api/admin/products/categories"),
         apiRequest<Taxonomy[]>("/api/admin/products/materials"),
         apiRequest<Taxonomy[]>("/api/admin/products/deities"),
       ]);
-      setProducts(productList.items ?? []);
       setLookups({ categories, materials, deities });
     } catch {
-      showToast("Catalogue could not be loaded.");
-    } finally {
-      setLoading(false);
+      showToast("Catalogue filters could not be loaded.");
     }
   }, [showToast]);
 
-  useEffect(() => {
-    const task = window.setTimeout(() => { void load(); }, 0);
-    return () => window.clearTimeout(task);
-  }, [load]);
-
-  const availableSubcategories = useMemo(() => {
-    if (categoryFilter === "all") return [];
-    const categoryProductIds = new Set(
-      products
-        .filter((product) => String(product.category) === categoryFilter && product.deity)
-        .map((product) => String(product.deity)),
-    );
-    return lookups.deities.filter((deity) => categoryProductIds.has(String(deity.id)));
-  }, [categoryFilter, lookups.deities, products]);
-
-  const filteredProducts = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const matchingProducts = products.filter((product) => {
-      const matchesCategory = categoryFilter === "all" || String(product.category) === categoryFilter;
-      const matchesSubcategory = subcategoryFilter === "all" || String(product.deity) === subcategoryFilter;
-      const matchesSearch = !needle || `${product.name} ${product.slug} ${product.uid}`.toLowerCase().includes(needle);
-      return matchesCategory && matchesSubcategory && matchesSearch;
+  const loadProducts = useCallback(async () => {
+    const requestId = ++productRequest.current;
+    setLoading(true);
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(productPageSize),
+      sort,
     });
-    return sortProducts(matchingProducts, sort);
-  }, [categoryFilter, products, query, sort, subcategoryFilter]);
+    if (debouncedQuery) params.set("search", debouncedQuery);
+    if (categoryFilter !== "all") params.set("category", categoryFilter);
+    if (subcategoryFilter !== "all") params.set("deity", subcategoryFilter);
+
+    try {
+      const productList = await apiRequest<ProductList>(`/api/admin/products?${params.toString()}`);
+      if (requestId !== productRequest.current) return;
+      const nextPagination = productList.pagination ?? {
+        ...emptyPagination,
+        page,
+        total_items: productList.items?.length ?? 0,
+        total_pages: productList.items?.length ? 1 : 0,
+      };
+      const totalPages = nextPagination.total_pages ?? 0;
+      if (totalPages > 0 && page > totalPages) {
+        setPage(totalPages);
+        return;
+      }
+      setProducts(productList.items ?? []);
+      setPagination(nextPagination);
+    } catch {
+      if (requestId !== productRequest.current) return;
+      showToast("Catalogue could not be loaded.");
+    } finally {
+      if (requestId === productRequest.current) setLoading(false);
+    }
+  }, [categoryFilter, debouncedQuery, page, showToast, sort, subcategoryFilter]);
 
   useEffect(() => {
-    const subcategoryIsValid = availableSubcategories.some((subcategory) => String(subcategory.id) === subcategoryFilter);
-    if (subcategoryFilter !== "all" && (categoryFilter === "all" || !subcategoryIsValid)) {
-      setSubcategoryFilter("all");
+    const task = window.setTimeout(() => { void loadLookups(); }, 0);
+    return () => window.clearTimeout(task);
+  }, [loadLookups]);
+
+  useEffect(() => {
+    const task = window.setTimeout(() => { void loadProducts(); }, 0);
+    return () => window.clearTimeout(task);
+  }, [loadProducts]);
+
+  useEffect(() => {
+    const requestId = ++deityRequest.current;
+    if (categoryFilter === "all") return;
+
+    setSubcategoriesReady(false);
+    const task = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const items = await apiRequest<Taxonomy[]>(`/api/admin/products/deities?category=${categoryFilter}`);
+          if (requestId !== deityRequest.current) return;
+          setCategoryDeities(items);
+        } catch {
+          if (requestId !== deityRequest.current) return;
+          setCategoryDeities([]);
+          showToast("Subcategories could not be loaded.");
+        } finally {
+          if (requestId === deityRequest.current) setSubcategoriesReady(true);
+        }
+      })();
+    }, 0);
+    return () => window.clearTimeout(task);
+  }, [categoryFilter, showToast]);
+
+  useEffect(() => {
+    if (categoryFilter === "all" || subcategoryFilter === "all" || !subcategoriesReady) return;
+    const subcategoryIsValid = categoryDeities.some((subcategory) => String(subcategory.id) === subcategoryFilter);
+    if (!subcategoryIsValid) setSubcategoryFilter("all");
+  }, [categoryDeities, categoryFilter, subcategoriesReady, subcategoryFilter]);
+
+  const skipListScroll = useRef(true);
+  useEffect(() => {
+    if (skipListScroll.current) {
+      skipListScroll.current = false;
+      return;
     }
-  }, [availableSubcategories, categoryFilter, subcategoryFilter]);
+    listRef.current?.scrollIntoView({ block: "start" });
+  }, [page]);
 
   function selectCategory(value: string) {
     setCategoryFilter(value);
     setSubcategoryFilter("all");
+    setCategoryDeities([]);
+    setSubcategoriesReady(false);
   }
 
   const saveProduct = useCallback((product: AdminProduct, mode: ProductModalState["mode"]) => {
-    setProducts((current) => upsertProduct(current, product, mode));
-  }, []);
+    if (mode !== "create") setProducts((current) => upsertProduct(current, product, mode));
+    void loadProducts();
+  }, [loadProducts]);
 
   const updateProductImage = useCallback((productId: number, image: ProductImage) => {
     setProducts((current) => current.map((product) => (
@@ -925,10 +1027,10 @@ export function CatalogAdmin() {
   }, []);
 
   return (
-    <section className={styles.adminSection}>
+    <section className={styles.adminSection} ref={listRef}>
       <div className={styles.toolbar}>
         <label><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products" /></label>
-        <button type="button" onClick={() => void load()} disabled={loading}><RefreshCw size={15} /> Refresh</button>
+        <button type="button" onClick={() => { void loadLookups(); void loadProducts(); }} disabled={loading}><RefreshCw size={15} /> Refresh</button>
         <button className={styles.primaryAction} type="button" onClick={() => setModal({ mode: "create" })}><Plus size={15} /> Add Product</button>
         <button className={styles.primaryAction} style={{ background: '#6366f1', borderColor: '#6366f1' }} type="button" onClick={() => setModal({ mode: "create_ai" })}><Sparkles size={15} /> Add Product with AI</button>
         <button className={styles.primaryAction} style={{ background: '#10b981', borderColor: '#10b981' }} type="button" onClick={() => setModal({ mode: "create_paragraph" })}><AlignLeft size={15} /> Add Product with Paragraph</button>
@@ -943,28 +1045,38 @@ export function CatalogAdmin() {
             </button>
           ))}
         </nav>
-        <AdminSortDropdown value={sort} onChange={setSort} />
+        <div className={styles.catalogFilters}>
+          {categoryFilter !== "all" && categoryDeities.length ? (
+            <AdminOptionDropdown
+              label="Subcategory"
+              menuLabel="Filter products by subcategory"
+              className={styles.subcategoryControl}
+              value={subcategoryFilter}
+              options={[
+                { label: "All subcategories", value: "all" },
+                ...categoryDeities.map((subcategory) => ({ label: subcategory.name, value: String(subcategory.id) })),
+              ]}
+              onChange={setSubcategoryFilter}
+            />
+          ) : null}
+          <AdminOptionDropdown
+            label="Sort"
+            menuLabel="Sort products"
+            value={sort}
+            options={sortOptions}
+            onChange={(value) => setSort(value as SortValue)}
+          />
+        </div>
       </div>
 
-      {availableSubcategories.length ? (
-        <nav className={styles.subcategoryNavigation} aria-label="Filter products by subcategory">
-          <button className={subcategoryFilter === "all" ? styles.activeSubcategory : ""} type="button" aria-pressed={subcategoryFilter === "all"} onClick={() => setSubcategoryFilter("all")}>All Subcategories</button>
-          {availableSubcategories.map((subcategory) => (
-            <button className={subcategoryFilter === String(subcategory.id) ? styles.activeSubcategory : ""} type="button" aria-pressed={subcategoryFilter === String(subcategory.id)} onClick={() => setSubcategoryFilter(String(subcategory.id))} key={subcategory.id}>
-              {subcategory.name}
-            </button>
-          ))}
-        </nav>
-      ) : null}
-
       <div className={styles.summary}>
-        <strong>{filteredProducts.length}</strong>
+        <strong>{pagination.total_items ?? 0}</strong>
         <span>{loading ? "Loading catalogue..." : "products connected to Django"}</span>
-        <small>{products.filter((product) => product.status === "active").length} active</small>
+        {typeof pagination.active_items === "number" ? <small>{pagination.active_items} active</small> : null}
       </div>
 
       <div className={styles.productList}>
-        {filteredProducts.map((product) => {
+        {products.map((product) => {
           const imageUrl = coverImage(product);
           return (
             <article className={styles.productRow} key={product.id}>
@@ -992,8 +1104,9 @@ export function CatalogAdmin() {
             </article>
           );
         })}
-        {!loading && !filteredProducts.length ? <div className={styles.stateCard}><h2 className="font-display">No products found.</h2><p>Create a product after adding active category, material and deity records.</p></div> : null}
+        {!loading && !products.length ? <div className={styles.stateCard}><h2 className="font-display">No products found.</h2><p>Create a product after adding active category, material and deity records.</p></div> : null}
       </div>
+      <PaginationControls pagination={{ ...pagination, page }} loading={loading} onPageChange={setPage} />
 
       {modal ? (
         (modal.mode === "create_ai" || modal.mode === "create_paragraph") ? (

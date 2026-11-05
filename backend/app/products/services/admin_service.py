@@ -335,8 +335,8 @@ class DietyAdminService:
         return None, deity
 
     @staticmethod
-    def get_all_deities():
-        return DietyRepository.get_all_deities_list()
+    def get_all_deities(category_id=None):
+        return DietyRepository.get_all_deities_list(category_id)
 
     @staticmethod
     def create_deity(data):

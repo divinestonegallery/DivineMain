@@ -28,6 +28,14 @@ from app.products.serializers.customer import (
 logger = logging.getLogger(__name__)
 
 
+def _filter_by_taxonomy(queryset, field, value):
+    # Admin screens send record ids. The public catalogue sends slugs.
+    value = str(value).strip()
+    if value.isdigit():
+        return queryset.filter(**{f'{field}_id': int(value)})
+    return queryset.filter(**{f'{field}__slug': value})
+
+
 def _pagination(queryset, page, page_size, serializer_class):
     start = (page - 1) * page_size
     rows = list(
@@ -72,8 +80,11 @@ class ProductRepository:
         images = ProductImage.objects.select_related('image').order_by('display_order', 'id')
         queryset = Product.objects.prefetch_related(Prefetch('images', queryset=images))
         queryset = ProductRepository._apply_filters(queryset, params, include_status=True)
+        active_items = queryset.filter(status=ProductStatus.ACTIVE.value).count()
         queryset = ProductRepository._apply_sort(queryset, params['sort'])
-        return _pagination(queryset, params['page'], params['page_size'], ProductAdminListSerializer)
+        result = _pagination(queryset, params['page'], params['page_size'], ProductAdminListSerializer)
+        result['pagination']['active_items'] = active_items
+        return result
 
     @staticmethod
     def get_product_list(filters=None, sort='display_order', offset=0, limit=24):
@@ -130,16 +141,17 @@ class ProductRepository:
         if search:
             queryset = queryset.filter(
                 Q(name__icontains=search)
+                | Q(slug__icontains=search)
                 | Q(keywords__icontains=search)
                 | Q(short_description__icontains=search)
                 | Q(uid__icontains=search)
             )
         if params.get('category'):
-            queryset = queryset.filter(category__slug=params['category'])
+            queryset = _filter_by_taxonomy(queryset, 'category', params['category'])
         if params.get('material'):
-            queryset = queryset.filter(material__slug=params['material'])
+            queryset = _filter_by_taxonomy(queryset, 'material', params['material'])
         if params.get('deity'):
-            queryset = queryset.filter(diety__slug=params['deity'])
+            queryset = _filter_by_taxonomy(queryset, 'diety', params['deity'])
         if params.get('availability'):
             queryset = queryset.filter(availability=params['availability'])
         if params.get('min_price') is not None:
@@ -166,6 +178,8 @@ class ProductRepository:
             'oldest': ('created_at',),
             'featured': ('-is_featured', 'display_order', '-created_at'),
             'display_order': ('display_order', '-is_featured', '-created_at'),
+            'name_asc': ('name', 'id'),
+            'name_desc': ('-name', 'id'),
         }
         return queryset.order_by(*orders.get(sort, orders['display_order']))
 
@@ -577,8 +591,13 @@ class MaterialRepository:
 
 class DietyRepository:
     @staticmethod
-    def get_all_deities_list():
-        items = Diety.objects.select_related('diety_image__image').all().order_by('display_order', 'name')
+    def get_all_deities_list(category_id=None):
+        items = Diety.objects.select_related('diety_image__image').prefetch_related('categories')
+        if category_id is not None:
+            items = items.filter(
+                Q(categories__id=category_id) | Q(products__category_id=category_id)
+            ).distinct()
+        items = items.order_by('display_order', 'name')
         return None, DietyAdminSerializer(items, many=True).data
 
     @staticmethod
