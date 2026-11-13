@@ -114,7 +114,7 @@ export function AuthModal() {
     const form = new FormData(e.currentTarget);
 
     try {
-      const result = await signIn({ email: form.get("email"), password: form.get("password") });
+      const result: any = await signIn({ email: form.get("email"), password: form.get("password") });
       if (result?.requires_verification) {
         setResetEmail(String(form.get("email") || ""));
         setVerificationId(result.verification_id || result.verificationId || "");

@@ -12,9 +12,9 @@ const AuthContext = createContext({
   isSignedIn: false,
   user: null as any,
   refresh: async () => {},
-  signIn: async (_credentials: any) => null,
-  signUp: async (_credentials: any) => null,
-  verifySignup: async (_credentials: any) => null,
+  signIn: async (_credentials: any): Promise<any> => null,
+  signUp: async (_credentials: any): Promise<any> => null,
+  verifySignup: async (_credentials: any): Promise<any> => null,
   signOut: async () => {},
 });
 
