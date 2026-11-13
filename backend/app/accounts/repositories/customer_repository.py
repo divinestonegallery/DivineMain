@@ -1,3 +1,4 @@
+from django.db import DataError, IntegrityError
 from django.db.models import Q
 
 from app.accounts.models import Employee, User
@@ -63,8 +64,12 @@ class CustomerRepository:
             if User.objects.filter(email=normalized_email).exclude(id=customer.id).exists():
                 raise ValueError('This email address is already associated with another account.')
             customer.email = normalized_email
-            customer.name = name
-            customer.phone = phone
+            # Clerk omits a name or phone on later logins. Keep the saved profile
+            # instead of replacing it with an empty value.
+            if name:
+                customer.name = name
+            if phone:
+                customer.phone = phone
 
         customer.save()
         return customer, created
@@ -175,7 +180,12 @@ class CustomerRepository:
         if 'email' in data:
             update_fields.append('email')
         update_fields.append('updated_at')
-        customer.save(update_fields=update_fields)
+        try:
+            customer.save(update_fields=update_fields)
+        except DataError:
+            return 'One of the profile fields is too long.', None
+        except IntegrityError:
+            return 'This email address is already associated with another account.', None
         return None, UserSerializer(customer).data
 
     @staticmethod

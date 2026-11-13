@@ -39,7 +39,7 @@ class SignupValidator(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(min_length=8, max_length=128, write_only=True)
     name = serializers.CharField(max_length=255, required=False, allow_blank=True, default='')
-    phone = serializers.CharField(max_length=30, required=False, allow_blank=True, default='')
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True, default='')
 
     def validate_email(self, value):
         return value.strip().lower()
@@ -54,8 +54,9 @@ class SignupValidator(serializers.Serializer):
 class VerifySignupValidator(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField(max_length=50)
+    verification_id = serializers.CharField(required=False, allow_blank=True, max_length=255)
     name = serializers.CharField(max_length=255, required=False, allow_blank=True, default='')
-    phone = serializers.CharField(max_length=30, required=False, allow_blank=True, default='')
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True, default='')
 
     def validate_email(self, value):
         return value.strip().lower()
@@ -113,7 +114,7 @@ class RefreshTokenValidator(serializers.Serializer):
 
 class UpdateProfileValidator(serializers.Serializer):
     name = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
     email = serializers.EmailField(max_length=255, required=False)
 
     def validate_name(self, value):

@@ -33,6 +33,10 @@ class ClerkClient:
 
         payload = {
             'email_address': [email.strip().lower()],
+            # Backend API creates emails as verified unless this is reserved.
+            # Reserved keeps the address unverified until the OTP is confirmed,
+            # while still stopping another user from claiming it.
+            'email_address_identification_status': ['reserved'],
             'password': password,
             'skip_password_checks': getattr(settings, 'CLERK_SKIP_PASSWORD_CHECKS', False),
         }
@@ -176,6 +180,7 @@ class ClerkClient:
             response = requests.post(
                 f'{cls.BASE_URL}/email_addresses/{email_address_id}/prepare_verification',
                 headers=headers,
+                json={'strategy': 'email_code'},
                 timeout=10,
             )
         except requests.RequestException as exc:
@@ -191,14 +196,16 @@ class ClerkClient:
     def attempt_email_verification(cls, email_address_id, code, verification_id=None):
         """Verify the code sent to the email address via Clerk.
 
-        verification_id is kept for callers that stored one. Clerk identifies
-        the attempt by the email address id in the URL and only accepts the code.
+        Clerk identifies the attempt by the email address id and requires the
+        verification id returned when the code was sent.
         """
         headers = cls._get_headers()
         if not headers:
             return 'Clerk secret key is not configured.', False
 
         payload = {'code': code.strip()}
+        if verification_id:
+            payload['verification_id'] = verification_id
 
         try:
             response = requests.post(
@@ -224,7 +231,7 @@ class ClerkClient:
                 return None, True
             return 'Invalid or expired OTP.', False
 
-        err_msg, _ = cls._format_error(response, default_msg=' check failed.')
+        err_msg, _ = cls._format_error(response, default_msg='Invalid or expired OTP.')
         return err_msg, False
 
     @classmethod

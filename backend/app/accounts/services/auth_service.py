@@ -2,6 +2,7 @@ import logging
 
 import jwt
 from django.core.cache import cache
+from django.db import DataError, IntegrityError
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
 
 from django.conf import settings
@@ -21,6 +22,58 @@ from app.leads.services.lead_service import LeadService
 logger = logging.getLogger(__name__)
 
 CUSTOMER_AUTH_ONLY = 'This account action is only available on the customer application.'
+
+_UPSTREAM_ERROR_MARKERS = (
+    'Unable to contact authentication service',
+    'Clerk secret key is not configured',
+    'Too many requests',
+    'Failed to query user',
+    'Failed to retrieve user',
+    'Failed to create user account',
+    'Failed to send verification',
+    'Password verification failed',
+    'Failed to obtain Clerk user ID',
+)
+
+
+def _upstream_error(error):
+    """Return a Clerk/transport failure unchanged so it is not shown as a bad password."""
+    if not error:
+        return None
+    for marker in _UPSTREAM_ERROR_MARKERS:
+        if marker in error:
+            return error
+    return None
+
+
+def _email_record(clerk_user, email):
+    addresses = (clerk_user or {}).get('email_addresses') or []
+    for item in addresses:
+        if item.get('email_address', '').lower() == email.lower():
+            return item
+    return addresses[0] if addresses else None
+
+
+def _verification_cache_key(email):
+    return f"email_ver_{email.lower()}"
+
+
+def _needs_email_verification(clerk_user, email):
+    """True only when Clerk explicitly says this address is not verified.
+
+    Payloads that omit verification stay usable. Tests and older sessions
+    do that, and treating them as unverified would lock those accounts out.
+    """
+    record = _email_record(clerk_user, email)
+    if not record:
+        return False
+    # Reserved addresses are unverified. Clerk sends verification as null.
+    if record.get('reserved') is True:
+        return True
+    status = (record.get('verification') or {}).get('status')
+    if not status:
+        return False
+    return status != 'verified'
 
 
 class AuthService:
@@ -53,6 +106,37 @@ class AuthService:
         return None
 
     @classmethod
+    def _sync_customer(cls, **kwargs):
+        try:
+            return None, CustomerRepository.sync_customer(**kwargs)
+        except ValueError as exc:
+            return str(exc), None
+        except IntegrityError:
+            return 'An account with this email address already exists.', None
+        except DataError:
+            return 'One of the profile fields is too long.', None
+
+    @classmethod
+    def _pending_verification(cls, clerk_user, email):
+        record = _email_record(clerk_user, email)
+        email_id = record.get('id') if record else None
+        if not email_id:
+            return 'Email address not found.', None
+        prep_err, prep_data = ClerkClient.prepare_email_verification(email_id)
+        if prep_err:
+            return prep_err, None
+        verification_id = prep_data.get('id') if isinstance(prep_data, dict) else None
+        payload = {
+            'requires_verification': True,
+            'email': email,
+            'message': 'Please verify your email address with the OTP sent.',
+        }
+        if verification_id:
+            payload['verification_id'] = verification_id
+            cache.set(_verification_cache_key(email), verification_id, timeout=900)
+        return None, payload
+
+    @classmethod
     def signup(cls, data):
         rejected = cls._reject_unless_consumer()
         if rejected:
@@ -62,8 +146,10 @@ class AuthService:
         name = data.get('name', '')
         phone = data.get('phone', '')
 
-        # Check for local customer existence first
-        if CustomerRepository.email_exists(email):
+        # A finished local account already has a Clerk subject. An employee
+        # shell without one can still claim this email on the customer app.
+        existing = CustomerRepository.get_customer_dict_by_email(email)
+        if existing and existing.get('clerk_user_id'):
             return 'An account with this email address already exists.', None
 
         # Split full name into first and last name for Clerk
@@ -83,6 +169,13 @@ class AuthService:
             phone=phone if phone else None,
         )
         if error:
+            if 'already exists' in error.lower():
+                lookup_error, existing_clerk = ClerkClient.get_user_by_email(email)
+                if _upstream_error(lookup_error):
+                    return lookup_error, None
+                if existing_clerk and _needs_email_verification(existing_clerk, email):
+                    return cls._pending_verification(existing_clerk, email)
+                return 'An account with this email address already exists.', None
             return error, None
 
         clerk_user_id = clerk_user.get('id')
@@ -96,30 +189,30 @@ class AuthService:
         for ea in email_addresses:
             if ea.get('email_address', '').lower() == email.lower():
                 email_id = ea.get('id')
-                if ea.get('verification', {}).get('status') == 'verified':
+                if (ea.get('verification') or {}).get('status') == 'verified':
                     is_verified = True
                 break
         if not email_id and email_addresses:
             email_id = email_addresses[0].get('id')
-            if email_addresses[0].get('verification', {}).get('status') == 'verified':
+            if (email_addresses[0].get('verification') or {}).get('status') == 'verified':
                 is_verified = True
 
         if email_id and not is_verified:
-            prep_err, prep_data = ClerkClient.prepare_email_verification(email_id)
-            if not prep_err:
-                return None, {
-                    'requires_verification': True,
-                    'email': email,
-                    'message': 'Please verify your email address with the OTP sent.',
-                }
+            pending_error, pending = cls._pending_verification(clerk_user, email)
+            if pending:
+                return None, pending
+            if _needs_email_verification(clerk_user, email):
+                return pending_error or 'Unable to send the verification email. Please try again later.', None
 
         # 2. Sync local Customer record
-        sync_result = CustomerRepository.sync_customer(
+        sync_error, sync_result = cls._sync_customer(
             clerk_id=clerk_user_id,
             email=email,
             name=name if name else None,
             phone=phone if phone else None,
         )
+        if sync_error:
+            return sync_error, None
         customer_dict = sync_result.get('customer')
 
         # 3. Generate token pair
@@ -142,6 +235,8 @@ class AuthService:
 
         # 1. Lookup user in Clerk
         error, clerk_user = ClerkClient.get_user_by_email(email)
+        if _upstream_error(error):
+            return error, None
         if error or not clerk_user:
             return 'Invalid email or OTP.', None
 
@@ -158,18 +253,27 @@ class AuthService:
         if not email_id:
             return 'Email address not found.', None
 
-        # 2. Verify OTP code with Clerk (verification_id is optional)
-        ver_err, is_verified = ClerkClient.attempt_email_verification(email_id, code)
+        # 2. Verify OTP code with Clerk. The id is the one returned when the code was sent.
+        verification_id = data.get('verification_id') or cache.get(_verification_cache_key(email))
+        if not verification_id:
+            return 'Please request a new verification code.', None
+        ver_err, is_verified = ClerkClient.attempt_email_verification(
+            email_id, code, verification_id=verification_id
+        )
+        if ver_err and 'verification_id' in ver_err.lower():
+            return 'Please request a new verification code.', None
         if ver_err or not is_verified:
             return ver_err or 'Invalid or expired OTP.', None
 
         # 3. Create/Sync local customer
-        sync_result = CustomerRepository.sync_customer(
+        sync_error, sync_result = cls._sync_customer(
             clerk_id=clerk_user_id,
             email=email,
             name=name if name else None,
             phone=phone if phone else None,
         )
+        if sync_error:
+            return sync_error, None
         customer_dict = sync_result.get('customer')
 
         if not customer_dict.get('is_active', True):
@@ -191,6 +295,8 @@ class AuthService:
 
         # 1. Query Clerk for user by email
         error, clerk_user = ClerkClient.get_user_by_email(email)
+        if _upstream_error(error):
+            return error, None
         if error or not clerk_user:
             return 'Invalid email or password.', None
 
@@ -200,8 +306,15 @@ class AuthService:
 
         # 2. Verify password with Clerk
         error, verified = ClerkClient.verify_password(clerk_user_id, password)
+        if _upstream_error(error):
+            return error, None
         if error or not verified:
             return 'Invalid email or password.', None
+
+        if _needs_email_verification(clerk_user, email):
+            if settings.DEPLOYMENT_MODE == 'admin':
+                return 'Please verify your email address before signing in.', None
+            return cls._pending_verification(clerk_user, email)
 
         # 3. Resolve user profile fields from Clerk
         first_name = clerk_user.get('first_name') or ''
@@ -214,12 +327,14 @@ class AuthService:
         if settings.DEPLOYMENT_MODE == 'admin':
             return cls._issue_admin_login(clerk_user_id, email, full_name)
 
-        sync_result = CustomerRepository.sync_customer(
+        sync_error, sync_result = cls._sync_customer(
             clerk_id=clerk_user_id,
             email=email,
             name=full_name,
             phone=phone,
         )
+        if sync_error:
+            return sync_error, None
         customer_dict = sync_result.get('customer')
 
         if not customer_dict.get('is_active', True):
@@ -264,19 +379,27 @@ class AuthService:
 
         # Look up customer in Clerk and locally
         error, clerk_user = ClerkClient.get_user_by_email(email)
+        if _upstream_error(error):
+            return error, None
         customer_dict = CustomerRepository.get_customer_dict_by_email(email)
 
-        if not clerk_user and customer_dict and customer_dict.get('clerk_id'):
-            error, clerk_user = ClerkClient.get_user_by_id(customer_dict['clerk_id'])
+        clerk_subject = (customer_dict or {}).get('clerk_user_id') or (customer_dict or {}).get('clerk_id')
+        if not clerk_user and clerk_subject:
+            error, clerk_user = ClerkClient.get_user_by_id(clerk_subject)
+            if _upstream_error(error):
+                return error, None
 
-        if clerk_user and not customer_dict:
-            sync_result = CustomerRepository.sync_customer(
+        if clerk_user and not customer_dict and not _needs_email_verification(clerk_user, email):
+            sync_error, sync_result = cls._sync_customer(
                 clerk_id=clerk_user['id'],
                 email=email,
             )
+            if sync_error:
+                return sync_error, None
             customer_dict = sync_result.get('customer')
 
         email_sent = False
+        verification_id = None
         if clerk_user:
             # Trigger Clerk to send the OTP verification email to the user
             email_addresses = clerk_user.get('email_addresses', [])
@@ -290,13 +413,16 @@ class AuthService:
 
             if email_id:
                 prep_err, prep_data = ClerkClient.prepare_email_verification(email_id)
-                if not prep_err:
+                if prep_err:
+                    if _upstream_error(prep_err):
+                        return prep_err, None
+                    logger.warning("Clerk prepare_email_verification failed for %s: %s", email, prep_err)
+                else:
                     email_sent = True
                     verification_id = prep_data.get('id') if isinstance(prep_data, dict) else None
                     if verification_id:
                         cache.set(f"pwd_reset_ver_{email.lower()}", verification_id, timeout=900)
-                else:
-                    logger.warning("Clerk prepare_email_verification failed for %s: %s", email, prep_err)
+                        cache.set(_verification_cache_key(email), verification_id, timeout=900)
 
         reset_token = None
         if customer_dict and customer_dict.get('is_active', True):
@@ -308,7 +434,7 @@ class AuthService:
         }
         if email_sent and verification_id:
             response_data['verification_id'] = verification_id
-        if (getattr(settings, 'DEBUG', False) or getattr(settings, 'IS_TESTING', False)) and reset_token:
+        if getattr(settings, 'IS_TESTING', False) and reset_token:
             response_data['reset_token'] = reset_token
 
         return None, response_data
@@ -329,6 +455,8 @@ class AuthService:
         if code and email:
             # 1. Lookup user in Clerk
             error, clerk_user = ClerkClient.get_user_by_email(email)
+            if _upstream_error(error):
+                return error, None
             if error or not clerk_user:
                 return 'Invalid email or OTP.', None
 
@@ -353,6 +481,8 @@ class AuthService:
             ver_err, is_verified = ClerkClient.attempt_email_verification(
                 email_id, code, verification_id=verification_id
             )
+            if ver_err and 'verification_id' in ver_err.lower():
+                return 'Please request a new verification code.', None
             if ver_err or not is_verified:
                 return ver_err or 'Invalid or expired OTP.', None
 

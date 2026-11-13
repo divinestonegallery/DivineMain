@@ -105,6 +105,7 @@ export function ClerkProvider({ children, routerPush, afterSignOutUrl = "/" }: {
 
   const signIn = useCallback(async (credentials: any) => {
     const data = await login(credentials);
+    if (data?.requires_verification) return data;
     if (!setUserFromAuthResponse(data)) await refresh();
     return data;
   }, [refresh, setUserFromAuthResponse]);

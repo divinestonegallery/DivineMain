@@ -81,11 +81,15 @@ export function onAuthSessionChange(callback: () => void) {
 
 export async function login(credentials: any) {
   try {
-    const data = await fetchApi<any>("/auth/login", {
+    const payload = await fetchApi<any>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ ...credentials, email: normalizeAuthEmail(credentials?.email) }),
     });
-    return persistAuthSession(data);
+    const data = payload?.data ?? payload;
+    if (data?.requires_verification) {
+      return data;
+    }
+    return persistAuthSession(payload);
   } catch (error: any) {
     throw new Error(error.message || "Failed to login");
   }
@@ -107,13 +111,15 @@ export async function register(userData: any) {
   }
 }
 
-export async function verifySignup({ email, code, name, phone }: { email: string; code: string; name?: string; phone?: string }) {
+export async function verifySignup({ email, code, name, phone, verificationId }: { email: string; code: string; name?: string; phone?: string; verificationId?: string }) {
   try {
+    const normalizedVerificationId = String(verificationId || "").trim();
     const payload = await fetchApi<any>("/auth/verify-signup", {
       method: "POST",
       body: JSON.stringify({
         email: normalizeAuthEmail(email),
         code: String(code || "").trim(),
+        ...(normalizedVerificationId ? { verification_id: normalizedVerificationId } : {}),
         ...(name ? { name } : {}),
         ...(phone ? { phone } : {}),
       }),
@@ -152,18 +158,15 @@ export async function requestPasswordReset(email: string) {
   };
 }
 
-export async function resetPasswordWithCode({ email, code, verificationId, newPassword }: { email: string; code: string; verificationId: string; newPassword: string }) {
+export async function resetPasswordWithCode({ email, code, verificationId, newPassword }: { email: string; code: string; verificationId?: string; newPassword: string }) {
   const normalizedVerificationId = String(verificationId || "").trim();
-  if (!normalizedVerificationId) {
-    throw new Error("Password verification could not be completed. Please request a new code.");
-  }
 
   const payload = await fetchApi<any>("/auth/reset-password", {
     method: "POST",
     body: JSON.stringify({
       email: normalizeAuthEmail(email),
       code: String(code || "").trim(),
-      verification_id: normalizedVerificationId,
+      ...(normalizedVerificationId ? { verification_id: normalizedVerificationId } : {}),
       new_password: newPassword,
     }),
   });
