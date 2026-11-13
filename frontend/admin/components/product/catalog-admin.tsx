@@ -263,7 +263,17 @@ function AdminSortDropdown({ value, onChange }: { value: SortValue; onChange: (v
   }, [open]);
 
   function focusOption(index: number) {
-    window.requestAnimationFrame(() => optionRefs.current[index]?.focus());
+    window.requestAnimationFrame(() => {
+      const option = optionRefs.current[index];
+      if (!option) return;
+      option.focus({ preventScroll: true });
+      const menu = option.closest("[role='listbox']");
+      if (!(menu instanceof HTMLElement)) return;
+      const top = option.offsetTop;
+      const bottom = top + option.offsetHeight;
+      if (top < menu.scrollTop) menu.scrollTop = top;
+      else if (bottom > menu.scrollTop + menu.clientHeight) menu.scrollTop = bottom - menu.clientHeight;
+    });
   }
 
   function handleOptionKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {

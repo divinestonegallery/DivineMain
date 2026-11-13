@@ -260,8 +260,14 @@
   width: min(360px, calc(100vw - 2rem));
   min-width: 100%;
   gap: 0.16rem;
-  overflow: hidden;
+  max-height: min(22rem, 52dvh);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0.45rem;
+  scroll-padding-block: 0.35rem;
+  scrollbar-color: rgb(198 155 81 / 0.72) transparent;
+  scrollbar-width: thin;
   border: 1px solid var(--dropdown-border);
   border-radius: 28px;
   background: var(--dropdown-surface);
