@@ -196,7 +196,7 @@ function MyProfilePanel({ enabled = true, onProfileLoaded }: { enabled?: boolean
           </label>
           <label>
             <span>Phone Number</span>
-            <input value={form.phone} type="tel" autoComplete="tel" maxLength={30} disabled={saving} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} />
+            <input value={form.phone} type="tel" autoComplete="tel" maxLength={32} disabled={saving} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} />
           </label>
           {feedback ? <FeedbackMessage type={feedback.type}>{feedback.message}</FeedbackMessage> : null}
           <Button type="submit" size="md" disabled={saving}>

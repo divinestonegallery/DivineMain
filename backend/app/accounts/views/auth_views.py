@@ -24,10 +24,19 @@ _LOGIN_UNAUTHORIZED = (
 )
 
 
-def _customer_auth_status(error, default):
+def _auth_error_status(error, unauthorized=False):
     if error == CUSTOMER_AUTH_ONLY:
         return 404
-    return default
+    if error and 'Too many requests' in error:
+        return 429
+    if error and (
+        'Unable to contact authentication service' in error
+        or 'Clerk secret key is not configured' in error
+    ):
+        return 503
+    if unauthorized or (error and 'inactive' in error):
+        return 401
+    return 400
 
 
 class CustomerApplicationOnlyView(OpenAPIView):
@@ -52,7 +61,7 @@ class SignupView(OpenAPIView):
             return get_response(ErrorResponse(message='Validation failed', err=validator.errors, status_code=400))
         error, data = AuthService.signup(validator.validated_data)
         if error:
-            return get_response(ErrorResponse(message=error, status_code=_customer_auth_status(error, 400)))
+            return get_response(ErrorResponse(message=error, status_code=_auth_error_status(error)))
         return get_response(SuccessResponse(data=data, message=data.get('message', 'User registered successfully'), status_code=status.HTTP_201_CREATED))
 
 
@@ -65,7 +74,7 @@ class VerifySignupView(OpenAPIView):
             return get_response(ErrorResponse(message='Validation failed', err=validator.errors, status_code=400))
         error, data = AuthService.verify_signup(validator.validated_data)
         if error:
-            return get_response(ErrorResponse(message=error, status_code=_customer_auth_status(error, 400)))
+            return get_response(ErrorResponse(message=error, status_code=_auth_error_status(error)))
         return get_response(SuccessResponse(data=data, message=data.get('message', 'Account verified successfully'), status_code=status.HTTP_201_CREATED))
 
 
@@ -78,9 +87,13 @@ class LoginView(OpenAPIView):
             return get_response(ErrorResponse(message='Validation failed', err=validator.errors, status_code=400))
         error, data = AuthService.login(validator.validated_data)
         if error:
-            unauthorized = error in _LOGIN_UNAUTHORIZED or 'Invalid email' in error or 'inactive' in error or 'not found' in error
-            code = status.HTTP_401_UNAUTHORIZED if unauthorized else _customer_auth_status(error, 400)
-            return get_response(ErrorResponse(message=error, status_code=code))
+            unauthorized = error in _LOGIN_UNAUTHORIZED or 'Invalid email' in error or 'not found' in error
+            return get_response(ErrorResponse(message=error, status_code=_auth_error_status(error, unauthorized=unauthorized)))
+        if data.get('requires_verification'):
+            return get_response(SuccessResponse(
+                data=data,
+                message=data.get('message', 'Please verify your email address.'),
+            ))
         return get_response(SuccessResponse(data=data, message='Logged in successfully'))
 
 
@@ -93,7 +106,7 @@ class ForgotPasswordView(OpenAPIView):
             return get_response(ErrorResponse(message='Validation failed', err=validator.errors, status_code=400))
         error, data = AuthService.forgot_password(validator.validated_data)
         if error:
-            return get_response(ErrorResponse(message=error, status_code=_customer_auth_status(error, 400)))
+            return get_response(ErrorResponse(message=error, status_code=_auth_error_status(error)))
         return get_response(SuccessResponse(data=data, message=data.get('message', 'Password reset instructions sent.')))
 
 
@@ -106,7 +119,7 @@ class ResetPasswordView(OpenAPIView):
             return get_response(ErrorResponse(message='Validation failed', err=validator.errors, status_code=400))
         error, data = AuthService.reset_password(validator.validated_data)
         if error:
-            return get_response(ErrorResponse(message=error, status_code=_customer_auth_status(error, 400)))
+            return get_response(ErrorResponse(message=error, status_code=_auth_error_status(error)))
         return get_response(SuccessResponse(data=data, message=data.get('message', 'Password reset successfully.')))
 
 
@@ -136,7 +149,12 @@ class CurrentProfileView(AuthenticatedAPIView):
             return get_response(ErrorResponse(message='Invalid profile update', err=validator.errors, status_code=400))
         error, data = AuthService.update_profile(acting_user_id(request.user), validator.validated_data)
         if error:
-            code = 409 if 'already associated' in error else 404
+            if 'already associated' in error:
+                code = 409
+            elif 'too long' in error:
+                code = 400
+            else:
+                code = 404
             return get_response(ErrorResponse(message=error, status_code=code))
         return get_response(SuccessResponse(data=data, message='Profile updated successfully'))
 

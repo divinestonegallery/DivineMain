@@ -139,6 +139,105 @@ class AuthAPITests(TestCase):
         data = response.json()
         self.assertFalse(data['success'])
 
+    def test_login_reports_authentication_service_outage(self):
+        with patch(
+            'app.accounts.services.clerk_client.ClerkClient.get_user_by_email',
+            return_value=('Unable to contact authentication service. Please try again later.', None),
+        ):
+            response = self.client.post(
+                '/api/v1/auth/login',
+                {'email': self.test_email, 'password': self.test_password},
+                format='json',
+            )
+        self.assertEqual(response.status_code, 503)
+        self.assertIn('Unable to contact authentication service', response.json()['message'])
+
+    def test_unverified_login_does_not_issue_a_session(self):
+        clerk_user = {
+            'id': self.test_clerk_id,
+            'email_addresses': [{
+                'id': 'idn_unverified',
+                'email_address': self.test_email,
+                'verification': {'status': 'unverified'},
+            }],
+        }
+        with patch('app.accounts.services.clerk_client.ClerkClient.get_user_by_email', return_value=(None, clerk_user)), \
+             patch('app.accounts.services.clerk_client.ClerkClient.verify_password', return_value=(None, True)), \
+             patch('app.accounts.services.clerk_client.ClerkClient.prepare_email_verification', return_value=(None, {'id': 'ver_1'})):
+            response = self.client.post(
+                '/api/v1/auth/login',
+                {'email': self.test_email, 'password': self.test_password},
+                format='json',
+            )
+        self.assertEqual(response.status_code, 200, response.content)
+        data = response.json()['data']
+        self.assertTrue(data['requires_verification'])
+        self.assertNotIn('access_token', data)
+        self.assertFalse(User.objects.filter(email=self.test_email).exists())
+
+    def test_reserved_signup_does_not_crash_when_verification_is_null(self):
+        clerk_user = {
+            'id': self.test_clerk_id,
+            'email_addresses': [{
+                'id': 'idn_reserved',
+                'email_address': self.test_email,
+                'reserved': True,
+                'verification': None,
+            }],
+        }
+        with patch('app.accounts.services.clerk_client.ClerkClient.create_user', return_value=(None, clerk_user)), \
+             patch('app.accounts.services.clerk_client.ClerkClient.prepare_email_verification', return_value=(None, {'id': 'ver_reserved'})):
+            response = self.client.post(
+                '/api/v1/auth/signup',
+                {'email': self.test_email, 'password': self.test_password, 'name': 'Reserved User'},
+                format='json',
+            )
+        self.assertEqual(response.status_code, 201, response.content)
+        data = response.json()['data']
+        self.assertTrue(data['requires_verification'])
+        self.assertEqual(data['verification_id'], 'ver_reserved')
+        self.assertNotIn('access_token', data)
+        self.assertFalse(User.objects.filter(email=self.test_email).exists())
+
+    def test_login_keeps_a_saved_phone_when_clerk_omits_it(self):
+        User.objects.create(
+            clerk_user_id=self.test_clerk_id,
+            email=self.test_email,
+            name='Kept Name',
+            phone='+919876543210',
+        )
+        clerk_user = {
+            'id': self.test_clerk_id,
+            'email_addresses': [{'email_address': self.test_email}],
+            'first_name': 'Kept',
+            'last_name': 'Name',
+        }
+        with patch('app.accounts.services.clerk_client.ClerkClient.get_user_by_email', return_value=(None, clerk_user)), \
+             patch('app.accounts.services.clerk_client.ClerkClient.verify_password', return_value=(None, True)):
+            response = self.client.post(
+                '/api/v1/auth/login',
+                {'email': self.test_email, 'password': self.test_password},
+                format='json',
+            )
+        self.assertEqual(response.status_code, 200, response.content)
+        user = User.objects.get(email=self.test_email)
+        self.assertEqual(user.phone, '+919876543210')
+        self.assertEqual(user.name, 'Kept Name')
+
+    def test_signup_validation_rejects_a_phone_that_cannot_be_stored(self):
+        response = self.client.post(
+            '/api/v1/auth/signup',
+            {
+                'email': self.test_email,
+                'password': self.test_password,
+                'phone': '1' * 33,
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()['success'])
+        self.assertFalse(User.objects.filter(email=self.test_email).exists())
+
     def test_forgot_password_and_reset_password_flow(self):
         customer = User.objects.create(
             clerk_user_id=self.test_clerk_id,

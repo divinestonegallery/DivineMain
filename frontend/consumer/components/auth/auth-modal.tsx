@@ -114,7 +114,14 @@ export function AuthModal() {
     const form = new FormData(e.currentTarget);
 
     try {
-      await signIn({ email: form.get("email"), password: form.get("password") });
+      const result = await signIn({ email: form.get("email"), password: form.get("password") });
+      if (result?.requires_verification) {
+        setResetEmail(String(form.get("email") || ""));
+        setVerificationId(result.verification_id || result.verificationId || "");
+        setMode("verify_signup");
+        setSuccess(result.message || "An OTP has been sent to your email.");
+        return;
+      }
       const nextPath = pendingPath;
       closeModal();
       if (nextPath) router.push(nextPath);
@@ -152,6 +159,7 @@ export function AuthModal() {
         setResetEmail(String(form.get("email")));
         setSignupName(String(form.get("name") || ""));
         setSignupPhone(String(form.get("phone") || ""));
+        setVerificationId(result.verification_id || result.verificationId || "");
         setMode("verify_signup");
         setSuccess(result.message || "An OTP has been sent to your email.");
         return;
@@ -184,16 +192,10 @@ export function AuthModal() {
 
     try {
       const result = await requestPasswordReset(email);
-      if (!result.verificationId) {
-        setError("We could not start password verification. Please request a new code.");
-        setLoading(false);
-        return;
-      }
-
       setResetEmail(email);
-      setVerificationId(result.verificationId);
+      setVerificationId(result.verificationId || "");
       setMode("reset");
-      setSuccess(result.message || "An OTP has been sent to your email.");
+      setSuccess(result.message || "If an account exists for this email, an OTP has been sent.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Password reset request failed.");
     } finally {
@@ -241,12 +243,6 @@ export function AuthModal() {
       return;
     }
 
-    if (!verificationId) {
-      setError("This verification session has expired. Please request a new code.");
-      setLoading(false);
-      return;
-    }
-
     try {
       const result = await resetPasswordWithCode({ email: resetEmail, code, verificationId, newPassword });
       setMode("login");
@@ -275,7 +271,7 @@ export function AuthModal() {
     }
 
     try {
-      await verifySignup({ email: resetEmail, code, name: signupName, phone: signupPhone });
+      await verifySignup({ email: resetEmail, code, name: signupName, phone: signupPhone, verificationId });
       await refresh();
       const nextPath = pendingPath;
       closeModal();
