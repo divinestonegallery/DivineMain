@@ -3,7 +3,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowRight,
   Check,
@@ -168,18 +169,77 @@ function CatalogDropdown({
   controlClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState(null);
   const listboxId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const currentIndex = Math.max(0, options.findIndex((option) => option.value === value));
   const currentOption = options[currentIndex] ?? options[0] ?? { label: "Choose", value: "" };
 
+  function placeMenu() {
+    const anchor = rootRef.current;
+    if (!anchor) return null;
+    const rect = anchor.getBoundingClientRect();
+    const margin = 12;
+    const gap = 8;
+    const preferredHeight = 352;
+    const isFilter = anchor.classList.contains(styles.filterDropdown);
+    const preferredWidth = isFilter ? 320 : 360;
+    const width = Math.min(Math.max(rect.width, preferredWidth), window.innerWidth - margin * 2);
+    const rawLeft = isFilter ? rect.left : rect.right - width;
+    const left = Math.min(Math.max(rawLeft, margin), window.innerWidth - margin - width);
+    const spaceBelow = window.innerHeight - rect.bottom - gap - margin;
+    const spaceAbove = rect.top - gap - margin;
+    const openUp = spaceBelow < 160 && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(140, Math.min(preferredHeight, openUp ? spaceAbove : spaceBelow));
+
+    return {
+      position: "fixed",
+      left,
+      width,
+      minWidth: width,
+      maxWidth: width,
+      maxHeight,
+      right: "auto",
+      top: openUp ? "auto" : rect.bottom + gap,
+      bottom: openUp ? window.innerHeight - rect.top + gap : "auto",
+      zIndex: 130,
+    };
+  }
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuStyle(null);
+      return;
+    }
+
+    function place() {
+      setMenuStyle(placeMenu());
+    }
+
+    function handleScroll(event: Event) {
+      const menu = menuRef.current;
+      if (menu && event.target instanceof Node && (event.target === menu || menu.contains(event.target))) return;
+      place();
+    }
+
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
 
     function handlePointerDown(event: PointerEvent) {
-      if (rootRef.current?.contains(event.target as Node)) return;
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return;
       setOpen(false);
     }
 
@@ -200,7 +260,17 @@ function CatalogDropdown({
 
   function focusOption(index: number) {
     if (!options.length) return;
-    window.requestAnimationFrame(() => optionRefs.current[index]?.focus());
+    window.requestAnimationFrame(() => {
+      const option = optionRefs.current[index];
+      if (!option) return;
+      option.focus({ preventScroll: true });
+      const menu = option.closest("[role='listbox']");
+      if (!(menu instanceof HTMLElement)) return;
+      const top = option.offsetTop;
+      const bottom = top + option.offsetHeight;
+      if (top < menu.scrollTop) menu.scrollTop = top;
+      else if (bottom > menu.scrollTop + menu.clientHeight) menu.scrollTop = bottom - menu.clientHeight;
+    });
   }
 
   function openMenu(index = currentIndex) {
@@ -264,29 +334,32 @@ function CatalogDropdown({
         <span>{currentOption.label}</span>
         <ChevronDown className={styles.sortChevron} aria-hidden="true" size={18} />
       </button>
-      {open ? (
-        <div className={styles.sortMenu} id={listboxId} role="listbox" aria-label={label}>
-          {options.map((option, index) => {
-            const selected = option.value === value;
+      {open && menuStyle && typeof document !== "undefined"
+        ? createPortal(
+          <div className={styles.sortMenu} id={listboxId} role="listbox" aria-label={label} ref={menuRef} style={menuStyle}>
+            {options.map((option, index) => {
+              const selected = option.value === value;
 
-            return (
-              <button
-                type="button"
-                className={`${styles.sortOption} ${selected ? styles.sortOptionActive : ""}`}
-                role="option"
-                aria-selected={selected}
-                key={option.value}
-                onClick={() => selectOption(option.value)}
-                onKeyDown={(event) => handleOptionKeyDown(event, index)}
-                ref={(node) => { optionRefs.current[index] = node; }}
-              >
-                <span>{option.label}</span>
-                {selected ? <Check aria-hidden="true" size={16} /> : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+              return (
+                <button
+                  type="button"
+                  className={`${styles.sortOption} ${selected ? styles.sortOptionActive : ""}`}
+                  role="option"
+                  aria-selected={selected}
+                  key={option.value}
+                  onClick={() => selectOption(option.value)}
+                  onKeyDown={(event) => handleOptionKeyDown(event, index)}
+                  ref={(node) => { optionRefs.current[index] = node; }}
+                >
+                  <span>{option.label}</span>
+                  {selected ? <Check aria-hidden="true" size={16} /> : null}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )
+        : null}
     </div>
   );
 }
