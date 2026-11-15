@@ -11,7 +11,7 @@ import {
   X,
   ChevronRight
 } from "lucide-react";
-import { FormEvent, MouseEvent, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { FormEvent, MouseEvent, useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { AccountControl } from "@/components/auth/account-control";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { useAuth, useUser } from "@/components/auth/auth-facade";
@@ -130,6 +130,99 @@ function MobileCustomizedMoortiLink({ onClick }: { onClick: () => void }) {
   );
 }
 
+type NavbarActionProps = {
+  animateLogo: boolean;
+  logoSrc: string;
+  showSearch: boolean;
+  searchOpen: boolean;
+  mobileMenuOpen: boolean;
+  onOpenSearch: () => void;
+  onOpenMobileMenu: () => void;
+  customizeButtonRef: { current: HTMLAnchorElement | null };
+};
+
+type NavbarPresentationProps = NavbarActionProps & {
+  headerRef: { current: HTMLElement | null };
+  isScrolled: boolean;
+  isCompactHeader: boolean;
+  children?: ReactNode;
+};
+
+function NavbarLogo({ animateLogo, logoSrc }: Pick<NavbarActionProps, "animateLogo" | "logoSrc">) {
+  return (
+    <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home">
+      <Image className={`${styles.brandLogo} ${animateLogo ? styles.brandLogoAnimated : ""}`.trim()} src={logoSrc} alt="Divine Stone Gallery" width={1600} height={1600} priority />
+    </Link>
+  );
+}
+
+function NavbarActions({
+  animateLogo,
+  logoSrc,
+  showSearch,
+  searchOpen,
+  mobileMenuOpen,
+  onOpenSearch,
+  onOpenMobileMenu,
+  customizeButtonRef,
+}: NavbarActionProps) {
+  return (
+    <>
+      <NavbarLogo animateLogo={animateLogo} logoSrc={logoSrc} />
+      <div className={styles.headerCenter} aria-hidden="true" />
+      <div className={styles.headerActions}>
+        {showSearch ? (
+          <button
+            className={styles.headerCompactSearchButton}
+            type="button"
+            aria-label="Search"
+            title="Search"
+            aria-expanded={searchOpen}
+            onClick={onOpenSearch}
+          >
+            <Search aria-hidden="true" size={20} strokeWidth={1.8} />
+          </button>
+        ) : null}
+        <Link ref={customizeButtonRef} href="/custom-murti" className={`${styles.navLink} ${styles.desktopOnlyAction}`}>
+          <Sparkles aria-hidden="true" size={18} strokeWidth={1.6} />
+          <span>Customize Your Moorti</span>
+        </Link>
+        <AccountControl className={`${styles.headerAction} ${styles.desktopOnlyAction}`} />
+        <button
+          className={styles.headerAction}
+          type="button"
+          aria-label="Open menu"
+          aria-expanded={mobileMenuOpen}
+          onClick={onOpenMobileMenu}
+        >
+          <Menu aria-hidden="true" size={23} strokeWidth={1.7} />
+        </button>
+      </div>
+    </>
+  );
+}
+
+function HomeNavbar({ headerRef, isScrolled, isCompactHeader, children, ...actions }: NavbarPresentationProps) {
+  return (
+    <header
+      ref={headerRef}
+      className={`${styles.siteHeader} ${styles.siteHeaderHome} ${!isScrolled ? styles.siteHeaderTransparent : ""} ${isCompactHeader ? styles.siteHeaderCompact : ""}`.trim()}
+    >
+      <div className={`${styles.headerMain} site-container`}><NavbarActions {...actions} /></div>
+      {children}
+    </header>
+  );
+}
+
+function InnerPageNavbar({ headerRef, children, isScrolled: _isScrolled, isCompactHeader: _isCompactHeader, ...actions }: NavbarPresentationProps) {
+  return (
+    <header ref={headerRef} className={styles.siteHeader}>
+      <div className={`${styles.headerMain} site-container`}><NavbarActions {...actions} showSearch /></div>
+      {children}
+    </header>
+  );
+}
+
 export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const pathname = usePathname();
   const { isLoaded, isSignedIn, signOut } = useAuth();
@@ -153,6 +246,9 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const [visiblePopularSearches, setVisiblePopularSearches] = useState(INITIAL_VISIBLE_POPULAR_SEARCHES);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isCompactHeader, setIsCompactHeader] = useState(false);
+  const [searchPanelPosition, setSearchPanelPosition] = useState({ top: 82, right: 16, width: 680 });
+  const headerRef = useRef<HTMLElement>(null);
+  const customizeButtonRef = useRef<HTMLAnchorElement>(null);
   const shopTriggerRef = useRef<HTMLButtonElement>(null);
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const searchPanelRef = useRef<HTMLElement>(null);
@@ -163,8 +259,9 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const popularSearchesLoadingRef = useRef(false);
   const searchTitleId = useId();
   const shopMenuId = useId();
-  const showDockedSearch = pathname === "/" ? dockedSearchVisible && !isCompactHeader : !isCompactHeader;
-  const headerLogoSrc = pathname === "/" && !isScrolled ? "/brand/DSG-White.png" : "/brand/DSG-New.png";
+  const isHomePage = pathname === "/";
+  const showHomeSearchIcon = isHomePage && isScrolled && (isCompactHeader || dockedSearchVisible);
+  const headerLogoSrc = isHomePage && !isScrolled ? "/brand/DSG-White.png" : "/brand/DSG-New.png";
   const visiblePopularSearchLinks = popularSearches.slice(0, visiblePopularSearches);
   const hasMorePopularSearches = popularSearches.length > visiblePopularSearches;
 
@@ -180,6 +277,24 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const closeMegaMenu = useCallback(() => {
     if (megaMenuOpen && !megaMenuClosing) setMegaMenuClosing(true);
   }, [megaMenuClosing, megaMenuOpen]);
+
+  const updateSearchPanelPosition = useCallback(() => {
+    const viewportWidth = window.innerWidth;
+    const headerBottom = headerRef.current?.getBoundingClientRect().bottom ?? 74;
+    const customizeButton = customizeButtonRef.current?.getBoundingClientRect();
+    const canAnchorBesideCustomize = viewportWidth > 980 && customizeButton && customizeButton.width > 0;
+    const right = canAnchorBesideCustomize
+      ? Math.max(16, viewportWidth - customizeButton.left + 12)
+      : 16;
+    const width = Math.max(0, Math.min(680, viewportWidth - right - 16));
+
+    setSearchPanelPosition({ top: Math.max(8, headerBottom + 8), right, width });
+  }, []);
+
+  const openSearch = useCallback(() => {
+    updateSearchPanelPosition();
+    setSearchOpen(true);
+  }, [updateSearchPanelPosition]);
 
   useLayoutEffect(() => {
     const homePage = pathname === "/";
@@ -281,6 +396,14 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   useEffect(() => {
     if (searchOpen) setVisiblePopularSearches(INITIAL_VISIBLE_POPULAR_SEARCHES);
   }, [searchOpen]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+
+    updateSearchPanelPosition();
+    window.addEventListener("resize", updateSearchPanelPosition);
+    return () => window.removeEventListener("resize", updateSearchPanelPosition);
+  }, [searchOpen, updateSearchPanelPosition]);
 
   useEffect(() => {
     if (pathname !== "/") return;
@@ -455,6 +578,57 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
     await signOut();
   }
 
+  const shopMenu = megaMenuOpen ? (
+    <div className={`${styles.megaMenuWrap} ${megaMenuClosing ? styles.megaMenuClosing : ""}`} id={shopMenuId}>
+      <button
+        className={styles.megaBackdrop}
+        type="button"
+        aria-label="Close Shop menu"
+        onClick={closeMegaMenu}
+      />
+      <div
+        className={`${styles.megaMenu} site-container`}
+        ref={megaMenuRef}
+        onAnimationEnd={(event) => {
+          if (!megaMenuClosing || event.currentTarget !== event.target) return;
+          setMegaMenuOpen(false);
+          setMegaMenuClosing(false);
+        }}
+      >
+        <div className={styles.megaColumn}>
+          <p>Shop by deity</p>
+          {deityLinks.map(([label, href]) => (
+            <Link href={href} key={href} onClick={closeMegaMenu}>
+              {label}
+            </Link>
+          ))}
+        </div>
+        <div className={styles.megaColumn}>
+          <p>Shop by material</p>
+          {materialLinks.map(([label, href]) => (
+            <Link href={href} key={href} onClick={closeMegaMenu}>
+              {label}
+            </Link>
+          ))}
+        </div>
+        <div className={styles.megaColumn}>
+          <p>Featured</p>
+          {featuredLinks.map(([label, href]) => (
+            <Link href={href} key={href} onClick={closeMegaMenu}>
+              {label}
+            </Link>
+          ))}
+        </div>
+        <Link className={styles.megaFeature} href="/custom-murti" onClick={closeMegaMenu}>
+          <Sparkles aria-hidden="true" size={24} strokeWidth={1.4} />
+          <span>Commission a sacred work</span>
+          <small>Created to your measurements by our master moortikars.</small>
+          <strong>Begin consultation →</strong>
+        </Link>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <>
       <div className={styles.announcementBar}>
@@ -467,124 +641,39 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
         </div>
       </div>
 
-      <header
-        className={`${styles.siteHeader} ${
-          pathname === "/" ? styles.siteHeaderHome : ""
-        } ${pathname === "/" && !isScrolled ? styles.siteHeaderTransparent : ""} ${isCompactHeader ? styles.siteHeaderCompact : ""}`.trim()}
-      >
-        <div className={`${styles.headerMain} site-container`}>
-          <Link className={styles.brandLink} href="/" aria-label="Divine Stone Gallery home">
-            <Image className={`${styles.brandLogo} ${animateLogo ? styles.brandLogoAnimated : ""}`.trim()} src={headerLogoSrc} alt="Divine Stone Gallery" width={1600} height={1600} priority />
-          </Link>
-
-          <div className={styles.headerCenter}>
-            <button
-              className={`${styles.headerSearchPill} ${showDockedSearch ? styles.headerSearchPillVisible : ""}`.trim()}
-              type="button"
-              aria-label="Search Divine Stone Gallery"
-              aria-expanded={searchOpen}
-              aria-hidden={!showDockedSearch}
-              tabIndex={showDockedSearch ? 0 : -1}
-              onClick={() => setSearchOpen(true)}
-            >
-              <Search aria-hidden="true" size={19} strokeWidth={1.6} />
-              <span>Search for Moorti</span>
-              <span className={styles.headerSearchSubmit} aria-hidden="true">
-                <Search size={20} strokeWidth={1.8} />
-              </span>
-            </button>
-          </div>
-
-          <div className={styles.headerActions}>
-            {isCompactHeader ? (
-              <button
-                className={styles.headerCompactSearchButton}
-                type="button"
-                aria-label="Search"
-                title="Search"
-                onClick={() => setSearchOpen(true)}
-              >
-                <Search aria-hidden="true" size={20} strokeWidth={1.8} />
-              </button>
-            ) : null}
-            <Link href="/custom-murti" className={`${styles.navLink} ${styles.desktopOnlyAction}`}>
-              <Sparkles aria-hidden="true" size={18} strokeWidth={1.6} />
-              <span>Customize Your Moorti</span>
-            </Link>
-            {/* <Link className={`${styles.bookingButton} ${styles.desktopOnlyAction}`} href="/cart" aria-label={`Enquiry bag with ${enquiryBag.count} ${enquiryBag.count === 1 ? "work" : "works"}`}>
-              <ShoppingBag aria-hidden="true" size={18} strokeWidth={1.6} />
-              <span>Enquiry Bag</span>
-              {enquiryBag.count ? <strong>{enquiryBag.count}</strong> : null}
-            </Link> */}
-            <AccountControl className={`${styles.headerAction} ${styles.desktopOnlyAction}`} />
-
-            <button
-              className={styles.headerAction}
-              type="button"
-              aria-label="Open menu"
-              aria-expanded={mobileMenuOpen}
-              onClick={() => setMobileMenuOpen(true)}
-            >
-              <Menu aria-hidden="true" size={23} strokeWidth={1.7} />
-            </button>
-          </div>
-        </div>
-
-        {megaMenuOpen ? (
-          <div className={`${styles.megaMenuWrap} ${megaMenuClosing ? styles.megaMenuClosing : ""}`} id={shopMenuId}>
-            <button
-              className={styles.megaBackdrop}
-              type="button"
-              aria-label="Close Shop menu"
-              onClick={closeMegaMenu}
-            />
-            <div
-              className={`${styles.megaMenu} site-container`}
-              ref={megaMenuRef}
-              onAnimationEnd={(event) => {
-                if (!megaMenuClosing || event.currentTarget !== event.target) return;
-                setMegaMenuOpen(false);
-                setMegaMenuClosing(false);
-              }}
-            >
-              <div className={styles.megaColumn}>
-                <p>Shop by deity</p>
-                {deityLinks.map(([label, href]) => (
-                  <Link href={href} key={href} onClick={closeMegaMenu}>
-                    {label}
-                  </Link>
-                ))}
-              </div>
-              <div className={styles.megaColumn}>
-                <p>Shop by material</p>
-                {materialLinks.map(([label, href]) => (
-                  <Link href={href} key={href} onClick={closeMegaMenu}>
-                    {label}
-                  </Link>
-                ))}
-              </div>
-              <div className={styles.megaColumn}>
-                <p>Featured</p>
-                {featuredLinks.map(([label, href]) => (
-                  <Link href={href} key={href} onClick={closeMegaMenu}>
-                    {label}
-                  </Link>
-                ))}
-              </div>
-              <Link
-                className={styles.megaFeature}
-                href="/custom-murti"
-                onClick={closeMegaMenu}
-              >
-                <Sparkles aria-hidden="true" size={24} strokeWidth={1.4} />
-                <span>Commission a sacred work</span>
-                <small>Created to your measurements by our master moortikars.</small>
-                <strong>Begin consultation →</strong>
-              </Link>
-            </div>
-          </div>
-        ) : null}
-      </header>
+      {isHomePage ? (
+        <HomeNavbar
+          headerRef={headerRef}
+          isScrolled={isScrolled}
+          isCompactHeader={isCompactHeader}
+          animateLogo={animateLogo}
+          logoSrc={headerLogoSrc}
+          showSearch={showHomeSearchIcon}
+          searchOpen={searchOpen}
+          mobileMenuOpen={mobileMenuOpen}
+          onOpenSearch={openSearch}
+          onOpenMobileMenu={() => setMobileMenuOpen(true)}
+          customizeButtonRef={customizeButtonRef}
+        >
+          {shopMenu}
+        </HomeNavbar>
+      ) : (
+        <InnerPageNavbar
+          headerRef={headerRef}
+          isScrolled={isScrolled}
+          isCompactHeader={isCompactHeader}
+          animateLogo={animateLogo}
+          logoSrc={headerLogoSrc}
+          showSearch
+          searchOpen={searchOpen}
+          mobileMenuOpen={mobileMenuOpen}
+          onOpenSearch={openSearch}
+          onOpenMobileMenu={() => setMobileMenuOpen(true)}
+          customizeButtonRef={customizeButtonRef}
+        >
+          {shopMenu}
+        </InnerPageNavbar>
+      )}
 
       {searchOpen ? (
         <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby={searchTitleId}>
@@ -594,7 +683,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
             aria-label="Close search"
             onClick={() => setSearchOpen(false)}
           />
-          <section className={styles.searchPanel} ref={searchPanelRef} tabIndex={-1}>
+          <section className={styles.searchPanel} ref={searchPanelRef} style={searchPanelPosition} tabIndex={-1}>
             <div className="site-container">
               <div className={styles.overlayHeading}>
                 <div>
