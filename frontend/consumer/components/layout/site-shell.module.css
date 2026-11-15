@@ -226,86 +226,6 @@
   transform: translateY(-1px);
 }
 
-.headerSearchPill {
-  display: grid;
-  width: 0;
-  max-width: 0;
-  min-height: 54px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0;
-  overflow: hidden;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  color: var(--ink-muted);
-  background: rgb(255 253 249 / 0.97);
-  box-shadow: 0 14px 34px rgb(47 37 24 / 0.1);
-  cursor: text;
-  opacity: 0;
-  pointer-events: none;
-  text-align: left;
-  transform: translateY(-6px) scale(0.98);
-  visibility: hidden;
-  transition:
-    max-width 260ms ease,
-    width 260ms ease,
-    opacity var(--transition-fast),
-    padding 260ms ease,
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
-    transform var(--transition-fast),
-    visibility 0s linear 260ms;
-}
-
-.headerSearchPillVisible {
-  width: min(340px, 31vw);
-  max-width: min(340px, 31vw);
-  gap: 0.8rem;
-  padding: 0.35rem 0.38rem 0.35rem 1.2rem;
-  border-color: rgb(217 205 189 / 0.82);
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0) scale(1);
-  visibility: visible;
-  transition:
-    max-width 260ms ease,
-    width 260ms ease,
-    opacity var(--transition-fast),
-    padding 260ms ease,
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
-    transform var(--transition-fast),
-    visibility 0s;
-}
-
-.headerSearchPill:hover {
-  border-color: var(--gold-soft);
-  box-shadow: 0 16px 38px rgb(47 37 24 / 0.14);
-  transform: translateY(-1px);
-}
-
-.headerSearchPill > svg {
-  color: var(--gold-deep);
-}
-
-.headerSearchPill > span:not(.headerSearchSubmit) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.headerSearchSubmit {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  flex: none;
-  place-items: center;
-  border-radius: 50%;
-  color: white;
-  background: var(--gold-deep);
-}
-
 .planButton,
 .bookingButton {
   display: inline-flex;
@@ -620,16 +540,22 @@
 }
 
 .searchPanel {
-  position: relative;
+  position: absolute;
+  top: 82px;
+  right: 16px;
   z-index: 1;
-  overflow: hidden;
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100dvh - 98px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding-block: clamp(1.3rem, 2.5vw, 2.2rem);
   border-bottom: 1px solid var(--dropdown-border);
   border-radius: 0 0 28px 28px;
   background: var(--dropdown-surface);
   box-shadow: var(--dropdown-shadow);
   animation: dropdownSurfaceIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  transform-origin: top center;
+  transform-origin: top right;
 }
 
 .searchPanel > :global(.site-container) {
@@ -1552,22 +1478,8 @@
     justify-content: flex-end;
   }
 
-  .headerSearchPillVisible {
-    width: min(320px, 100%);
-    max-width: min(320px, 100%);
-  }
-
   .siteHeaderCompact .headerMain {
     min-height: 64px;
-  }
-
-  .headerSearchPill {
-    min-height: 46px;
-  }
-
-  .headerSearchSubmit {
-    width: 38px;
-    height: 38px;
   }
 
   .brandLink {
@@ -1650,27 +1562,6 @@
     justify-content: end;
   }
 
-  .headerSearchPill {
-    min-height: 44px;
-  }
-
-  .headerSearchPillVisible {
-    width: 44px;
-    max-width: 44px;
-    gap: 0;
-    padding: 0;
-  }
-
-  .headerSearchPill > svg,
-  .headerSearchPill > span:not(.headerSearchSubmit) {
-    display: none;
-  }
-
-  .headerSearchSubmit {
-    width: 40px;
-    height: 40px;
-  }
-
   .planButton {
     min-height: 42px;
     padding-inline: 0.9rem;
@@ -1678,8 +1569,7 @@
   }
 
   .searchPanel {
-    max-height: 100dvh;
-    overflow-y: auto;
+    max-height: calc(100dvh - 98px);
     padding-block: 1rem 1.2rem;
     border-radius: 0 0 22px 22px;
   }
@@ -1897,15 +1787,9 @@
   }
 
   .headerAction,
-  .headerSearchPillVisible {
+  .headerCompactSearchButton {
     width: 42px;
-    max-width: 42px;
     height: 42px;
-  }
-
-  .headerSearchSubmit {
-    width: 38px;
-    height: 38px;
   }
 
   .mobileDrawerPanel {
