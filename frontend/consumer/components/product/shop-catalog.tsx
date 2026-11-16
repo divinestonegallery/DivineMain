@@ -315,6 +315,16 @@ export function ShopCatalog({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [filterOpen, setFilterOpen] = useState(false);
+
+  useEffect(() => {
+    if (!filterOpen) return;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, [filterOpen]);
+
   const categories = useMemo(() => mergeOptions(availableCategories, currentFilters.category), [availableCategories, currentFilters.category]);
   const deities = useMemo(() => mergeOptions(availableDeities, currentFilters.deity), [availableDeities, currentFilters.deity]);
   const materials = useMemo(() => mergeOptions(availableMaterials, currentFilters.material), [availableMaterials, currentFilters.material]);
@@ -533,7 +543,7 @@ export function ShopCatalog({
         </div>
       </section>
 
-      <Modal open={filterOpen} title="Refine collection" onClose={() => setFilterOpen(false)}>
+      <Modal open={filterOpen} title="Refine collection" onClose={() => setFilterOpen(false)} size="sheet">
         <FilterControls filters={currentFilters} onFilterChange={updateFilter} categories={categories} deities={deities} materials={materials} />
         <div className={styles.modalActions}>
           <button type="button" onClick={resetFilters}>Clear all</button>

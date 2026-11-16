@@ -7,7 +7,6 @@ import {
   ArrowRight,
   ChevronDown,
   Gem,
-  Search,
   Sparkles,
   Star,
 } from "lucide-react";
@@ -227,16 +226,6 @@ function SectionHeading({
   );
 }
 
-function EmptySection({ label }: { label: string }) {
-  return (
-    <div className={styles.emptyState}>
-      <Search aria-hidden="true" size={26} strokeWidth={1.4} />
-      <h3 className="font-display">{label}</h3>
-      <p>The backend returned no published items for this home block yet.</p>
-    </div>
-  );
-}
-
 function HomeApiError({ message }: { message: string }) {
   return (
     <section className={styles.dataSection}>
@@ -269,15 +258,13 @@ function DynamicTabsSection({
   surface?: boolean;
 }) {
   const hasContent = (products && products.length > 0) || (groups && groups.length > 0);
+  if (!hasContent) return null;
+
   return (
     <section className={`${styles.dataSection} ${surface ? styles.surfaceSection : ""}`} id={id}>
       <div className="site-container">
         <SectionHeading title={title} href={actionHref} />
-        {hasContent ? (
-          <DynamicCategoryTabs products={products} groups={groups} groupBy={groupBy} idPrefix={id || "tabs"} />
-        ) : (
-          <EmptySection label={`${title} is waiting for backend items`} />
-        )}
+        <DynamicCategoryTabs products={products} groups={groups} groupBy={groupBy} idPrefix={id || "tabs"} />
       </div>
     </section>
   );
@@ -290,6 +277,7 @@ function ProductRailSection({
   actionHref,
   surface = false,
   carousel = false,
+  mobileGrid = false,
 }: {
   id?: string;
   title: string;
@@ -297,7 +285,10 @@ function ProductRailSection({
   actionHref?: string;
   surface?: boolean;
   carousel?: boolean;
+  mobileGrid?: boolean;
 }) {
+  if (!products.length) return null;
+
   const productCards = products.map((product, index) => (
     <CatalogProductCard product={product} key={product.uid ?? product.slug ?? `${title}-${index}`} />
   ));
@@ -308,7 +299,7 @@ function ProductRailSection({
         <SectionHeading title={title} href={actionHref} />
         {products.length ? (
           carousel ? (
-            <HomeCarouselRail className={styles.productRail} label={title}>
+            <HomeCarouselRail className={`${styles.productRail} ${mobileGrid && products.length > 1 ? styles.productRailMobileGrid : ""}`} label={title}>
               {productCards}
             </HomeCarouselRail>
           ) : (
@@ -316,15 +307,15 @@ function ProductRailSection({
               {productCards}
             </div>
           )
-        ) : (
-          <EmptySection label={`${title} is waiting for backend items`} />
-        )}
+        ) : null}
       </div>
     </section>
   );
 }
 
 function CategoriesSection({ categories }: { categories: TaxonomyItem[] }) {
+  if (!categories.length) return null;
+
   return (
     <section className={styles.categorySection}>
       <div className="site-container">
@@ -351,9 +342,7 @@ function CategoriesSection({ categories }: { categories: TaxonomyItem[] }) {
               </Link>
             ))}
           </HomeCarouselRail>
-        ) : (
-          <EmptySection label="Categories are waiting for backend items" />
-        )}
+        ) : null}
       </div>
     </section>
   );
@@ -366,6 +355,8 @@ function SubcategoriesSection({
   title?: string;
   subcategories: TaxonomyItem[];
 }) {
+  if (!subcategories.length) return null;
+
   return (
     <section className={`${styles.categorySection} ${styles.surfaceSection}`}>
       <div className="site-container">
@@ -391,9 +382,7 @@ function SubcategoriesSection({
               </Link>
             ))}
           </HomeCarouselRail>
-        ) : (
-          <EmptySection label={`${title} is waiting for backend items`} />
-        )}
+        ) : null}
       </div>
     </section>
   );
@@ -414,6 +403,8 @@ function HomeDecorSection({ products, groups }: { products: ProductCard[]; group
 }
 
 function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
+  if (!reviews.length) return null;
+
   const averageRating = reviews.length
     ? reviews.reduce((total, review) => total + Math.max(0, Math.min(5, Number(review.rating ?? 0))), 0) / reviews.length
     : 0;
@@ -467,9 +458,7 @@ function ReviewsSection({ reviews }: { reviews: ReviewCard[] }) {
               );
             })}
           </HomeCarouselRail>
-        ) : (
-          <EmptySection label="Customer Reviews are waiting for backend items" />
-        )}
+        ) : null}
       </div>
     </section>
   );
@@ -598,6 +587,7 @@ export default async function Home() {
               products={getProducts(popular)}
               actionHref="/shop"
               carousel
+              mobileGrid
             />
             <DynamicTabsSection
               id="dream-moorti"

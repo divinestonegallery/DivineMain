@@ -2,7 +2,7 @@
 "use client";
 
 import Image from "next/image";
-import { Phone, Share2 } from "lucide-react";
+import { ArrowRight, Phone, Share2 } from "lucide-react";
 import { buttonClassName, Button } from "@shared/components/button";
 import { useToast } from "@shared/components/toast";
 import type { ProductPrice } from "@/api/products";
@@ -47,7 +47,7 @@ export function ProductActions({
 
   return (
     <>
-      <div className={styles.actionCard}>
+      <div className={styles.actionCard} id="product-actions">
         <div className={styles.priceNote}>
           {sellingPrice ? (
             <div className={styles.detailPrice} aria-label="Product price">
@@ -83,9 +83,9 @@ export function ProductActions({
       </div>
 
       <div className={styles.mobileEnquiryBar}>
-        <span><small>Interested in this work?</small><strong>Request details</strong></span>
-        <a href={whatsappHref} target="_blank" rel="noreferrer">
-          <Image src="/brand/whatsapp.svg" alt="" width={17} height={17} aria-hidden="true" /> WhatsApp
+        <span><small>Interested in this work?</small><strong>View enquiry options</strong></span>
+        <a href="#product-actions">
+          View options <ArrowRight aria-hidden="true" size={17} />
         </a>
       </div>
     </>

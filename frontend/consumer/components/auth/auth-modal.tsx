@@ -37,6 +37,7 @@ export function AuthModal() {
   const router = useRouter();
   const pathname = usePathname();
   const modalRef = useRef<HTMLDivElement>(null);
+  const modalContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (pathname !== "/" || isSignedIn || !consumeLoginAfterLogout()) return;
@@ -97,6 +98,10 @@ export function AuthModal() {
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
+  useEffect(() => {
+    modalContentRef.current?.scrollTo({ top: 0 });
+  }, [mode]);
+
   if (!isOpen) return null;
 
   function switchMode(nextMode: AuthModalMode) {
@@ -142,7 +147,6 @@ export function AuthModal() {
     }
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result: any = await signUp({
         name: form.get("name"),
         email: form.get("email"),
@@ -310,7 +314,7 @@ export function AuthModal() {
               priority
             />
           </div>
-          <div className={styles.modalContentSection}>
+          <div className={styles.modalContentSection} ref={modalContentRef}>
             <div className={styles.modalHeader}>
               <div>
                 <h2 className={styles.modalTitle}>{copy.title}</h2>
