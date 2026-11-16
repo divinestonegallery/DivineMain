@@ -58,9 +58,9 @@
   align-self: start;
 }
 
-@media (min-width: 981px) {
+@media (min-width: 681px) {
   .galleryWrap {
-    width: min(100%, calc(80dvh - 7.2rem + 76px));
+    width: min(100%, calc(56dvh + 76px));
     justify-self: center;
   }
 }
