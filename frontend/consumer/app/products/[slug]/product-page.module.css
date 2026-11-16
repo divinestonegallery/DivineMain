@@ -509,7 +509,7 @@
 
 @media (max-width: 680px) {
   .productPage {
-    padding-bottom: 72px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
   }
 
   .productHero {
@@ -587,11 +587,15 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.65rem var(--page-gutter);
+    padding: 0.65rem var(--page-gutter) calc(0.65rem + env(safe-area-inset-bottom));
     border-top: 1px solid var(--border);
     background: rgb(255 253 249 / 0.96);
     box-shadow: 0 -12px 30px rgb(36 31 26 / 0.08);
     backdrop-filter: blur(14px);
+  }
+
+  .actionCard {
+    scroll-margin-top: 5.5rem;
   }
 
   .mobileEnquiryBar span {

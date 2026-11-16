@@ -674,7 +674,11 @@
   }
 
   .articleHeroGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .articleHeroCopy {
+    min-width: 0;
   }
 
   .articleHeroImage {
@@ -697,7 +701,7 @@
 
   .hubHeroGrid h1,
   .articleHeroCopy h1 {
-    font-size: clamp(3.8rem, 18vw, 5.8rem);
+    font-size: clamp(2.35rem, 11.5vw, 4.8rem);
   }
 
   .guideCards,

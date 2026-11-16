@@ -18,7 +18,7 @@ export function Modal({
   children: ReactNode;
   onClose: () => void;
   panelClassName?: string;
-  size?: "default" | "wide";
+  size?: "default" | "wide" | "sheet";
 }) {
   const titleId = `modal-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   const panelRef = useRef<HTMLElement>(null);
@@ -63,9 +63,13 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className={styles.modalRoot} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <div className={styles.modalRoot} data-size={size} role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <button className={styles.modalBackdrop} type="button" aria-label="Close dialog" onClick={onClose} />
-      <section className={[styles.modalPanel, size === "wide" ? styles.modalPanelWide : "", panelClassName].filter(Boolean).join(" ")} ref={panelRef} tabIndex={-1}>
+      <section
+        className={[styles.modalPanel, size === "wide" ? styles.modalPanelWide : "", size === "sheet" ? styles.modalPanelSheet : "", panelClassName].filter(Boolean).join(" ")}
+        ref={panelRef}
+        tabIndex={-1}
+      >
         <div className={styles.modalHeader}>
           <h2 className="font-display" id={titleId}>{title}</h2>
           <Button variant="ghost" size="icon" aria-label="Close dialog" onClick={onClose}>

@@ -64,6 +64,14 @@ function taxonomyHref(name: string) {
   return `/shop?q=${encodeURIComponent(name)}`;
 }
 
+function isCurrentNavigationPath(pathname: string, href: string) {
+  const currentPath = pathname.replace(/\/+$/, "") || "/";
+  const targetPath = href.replace(/\/+$/, "") || "/";
+  if (targetPath === "/") return currentPath === "/";
+  if (targetPath === "/shop" && currentPath.startsWith("/products/")) return true;
+  return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
+}
+
 function searchProductTitle(product: SearchProductResult) {
   return product.title?.trim() || product.name?.trim() || "Untitled work";
 }
@@ -118,9 +126,9 @@ function profileEmail(user: unknown) {
   return typeof email === "string" ? email : "";
 }
 
-function MobileCustomizedMoortiLink({ onClick }: { onClick: () => void }) {
+function MobileCustomizedMoortiLink({ onClick, active = false }: { onClick: () => void; active?: boolean }) {
   return (
-    <Link href="/custom-murti" className={`${styles.mobileSectionLink} ${styles.mobileCustomMoortiLink}`} onClick={onClick}>
+    <Link href="/custom-murti" className={`${styles.mobileSectionLink} ${styles.mobileCustomMoortiLink}`} aria-current={active ? "page" : undefined} onClick={onClick}>
       <span className={styles.mobileCustomMoortiText}>
         <strong>Customized Moorti</strong>
         <small>Create your own personalized moorti</small>
@@ -136,6 +144,7 @@ type NavbarActionProps = {
   showSearch: boolean;
   searchOpen: boolean;
   mobileMenuOpen: boolean;
+  mobileMenuId: string;
   onOpenSearch: () => void;
   onOpenMobileMenu: () => void;
   customizeButtonRef: { current: HTMLAnchorElement | null };
@@ -162,6 +171,7 @@ function NavbarActions({
   showSearch,
   searchOpen,
   mobileMenuOpen,
+  mobileMenuId,
   onOpenSearch,
   onOpenMobileMenu,
   customizeButtonRef,
@@ -193,6 +203,7 @@ function NavbarActions({
           type="button"
           aria-label="Open menu"
           aria-expanded={mobileMenuOpen}
+          aria-controls={mobileMenuId}
           onClick={onOpenMobileMenu}
         >
           <Menu aria-hidden="true" size={23} strokeWidth={1.7} />
@@ -259,6 +270,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const popularSearchesLoadingRef = useRef(false);
   const searchTitleId = useId();
   const shopMenuId = useId();
+  const mobileMenuId = useId();
   const isHomePage = pathname === "/";
   const showHomeSearchIcon = isHomePage && isScrolled && (isCompactHeader || dockedSearchVisible);
   const headerLogoSrc = isHomePage && !isScrolled ? "/brand/DSG-White.png" : "/brand/DSG-New.png";
@@ -277,6 +289,11 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
   const closeMegaMenu = useCallback(() => {
     if (megaMenuOpen && !megaMenuClosing) setMegaMenuClosing(true);
   }, [megaMenuClosing, megaMenuOpen]);
+  const closeMegaMenuRef = useRef(closeMegaMenu);
+
+  useEffect(() => {
+    closeMegaMenuRef.current = closeMegaMenu;
+  }, [closeMegaMenu]);
 
   const updateSearchPanelPosition = useCallback(() => {
     const viewportWidth = window.innerWidth;
@@ -486,7 +503,8 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
 
   useEffect(() => {
     const overlayOpen = mobileMenuOpen || searchOpen;
-    document.body.style.overflow = overlayOpen ? "hidden" : "";
+    const previousBodyOverflow = document.body.style.overflow;
+    if (overlayOpen) document.body.style.overflow = "hidden";
     const previouslyFocused = overlayOpen && document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const panel = searchOpen ? searchPanelRef.current : mobileMenuOpen ? mobilePanelRef.current : null;
     const focusableSelector = "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])";
@@ -498,7 +516,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       if (event.key === "Escape") {
         setMobileMenuOpen(false);
         setSearchOpen(false);
-        closeMegaMenu();
+        closeMegaMenuRef.current();
         return;
       }
       if (!overlayOpen || event.key !== "Tab" || !focusable.length) return;
@@ -515,11 +533,11 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
 
     window.addEventListener("keydown", handleEscape);
     return () => {
-      document.body.style.overflow = "";
+      if (overlayOpen) document.body.style.overflow = previousBodyOverflow;
       window.removeEventListener("keydown", handleEscape);
       if (overlayOpen) previouslyFocused?.focus();
     };
-  }, [closeMegaMenu, mobileMenuOpen, searchOpen]);
+  }, [mobileMenuOpen, searchOpen]);
 
   useEffect(() => {
     if (!megaMenuOpen) return;
@@ -651,6 +669,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           showSearch={showHomeSearchIcon}
           searchOpen={searchOpen}
           mobileMenuOpen={mobileMenuOpen}
+          mobileMenuId={mobileMenuId}
           onOpenSearch={openSearch}
           onOpenMobileMenu={() => setMobileMenuOpen(true)}
           customizeButtonRef={customizeButtonRef}
@@ -667,6 +686,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
           showSearch
           searchOpen={searchOpen}
           mobileMenuOpen={mobileMenuOpen}
+          mobileMenuId={mobileMenuId}
           onOpenSearch={openSearch}
           onOpenMobileMenu={() => setMobileMenuOpen(true)}
           customizeButtonRef={customizeButtonRef}
@@ -820,7 +840,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
       ) : null}
 
       {mobileMenuOpen ? (
-        <div className={styles.mobileDrawer} role="dialog" aria-modal="true" aria-label="Website menu">
+        <div id={mobileMenuId} className={styles.mobileDrawer} role="dialog" aria-modal="true" aria-label="Website menu">
           <button
             className={styles.overlayBackdrop}
             type="button"
@@ -846,7 +866,7 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                 <p className={styles.mobileSectionHeader}>Account</p>
                 {isLoaded && isSignedIn ? (
                   <>
-                    <Link href="/account" className={styles.mobileProfile} onClick={() => setMobileMenuOpen(false)} aria-label="Open your account">
+                    <Link href="/account" className={styles.mobileProfile} aria-current={isCurrentNavigationPath(pathname, "/account") ? "page" : undefined} onClick={() => setMobileMenuOpen(false)} aria-label="Open your account">
                       <span className={styles.mobileProfileAvatar} aria-hidden="true">
                         {profileImage(user) ? (
                           <Image src={profileImage(user)} alt="" width={48} height={48} unoptimized />
@@ -858,16 +878,16 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
                       </span>
                     </Link>
                     <div className={styles.mobileSectionList}>
-                      <MobileCustomizedMoortiLink onClick={() => setMobileMenuOpen(false)} />
+                      <MobileCustomizedMoortiLink active={isCurrentNavigationPath(pathname, "/custom-murti")} onClick={() => setMobileMenuOpen(false)} />
                     </div>
                   </>
                 ) : isLoaded ? (
                   <div className={styles.mobileSectionList}>
-                    <Link href="/account" className={styles.mobileSectionLink} onClick={handleMyProfileClick}>
+                    <Link href="/account" className={styles.mobileSectionLink} aria-current={isCurrentNavigationPath(pathname, "/account") ? "page" : undefined} onClick={handleMyProfileClick}>
                       <span>My Profile</span>
                       <ChevronRight size={18} strokeWidth={1.5} />
                     </Link>
-                    <MobileCustomizedMoortiLink onClick={() => setMobileMenuOpen(false)} />
+                    <MobileCustomizedMoortiLink active={isCurrentNavigationPath(pathname, "/custom-murti")} onClick={() => setMobileMenuOpen(false)} />
                   </div>
                 ) : (
                   <div className={styles.mobileProfileLoading} aria-busy="true">Loading account...</div>
@@ -875,25 +895,35 @@ export function SiteHeader({ animateLogo = false }: { animateLogo?: boolean }) {
               </div>
 
               <div className={styles.mobileSection}>
+                <p className={styles.mobileSectionHeader}>Shop</p>
+                <div className={styles.mobileSectionList}>
+                  <Link href="/shop" className={styles.mobileSectionLink} aria-current={isCurrentNavigationPath(pathname, "/shop") ? "page" : undefined} onClick={() => setMobileMenuOpen(false)}>
+                    <span>Shop All Moorties</span>
+                    <ChevronRight size={18} strokeWidth={1.5} />
+                  </Link>
+                </div>
+              </div>
+
+              <div className={styles.mobileSection}>
                 <p className={styles.mobileSectionHeader}>Other</p>
                 <div className={styles.mobileSectionList}>
-                  <Link href="/guides" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/guides" className={styles.mobileSectionLink} aria-current={isCurrentNavigationPath(pathname, "/guides") ? "page" : undefined} onClick={() => setMobileMenuOpen(false)}>
                     <span>Guide</span>
                     <ChevronRight size={18} strokeWidth={1.5} />
                   </Link>
-                  <Link href="/artisans" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/artisans" className={styles.mobileSectionLink} aria-current={isCurrentNavigationPath(pathname, "/artisans") ? "page" : undefined} onClick={() => setMobileMenuOpen(false)}>
                     <span>Artisans</span>
                     <ChevronRight size={18} strokeWidth={1.5} />
                   </Link>
-                  <Link href="/our-story" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/our-story" className={styles.mobileSectionLink} aria-current={isCurrentNavigationPath(pathname, "/our-story") ? "page" : undefined} onClick={() => setMobileMenuOpen(false)}>
                     <span>Our Story</span>
                     <ChevronRight size={18} strokeWidth={1.5} />
                   </Link>
-                  <Link href="/contact" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/contact" className={styles.mobileSectionLink} aria-current={isCurrentNavigationPath(pathname, "/contact") ? "page" : undefined} onClick={() => setMobileMenuOpen(false)}>
                     <span>Contact Us</span>
                     <ChevronRight size={18} strokeWidth={1.5} />
                   </Link>
-                  <Link href="/faq" className={styles.mobileSectionLink} onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/faq" className={styles.mobileSectionLink} aria-current={isCurrentNavigationPath(pathname, "/faq") ? "page" : undefined} onClick={() => setMobileMenuOpen(false)}>
                     <span>FAQ</span>
                     <ChevronRight size={18} strokeWidth={1.5} />
                   </Link>
