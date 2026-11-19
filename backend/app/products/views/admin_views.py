@@ -129,7 +129,7 @@ class AdminProductImageUploadUrlView(AdminAPIView):
     POST body: { content_type, file_size, filename? }
     After uploading, finalise with POST /products/<id>/images using the returned object_key.
     """
-    throttle_scope = 'uploads'
+    throttle_scope = 'admin_uploads'
 
     def post(self, request):
         validator = ImageUploadUrlValidator(data=request.data)
@@ -147,7 +147,7 @@ class AdminCategoryImageUploadUrlView(AdminAPIView):
     POST body: { content_type, file_size, filename? }
     After uploading, finalise with POST /products/categories/<id>/finalize-image.
     """
-    throttle_scope = 'uploads'
+    throttle_scope = 'admin_uploads'
 
     def post(self, request):
         validator = ImageUploadUrlValidator(data=request.data)
@@ -260,7 +260,13 @@ class AdminMaterialDetailView(AdminAPIView):
 class AdminDietyListCreateView(AdminAPIView):
     @extend_schema(operation_id='admin_deities_list')
     def get(self, request):
-        error, data = DietyAdminService.get_all_deities()
+        category = request.query_params.get('category')
+        category_id = None
+        if category not in (None, ''):
+            if not str(category).isdigit():
+                return get_response(ErrorResponse(message='Invalid category filter', status_code=400))
+            category_id = int(category)
+        error, data = DietyAdminService.get_all_deities(category_id)
         if error:
             return get_response(ErrorResponse(message=error, status_code=400))
         return get_response(SuccessResponse(message='Deities fetched successfully', data=data))
@@ -307,7 +313,7 @@ class AdminDeityImageUploadUrlView(AdminAPIView):
     POST body: { content_type, file_size, filename? }
     After uploading, finalise with POST /products/deities/<id>/finalize-image.
     """
-    throttle_scope = 'uploads'
+    throttle_scope = 'admin_uploads'
 
     def post(self, request):
         validator = ImageUploadUrlValidator(data=request.data)

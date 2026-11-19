@@ -58,8 +58,14 @@ export async function putPresignedImage(session: PresignedImageUploadSession, fi
 }
 
 export function friendlyUploadError(reason: unknown) {
-  if (reason instanceof ApiError && (reason.status === 401 || reason.status === 403)) {
-    return reason.message || "Please sign in again to upload images.";
+  if (reason instanceof ApiError) {
+    if (reason.status === 401 || reason.status === 403) {
+      return reason.message || "Please sign in again to upload images.";
+    }
+    if (reason.status === 429) {
+      return "Too many images were uploaded in a short time. Wait a little, then try again.";
+    }
+    if (reason.message) return reason.message;
   }
   const message = reason instanceof Error ? reason.message : String(reason || "");
   if (message === "IMAGE_TOO_LARGE") return "Image must be 12 MB or smaller before optimization.";
