@@ -11,12 +11,14 @@ export function Modal({
   children,
   onClose,
   panelClassName = "",
+  size = "default",
 }: {
   open: boolean;
   title: string;
   children: ReactNode;
   onClose: () => void;
   panelClassName?: string;
+  size?: "default" | "wide";
 }) {
   const titleId = `modal-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   const panelRef = useRef<HTMLElement>(null);
@@ -63,7 +65,7 @@ export function Modal({
   return (
     <div className={styles.modalRoot} role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <button className={styles.modalBackdrop} type="button" aria-label="Close dialog" onClick={onClose} />
-      <section className={`${styles.modalPanel} ${panelClassName}`.trim()} ref={panelRef} tabIndex={-1}>
+      <section className={[styles.modalPanel, size === "wide" ? styles.modalPanelWide : "", panelClassName].filter(Boolean).join(" ")} ref={panelRef} tabIndex={-1}>
         <div className={styles.modalHeader}>
           <h2 className="font-display" id={titleId}>{title}</h2>
           <Button variant="ghost" size="icon" aria-label="Close dialog" onClick={onClose}>
