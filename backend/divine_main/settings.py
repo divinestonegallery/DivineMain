@@ -5,7 +5,14 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / '.env', override=False)
+# Docker injects .env.consumer or .env.admin before startup. A local process
+# that has not set DEPLOYMENT_MODE loads the consumer file. Tests do not read
+# either file.
+_deployment_mode = os.getenv('DEPLOYMENT_MODE', 'consumer').strip().lower()
+if _deployment_mode not in {'consumer', 'admin'}:
+    _deployment_mode = 'consumer'
+if 'test' not in sys.argv:
+    load_dotenv(BASE_DIR / f'.env.{_deployment_mode}', override=False)
 
 
 def csv_environment(name, default=""):
@@ -34,7 +41,7 @@ def boolean_environment(name, default=False):
 
 # Core settings. Keep production safe when the deployment environment does not
 # explicitly provide DEBUG; local development can opt in with DEBUG=true in the
-# ignored .env file.
+# ignored .env.consumer or .env.admin file.
 DEBUG = boolean_environment('DEBUG', False)
 IS_TESTING = 'test' in sys.argv
 ENVIRONMENT = os.getenv('ENVIRONMENT', '').strip().lower()
