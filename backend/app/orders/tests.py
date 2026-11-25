@@ -18,13 +18,13 @@ from app.products.models import Category, Diety, Material, Product
 class OrderReceiptClientTests(SimpleTestCase):
     @override_settings(
         RESEND_API_KEY='re_test',
-        RESEND_FROM_EMAIL='Divine Stone Gallery <hello@mail.divinestonegallery.com>',
+        RESEND_FROM_EMAIL='Gallery <hello@mail.example.com>',
     )
     @patch('resend.Emails.send', return_value={'id': 'email_1'})
     def test_send_passes_template_variables_and_idempotency_key(self, mock_send):
         email_id = send_template_email(
             to='customer@example.com',
-            template_id='5f87d138-4409-42e7-8f9b-6e94acd8c16c',
+            template_id='template-test',
             variables={
                 'CUSTOMER_NAME': 'Test Customer',
                 'ORDER_NUMBER': 'DSG-ORD-1',
@@ -39,7 +39,7 @@ class OrderReceiptClientTests(SimpleTestCase):
         self.assertEqual(email_id, 'email_1')
         params, options = mock_send.call_args.args
         self.assertEqual(options['idempotency_key'], 'order-receipt/DSG-ORD-1')
-        self.assertEqual(params['template']['id'], '5f87d138-4409-42e7-8f9b-6e94acd8c16c')
+        self.assertEqual(params['template']['id'], 'template-test')
         self.assertEqual(params['template']['variables']['ORDER_NUMBER'], 'DSG-ORD-1')
         self.assertEqual(params['template']['variables']['QUANTITY'], 1)
         self.assertNotIn('html', params)
