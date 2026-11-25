@@ -4,14 +4,73 @@ import hashlib
 import hmac
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIClient
 
 from app.accounts.identity import ADMIN_AUDIENCE, CONSUMER_AUDIENCE
 from app.accounts.models import Employee, User
 from app.common.token_service import TokenService
+from app.integrations.resend.client import send_template_email
 from app.orders.models import Order, Payment
 from app.products.models import Category, Diety, Material, Product
+
+
+class OrderReceiptClientTests(SimpleTestCase):
+    @override_settings(
+        RESEND_API_KEY='re_test',
+        RESEND_FROM_EMAIL='Divine Stone Gallery <hello@mail.divinestonegallery.com>',
+    )
+    @patch('resend.Emails.send', return_value={'id': 'email_1'})
+    def test_send_passes_template_variables_and_idempotency_key(self, mock_send):
+        email_id = send_template_email(
+            to='customer@example.com',
+            template_id='5f87d138-4409-42e7-8f9b-6e94acd8c16c',
+            variables={
+                'CUSTOMER_NAME': 'Test Customer',
+                'ORDER_NUMBER': 'DSG-ORD-1',
+                'PRODUCT_NAME': 'White Marble Ganesha',
+                'QUANTITY': 1,
+                'TOTAL_AMOUNT': '₹11,800.00',
+                'SHIPPING_ADDRESS': '123 Temple Road, Jaipur, Rajasthan 302001',
+            },
+            idempotency_key='order-receipt/DSG-ORD-1',
+        )
+
+        self.assertEqual(email_id, 'email_1')
+        params, options = mock_send.call_args.args
+        self.assertEqual(options['idempotency_key'], 'order-receipt/DSG-ORD-1')
+        self.assertEqual(params['template']['id'], '5f87d138-4409-42e7-8f9b-6e94acd8c16c')
+        self.assertEqual(params['template']['variables']['ORDER_NUMBER'], 'DSG-ORD-1')
+        self.assertEqual(params['template']['variables']['QUANTITY'], 1)
+        self.assertNotIn('html', params)
+
+    @override_settings(RESEND_API_KEY='re_test', RESEND_FROM_EMAIL='Gallery <hello@mail.example.com>')
+    @patch('app.integrations.resend.client.time.sleep')
+    @patch('resend.Emails.send')
+    def test_retries_server_errors_and_not_other_client_errors(self, mock_send, _sleep):
+        class ProviderError(Exception):
+            def __init__(self, status_code):
+                super().__init__('provider error')
+                self.status_code = status_code
+
+        mock_send.side_effect = ProviderError(400)
+        self.assertIsNone(send_template_email(
+            to='customer@example.com',
+            template_id='template',
+            variables={'ORDER_NUMBER': 'DSG-ORD-1'},
+            idempotency_key='order-receipt/DSG-ORD-1',
+        ))
+        self.assertEqual(mock_send.call_count, 1)
+
+        mock_send.reset_mock()
+        mock_send.side_effect = [ProviderError(503), {'id': 'email_2'}]
+        self.assertEqual(send_template_email(
+            to='customer@example.com',
+            template_id='template',
+            variables={'ORDER_NUMBER': 'DSG-ORD-1'},
+            idempotency_key='order-receipt/DSG-ORD-1',
+        ), 'email_2')
+        self.assertEqual(mock_send.call_count, 2)
 
 
 class OrderWorkflowTests(TestCase):
@@ -96,8 +155,9 @@ class OrderWorkflowTests(TestCase):
         self.assertEqual(order.total_amount, Decimal('11800.00'))  # 10000 + 18% GST
         self.assertEqual(order.payment.razorpay_order_id, 'order_rzp_mock_123')
 
+    @patch('app.orders.services.customer_service.send_order_receipt')
     @patch('app.orders.services.customer_service._razorpay_client')
-    def test_verify_payment_success(self, mock_rz_client):
+    def test_verify_payment_success(self, mock_rz_client, mock_receipt):
         mock_client = MagicMock()
         mock_client.order.create.return_value = {'id': 'order_rzp_mock_456'}
         secret = 'test_secret_key'
@@ -128,6 +188,12 @@ class OrderWorkflowTests(TestCase):
         order = Order.objects.get(payment__razorpay_order_id=rz_order_id)
         self.assertEqual(order.status, Order.Status.CONFIRMED)
         self.assertEqual(order.payment.status, Payment.Status.PAID)
+        mock_receipt.assert_called_once()
+        self.assertEqual(mock_receipt.call_args.args[0].uid, order.uid)
+
+        verify_again = self.client.post('/api/v1/orders/payment/verify', verify_payload, format='json')
+        self.assertEqual(verify_again.status_code, 200)
+        mock_receipt.assert_called_once()
 
     @patch('app.orders.services.customer_service._razorpay_client')
     def test_customer_cancel_order(self, mock_rz_client):

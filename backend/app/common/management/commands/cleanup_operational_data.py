@@ -17,6 +17,7 @@ class Command(BaseCommand):
             error_cutoff=now - timedelta(days=settings.ERROR_LOG_RETENTION_DAYS),
             webhook_cutoff=now - timedelta(days=settings.WEBHOOK_EVENT_RETENTION_DAYS),
             upload_cutoff=now - timedelta(days=settings.UPLOAD_SESSION_RETENTION_DAYS),
+            failure_alert_cutoff=now - timedelta(days=settings.LEAD_FAILURE_ALERT_RETENTION_DAYS),
         )
         summary = ', '.join(f'{name}={count}' for name, count in deleted.items())
         self.stdout.write(self.style.SUCCESS(f'Operational cleanup complete: {summary}'))

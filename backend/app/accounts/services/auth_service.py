@@ -96,6 +96,7 @@ class AuthService:
             if error:
                 logger.warning('Organic lead skipped after a %s session: %s', event, error)
         except Exception:
+            # The lead method reports the failure after its transaction rolls back.
             logger.exception('Organic lead handling failed after a %s session', event)
         return TokenService.generate_token_pair(customer_dict, audience=audience)
 

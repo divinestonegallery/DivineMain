@@ -6,6 +6,10 @@ from app.contactus.repositories.contactus_repository import ContactUsRepository
 from app.leads.attribution import attribution_from
 from app.leads.constants import LEAD_SOURCE_WEBSITE
 from app.leads.repositories.lead_repository import LeadRepository
+from app.leads.services.failure_notification_service import (
+    LeadFailureNotificationService,
+    stage_for_exception,
+)
 from app.leads.services.lead_service import LeadService
 
 
@@ -63,6 +67,15 @@ class ContactUsCustomerService:
                 if existing:
                     return None, existing
             return 'This message was already submitted recently.', None
+        except Exception as exc:
+            LeadFailureNotificationService.notify(
+                source='website',
+                flow=data.get('touchpoint') or 'contact_us',
+                operation='ContactUsCustomerService.create_contact_message',
+                stage=stage_for_exception(exc),
+                error=exc,
+            )
+            raise
         return None, created
 
     @staticmethod
@@ -132,9 +145,16 @@ class ContactUsCustomerService:
                 if existing:
                     return None, existing
             return 'This customization request was already submitted recently.', None
-        except Exception:
+        except Exception as exc:
             if object_key:
                 UploadRepository.release_validating_session(object_key)
+            LeadFailureNotificationService.notify(
+                source='website',
+                flow='custom_moorti',
+                operation='ContactUsCustomerService.create_customize_request',
+                stage=stage_for_exception(exc),
+                error=exc,
+            )
             raise
         return None, created
 

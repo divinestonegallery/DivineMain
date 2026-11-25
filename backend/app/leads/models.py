@@ -213,3 +213,49 @@ class LeadNotification(BaseModel):
         indexes = [
             models.Index(fields=['recipient', 'read_at'], name='lead_notification_read_idx'),
         ]
+
+
+class LeadFailureAlert(BaseModel):
+    """One operational record for a failed lead write.
+
+    This is not an in-app sales reminder. LeadNotification stays the
+    assignment and follow-up inbox. A row here can exist when no lead was
+    saved. The fingerprint is unique so two workers cannot both become the
+    sender for the same failure.
+    """
+
+    STATUS_PENDING = 'pending'
+    STATUS_SENDING = 'sending'
+    STATUS_SENT = 'sent'
+    STATUS_FAILED = 'failed'
+    STATUS_UNCONFIGURED = 'unconfigured'
+    DELIVERY_STATUSES = (
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_SENDING, 'Sending'),
+        (STATUS_SENT, 'Sent'),
+        (STATUS_FAILED, 'Failed'),
+        (STATUS_UNCONFIGURED, 'Unconfigured'),
+    )
+
+    fingerprint = models.CharField(max_length=64, unique=True)
+    source = models.CharField(max_length=40)
+    flow = models.CharField(max_length=64)
+    operation = models.CharField(max_length=120)
+    stage = models.CharField(max_length=40)
+    error_category = models.CharField(max_length=80)
+    external_reference = models.CharField(max_length=255, blank=True, default='')
+    safe_error_summary = models.CharField(max_length=500, blank=True, default='')
+    first_occurred_at = models.DateTimeField()
+    last_occurred_at = models.DateTimeField()
+    occurrence_count = models.PositiveIntegerField(default=1)
+    suppressed_count = models.PositiveIntegerField(default=0)
+    delivery_status = models.CharField(max_length=20, choices=DELIVERY_STATUSES, default=STATUS_PENDING)
+    last_attempt_at = models.DateTimeField(blank=True, null=True)
+    request_id = models.CharField(max_length=64, blank=True, default='')
+
+    class Meta:
+        ordering = ['-last_occurred_at', '-id']
+        indexes = [
+            models.Index(fields=['delivery_status', 'first_occurred_at'], name='lead_failure_delivery_idx'),
+            models.Index(fields=['created_at'], name='lead_failure_created_idx'),
+        ]
