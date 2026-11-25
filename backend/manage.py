@@ -5,12 +5,9 @@ import sys
 
 
 def main():
-    from dotenv import load_dotenv
-    # Load environment variables from .env file
-    load_dotenv()
     """Run administrative tasks."""
-    # DEPLOYMENT_MODE (consumer|admin) is read by divine_main.settings.
-    # Migrations stay shared; the mode only selects the URL surface.
+    # DEPLOYMENT_MODE (consumer|admin) selects .env.consumer or .env.admin
+    # inside divine_main.settings. Migrations stay shared.
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'divine_main.settings')
     try:
         from django.core.management import execute_from_command_line
