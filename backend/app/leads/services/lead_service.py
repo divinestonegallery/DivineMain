@@ -28,6 +28,9 @@ from app.leads.constants import (
     LEAD_STATUS_NEW,
     LEAD_STATUS_ORDER,
     NOTE_BODY_LIMIT,
+    SESSION_EVENT_LOGIN,
+    SESSION_EVENT_SIGNUP,
+    SESSION_EVENT_VERIFICATION,
     TOUCHPOINT_CONTACT,
     TOUCHPOINT_CUSTOM,
     TOUCHPOINT_LEAD_FORM,
@@ -50,6 +53,10 @@ from app.leads.normalization import normalize_email, normalize_phone
 from app.leads.repositories.lead_repository import LeadRepository
 from app.leads.repositories.notification_repository import NotificationRepository
 from app.leads.services.access_service import AccessService
+from app.leads.services.failure_notification_service import (
+    LeadFailureNotificationService,
+    stage_for_exception,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +95,14 @@ def _moment(value):
 
 def _same_moment(left, right):
     return _moment(left) == _moment(right)
+
+
+def _organic_flow(event):
+    return {
+        SESSION_EVENT_LOGIN: 'login',
+        SESSION_EVENT_SIGNUP: 'signup',
+        SESSION_EVENT_VERIFICATION: 'verification',
+    }.get(event, 'session')
 
 
 def _person_label(person):
@@ -301,58 +316,68 @@ class LeadService:
         if assignee_error:
             return assignee_error, None
 
-        with transaction.atomic():
-            matches = LeadRepository.open_matches(data.get('email') or '', data.get('phone') or '')
-            if matches and not data.get('confirm_duplicate'):
-                return DUPLICATE_CONFIRMATION, _duplicate_payload(matches, scope)
-            lead = LeadRepository.create_lead({
-                'name': data['name'],
-                'email': data.get('email') or '',
-                'phone': data.get('phone') or '',
-                'city': data.get('city') or '',
-                'summary': data['summary'],
-            'source': LEAD_SOURCE_MANUAL,
-            'touchpoint': '',
-            'external_id': None,
-                'status': LEAD_STATUS_NEW,
-                'assigned_to_id': assignee_id,
-                'user_id': None,
-                'created_by_id': None,
-                'created_by_employee_id': actor['id'],
-                'follow_up_at': data.get('follow_up_at'),
-                'lost_reason': '',
-            })
-            lead_id = lead['id']
-            LeadRepository.add_activity(
-                lead_id,
-                actor['id'],
-                ACTIVITY_CREATED,
-                field_name='status',
-                new_value=LEAD_STATUS_NEW,
+        try:
+            with transaction.atomic():
+                matches = LeadRepository.open_matches(data.get('email') or '', data.get('phone') or '')
+                if matches and not data.get('confirm_duplicate'):
+                    return DUPLICATE_CONFIRMATION, _duplicate_payload(matches, scope)
+                lead = LeadRepository.create_lead({
+                    'name': data['name'],
+                    'email': data.get('email') or '',
+                    'phone': data.get('phone') or '',
+                    'city': data.get('city') or '',
+                    'summary': data['summary'],
+                    'source': LEAD_SOURCE_MANUAL,
+                    'touchpoint': '',
+                    'external_id': None,
+                    'status': LEAD_STATUS_NEW,
+                    'assigned_to_id': assignee_id,
+                    'user_id': None,
+                    'created_by_id': None,
+                    'created_by_employee_id': actor['id'],
+                    'follow_up_at': data.get('follow_up_at'),
+                    'lost_reason': '',
+                })
+                lead_id = lead['id']
+                LeadRepository.add_activity(
+                    lead_id,
+                    actor['id'],
+                    ACTIVITY_CREATED,
+                    field_name='status',
+                    new_value=LEAD_STATUS_NEW,
+                )
+                if assignee_id:
+                    LeadRepository.add_activity(
+                        lead_id,
+                        actor['id'],
+                        ACTIVITY_ASSIGNED,
+                        field_name='assigned_to',
+                        new_value=_person_label(lead.get('assigned_to')),
+                    )
+                    NotificationRepository.create_notification(
+                        recipient_id=assignee_id,
+                        lead_id=lead_id,
+                        kind=NOTIFICATION_ASSIGNED,
+                        title='Lead assigned',
+                        message='A lead was assigned to you.',
+                    )
+                if data.get('follow_up_at'):
+                    LeadRepository.add_activity(
+                        lead_id,
+                        actor['id'],
+                        ACTIVITY_FOLLOW_UP_CHANGED,
+                        field_name='follow_up_at',
+                        new_value=data['follow_up_at'].isoformat(),
+                    )
+        except Exception as exc:
+            LeadFailureNotificationService.notify(
+                source='manual',
+                flow='staff_create',
+                operation='LeadService.create_lead',
+                stage=stage_for_exception(exc),
+                error=exc,
             )
-            if assignee_id:
-                LeadRepository.add_activity(
-                    lead_id,
-                    actor['id'],
-                    ACTIVITY_ASSIGNED,
-                    field_name='assigned_to',
-                    new_value=_person_label(lead.get('assigned_to')),
-                )
-                NotificationRepository.create_notification(
-                    recipient_id=assignee_id,
-                    lead_id=lead_id,
-                    kind=NOTIFICATION_ASSIGNED,
-                    title='Lead assigned',
-                    message='A lead was assigned to you.',
-                )
-            if data.get('follow_up_at'):
-                LeadRepository.add_activity(
-                    lead_id,
-                    actor['id'],
-                    ACTIVITY_FOLLOW_UP_CHANGED,
-                    field_name='follow_up_at',
-                    new_value=data['follow_up_at'].isoformat(),
-                )
+            raise
         return None, _public_lead(lead, actor, include_notes=True)
 
     @staticmethod
@@ -458,6 +483,11 @@ class LeadService:
     def record_customer_session(customer, event):
         """Apply the organic lead rule for one successful customer session.
 
+        Unexpected failures are reported after this method's own transaction
+        has rolled back. The exception is then raised again so authentication
+        can log it and still issue tokens. Reuse, suppression, employee
+        sessions, and identity conflicts return normally and are not reported.
+
         The order is deliberate. An active lead is reused and noted however old
         it is. Otherwise any lead created inside the suppression window, in any
         status including won and lost, stops a second lead from appearing and
@@ -467,6 +497,20 @@ class LeadService:
         This owns its own transaction because the caller is an authentication
         flow whose success must not depend on lead bookkeeping.
         """
+        try:
+            return LeadService._apply_customer_session(customer, event)
+        except Exception as exc:
+            LeadFailureNotificationService.notify(
+                source='organic',
+                flow=_organic_flow(event),
+                operation='LeadService.record_customer_session',
+                stage=stage_for_exception(exc),
+                error=exc,
+            )
+            raise
+
+    @staticmethod
+    def _apply_customer_session(customer, event):
         if customer.get('role') in {Employee.Role.STAFF, Employee.Role.ADMIN}:
             return None, {'outcome': 'skipped_not_a_customer'}
         email = normalize_email(customer.get('email'))

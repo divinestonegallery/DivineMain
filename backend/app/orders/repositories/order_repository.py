@@ -76,18 +76,20 @@ class OrderRepository:
     def confirm_payment(razorpay_order_id, razorpay_payment_id, razorpay_signature):
         """
         Mark payment as paid and order as confirmed.
-        Returns (error | None, serialized_order | None).
+        Returns (error | None, serialized_order | None, newly_confirmed_order | None).
+        The order is returned only on the transition to paid, so a repeated
+        verification does not send another receipt.
         """
         payment = (
             Payment.objects
-            .select_related('order__product', 'order__customer')
+            .select_related('order__product', 'order__customer', 'order__payment')
             .filter(razorpay_order_id=razorpay_order_id)
             .first()
         )
         if not payment:
-            return 'Payment not found.', None
+            return 'Payment not found.', None, None
         if payment.status == Payment.Status.PAID:
-            return None, OrderCustomerSerializer(payment.order).data
+            return None, OrderCustomerSerializer(payment.order).data, None
         try:
             with transaction.atomic():
                 payment.razorpay_payment_id = razorpay_payment_id
@@ -100,8 +102,8 @@ class OrderRepository:
                 payment.order.save(update_fields=['status', 'updated_at'])
         except Exception as exc:
             logger.error('OrderRepository.confirm_payment failed: %s', exc, exc_info=True)
-            return 'Failed to confirm payment.', None
-        return None, OrderCustomerSerializer(payment.order).data
+            return 'Failed to confirm payment.', None, None
+        return None, OrderCustomerSerializer(payment.order).data, payment.order
 
     @staticmethod
     def fail_payment(razorpay_order_id):

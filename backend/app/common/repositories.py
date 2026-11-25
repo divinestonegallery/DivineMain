@@ -189,10 +189,15 @@ class OperationsRepository:
             return cursor.fetchone()[0] == 1
 
     @staticmethod
-    def cleanup_retained_data(audit_cutoff, error_cutoff, webhook_cutoff, upload_cutoff):
+    def cleanup_retained_data(audit_cutoff, error_cutoff, webhook_cutoff, upload_cutoff, failure_alert_cutoff=None):
+        from app.leads.models import LeadFailureAlert
+
         audit_deleted, _ = StaffAuditLog.objects.filter(created_at__lt=audit_cutoff).delete()
         error_deleted, _ = APIErrorLog.objects.filter(created_at__lt=error_cutoff).delete()
         webhook_deleted, _ = ProcessedWebhook.objects.filter(created_at__lt=webhook_cutoff).delete()
+        failure_deleted = 0
+        if failure_alert_cutoff is not None:
+            failure_deleted, _ = LeadFailureAlert.objects.filter(created_at__lt=failure_alert_cutoff).delete()
         upload_deleted, _ = UploadSession.objects.exclude(
             status__in=(UploadSession.Status.PENDING, UploadSession.Status.VALIDATING),
         ).filter(created_at__lt=upload_cutoff).delete()
@@ -205,4 +210,5 @@ class OperationsRepository:
             'webhook_events': webhook_deleted,
             'upload_sessions': upload_deleted,
             'rate_limit_buckets': rate_limit_deleted,
+            'lead_failure_alerts': failure_deleted,
         }

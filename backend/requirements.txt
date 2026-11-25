@@ -12,6 +12,9 @@ PyJWT>=2.10,<3
 cryptography>=44,<51
 svix>=1.75,<2
 
+# Email
+resend>=2.19,<3
+
 # Utilities
 requests>=2.33,<3
 python-dotenv>=1.2.2,<2

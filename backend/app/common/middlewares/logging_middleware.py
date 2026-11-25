@@ -3,6 +3,7 @@ import uuid
 
 from app.accounts.models import Employee
 from app.common.repositories import OperationsRepository
+from app.common.request_context import request_id_var
 
 logger = logging.getLogger(__name__)
 
@@ -20,48 +21,52 @@ class ObservabilityMiddleware:
         request.request_id = request_id
         exception_type = ''
         exception_message = ''
+        token = request_id_var.set(str(request_id))
 
         try:
-            response = self.get_response(request)
-        except Exception as exc:
-            exception_type = exc.__class__.__name__
-            exception_message = str(exc)[:1000]
-            self._write_error(request, request_id, 500, exception_type, exception_message)
-            raise
-
-        response['X-Request-ID'] = str(request_id)
-        actor = getattr(request, 'user', None)
-        if not isinstance(actor, Employee):
-            actor = None
-
-        if (
-            request.path.startswith('/api/admin/')
-            and request.method in self.MUTATING_METHODS
-            and actor is not None
-            and actor.is_active
-            and actor.role in {'staff', 'admin'}
-        ):
             try:
-                OperationsRepository.write_audit({
-                    'actor': actor,
-                    'request_id': request_id,
-                    'method': request.method,
-                    'path': request.path[:500],
-                    'status_code': response.status_code,
-                    'ip_address': request.META.get('REMOTE_ADDR'),
-                })
-            except Exception:
-                logger.exception('Unable to persist staff audit log')
+                response = self.get_response(request)
+            except Exception as exc:
+                exception_type = exc.__class__.__name__
+                exception_message = str(exc)[:1000]
+                self._write_error(request, request_id, 500, exception_type, exception_message)
+                raise
 
-        if response.status_code >= 500:
-            self._write_error(
-                request,
-                request_id,
-                response.status_code,
-                exception_type or 'HTTPServerError',
-                exception_message or 'Request returned a server error',
-            )
-        return response
+            response['X-Request-ID'] = str(request_id)
+            actor = getattr(request, 'user', None)
+            if not isinstance(actor, Employee):
+                actor = None
+
+            if (
+                request.path.startswith('/api/admin/')
+                and request.method in self.MUTATING_METHODS
+                and actor is not None
+                and actor.is_active
+                and actor.role in {'staff', 'admin'}
+            ):
+                try:
+                    OperationsRepository.write_audit({
+                        'actor': actor,
+                        'request_id': request_id,
+                        'method': request.method,
+                        'path': request.path[:500],
+                        'status_code': response.status_code,
+                        'ip_address': request.META.get('REMOTE_ADDR'),
+                    })
+                except Exception:
+                    logger.exception('Unable to persist staff audit log')
+
+            if response.status_code >= 500:
+                self._write_error(
+                    request,
+                    request_id,
+                    response.status_code,
+                    exception_type or 'HTTPServerError',
+                    exception_message or 'Request returned a server error',
+                )
+            return response
+        finally:
+            request_id_var.reset(token)
 
     @staticmethod
     def _write_error(request, request_id, status_code, error_type, message):

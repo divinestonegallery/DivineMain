@@ -5,6 +5,7 @@ import os
 
 from app.orders.repositories.order_repository import OrderRepository
 from app.orders.serializers.customer import OrderCustomerSerializer
+from app.orders.services.receipt import send_order_receipt
 from app.products.models import Product
 from app.products.enums import ProductStatus, SalesMode
 
@@ -101,9 +102,12 @@ class OrderCustomerService:
             OrderRepository.fail_payment(razorpay_order_id)
             return 'Payment signature is invalid.', None
 
-        return OrderRepository.confirm_payment(
+        error, data, confirmed_order = OrderRepository.confirm_payment(
             razorpay_order_id, razorpay_payment_id, razorpay_signature,
         )
+        if confirmed_order is not None:
+            send_order_receipt(confirmed_order)
+        return error, data
 
     @staticmethod
     def list_my_orders(customer_id):

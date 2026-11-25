@@ -7,6 +7,10 @@ from django.db import IntegrityError, transaction
 from app.integrations.google_ads.client import GoogleAdsPayloadError, parse_lead_form
 from app.integrations.google_ads.repository import GoogleAdsIngestionRepository
 from app.leads.constants import LEAD_SOURCE_GOOGLE_ADS, TOUCHPOINT_LEAD_FORM
+from app.leads.services.failure_notification_service import (
+    LeadFailureNotificationService,
+    stage_for_exception,
+)
 from app.leads.services.lead_service import LeadService
 
 logger = logging.getLogger(__name__)
@@ -18,6 +22,13 @@ class GoogleAdsLeadIntegrationService:
         configured_key = settings.GOOGLE_ADS_LEAD_WEBHOOK_KEY
         if not configured_key:
             logger.error('google_ads webhook outcome=not_configured')
+            _notify_google(
+                external_reference='',
+                error='Google Ads webhook key is not configured.',
+                error_category='not_configured',
+                stage='configuration',
+                dedupe_on_reference=False,
+            )
             return 500, 'Webhook is not configured.'
         try:
             lead = parse_lead_form(payload)
@@ -47,6 +58,13 @@ def _record_test(lead):
 def _record_production(lead):
     if not lead['email'] and not lead['phone']:
         logger.warning('google_ads webhook outcome=missing_contact lead_id=%s', lead['lead_id'])
+        _notify_google(
+            external_reference=lead['lead_id'],
+            error='Authenticated lead form did not include an email address or phone number.',
+            error_category='missing_contact',
+            stage='validation',
+            dedupe_on_reference=True,
+        )
         return 400, 'A phone number or email address is required.'
     try:
         with transaction.atomic():
@@ -71,14 +89,31 @@ def _record_production(lead):
     except _PermanentIntakeError as exc:
         logger.warning('google_ads webhook outcome=rejected lead_id=%s', lead['lead_id'])
         return 400, exc.message
-    except IntegrityError:
+    except IntegrityError as exc:
         if GoogleAdsIngestionRepository.lead_id_for_event(lead['lead_id']):
             logger.info('google_ads webhook outcome=duplicate lead_id=%s', lead['lead_id'])
             return 200, ''
         logger.exception('google_ads webhook outcome=conflict_without_lead lead_id=%s', lead['lead_id'])
+        _notify_google(external_reference=lead['lead_id'], error=exc, dedupe_on_reference=True)
+        raise
+    except Exception as exc:
+        _notify_google(external_reference=lead['lead_id'], error=exc, dedupe_on_reference=True)
         raise
     logger.info('google_ads webhook outcome=%s lead_id=%s', outcome, lead['lead_id'])
     return 200, ''
+
+
+def _notify_google(*, external_reference, error, dedupe_on_reference, error_category='', stage=''):
+    LeadFailureNotificationService.notify(
+        source='google_ads',
+        flow='google_ads_lead_webhook',
+        operation='GoogleAdsLeadIntegrationService.ingest',
+        stage=stage or stage_for_exception(error),
+        error=error,
+        error_category=error_category,
+        external_reference=external_reference,
+        dedupe_on_reference=dedupe_on_reference,
+    )
 
 
 class _PermanentIntakeError(Exception):

@@ -370,8 +370,38 @@ LOGGING = {
     'root': {'handlers': ['console'], 'level': os.getenv('LOG_LEVEL', 'INFO')},
 }
 
-# Notification / Email
-EMAIL_API_KEY = os.getenv('EMAIL_API_KEY')
+# Transactional email. The sending key is restricted to the mail subdomain.
+# The receipt template lives in Resend; this id selects the published version.
+RESEND_API_KEY = optional_environment('RESEND_API_KEY')
+RESEND_FROM_EMAIL = os.getenv(
+    'RESEND_FROM_EMAIL',
+    'Divine Stone Gallery <hello@mail.divinestonegallery.com>',
+).strip()
+RESEND_ORDER_RECEIPT_TEMPLATE_ID = os.getenv(
+    'RESEND_ORDER_RECEIPT_TEMPLATE_ID',
+    '5f87d138-4409-42e7-8f9b-6e94acd8c16c',
+).strip()
+# Comma-separated operational recipients. Empty means a lead failure is logged
+# and stored, and no email is attempted. This is not ADMIN_EMAILS.
+LEAD_FAILURE_NOTIFICATION_EMAILS = [] if IS_TESTING else csv_environment(
+    'LEAD_FAILURE_NOTIFICATION_EMAILS',
+    '',
+)
+LEAD_FAILURE_ALERT_RETENTION_DAYS = int(os.getenv(
+    'LEAD_FAILURE_ALERT_RETENTION_DAYS',
+    str(ERROR_LOG_RETENTION_DAYS),
+))
+# Tests always use the in-memory backend so a configured Resend key cannot
+# send mail from the suite. Production uses Resend for plain-text operational
+# mail. Order receipts keep their own template client.
+if IS_TESTING:
+    EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+else:
+    EMAIL_BACKEND = os.getenv(
+        'EMAIL_BACKEND',
+        'app.integrations.resend.backend.ResendEmailBackend',
+    )
+DEFAULT_FROM_EMAIL = RESEND_FROM_EMAIL
 
 # AI Integration
 GEMINI_API_KEY = optional_environment('GEMINI_API_KEY')
