@@ -12,7 +12,7 @@ class ResendEmailBackendTests(SimpleTestCase):
         message = EmailMessage(
             subject='[DEV] Divine Stone Gallery - Lead Creation Failure - Google Ads',
             body='Source: google_ads',
-            from_email='Divine Stone Gallery <hello@mail.divinestonegallery.com>',
+            from_email='Gallery <notifications@example.com>',
             to=['ops@example.com'],
         )
         message.extra_headers['X-Idempotency-Key'] = 'lead-failure/abc'

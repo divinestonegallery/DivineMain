@@ -370,17 +370,14 @@ LOGGING = {
     'root': {'handlers': ['console'], 'level': os.getenv('LOG_LEVEL', 'INFO')},
 }
 
-# Transactional email. The sending key is restricted to the mail subdomain.
-# The receipt template lives in Resend; this id selects the published version.
+# Transactional email. The key, sender, and receipt template all come from the
+# environment. An empty value means that send is skipped.
 RESEND_API_KEY = optional_environment('RESEND_API_KEY')
-RESEND_FROM_EMAIL = os.getenv(
-    'RESEND_FROM_EMAIL',
-    'Divine Stone Gallery <hello@mail.divinestonegallery.com>',
-).strip()
-RESEND_ORDER_RECEIPT_TEMPLATE_ID = os.getenv(
-    'RESEND_ORDER_RECEIPT_TEMPLATE_ID',
-    '5f87d138-4409-42e7-8f9b-6e94acd8c16c',
-).strip()
+RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', '').strip()
+RESEND_ORDER_RECEIPT_TEMPLATE_ID = os.getenv('RESEND_ORDER_RECEIPT_TEMPLATE_ID', '').strip()
+if IS_TESTING and not RESEND_FROM_EMAIL:
+    # The suite uses the in-memory backend. This is not a Resend account.
+    RESEND_FROM_EMAIL = 'notifications@example.com'
 # Comma-separated operational recipients. Empty means a lead failure is logged
 # and stored, and no email is attempted. This is not ADMIN_EMAILS.
 LEAD_FAILURE_NOTIFICATION_EMAILS = [] if IS_TESTING else csv_environment(
